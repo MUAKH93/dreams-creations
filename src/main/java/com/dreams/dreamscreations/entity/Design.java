@@ -10,11 +10,34 @@ public class Design {
     @GeneratedValue(strategy = GenerationType.IDENTITY)
     private Long design_id;
 
+    private String description;
     private String design_code;
-
     private String name;
 
-    private String description;
+    public String getDescription() {
+        return description;
+    }
+
+    public void setDescription(String description) {
+        this.description = description;
+    }
+
+    public String getDesign_code() {
+        return design_code;
+    }
+
+    public void setDesign_code(String design_code) {
+        this.design_code = design_code;
+    }
+
+    public String getName() {
+        return name;
+    }
+
+    public void setName(String name) {
+        this.name = name;
+    }
+
 
     @ManyToOne
     @JoinColumn(name="category_id")

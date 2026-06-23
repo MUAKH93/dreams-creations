@@ -30,7 +30,13 @@ public class DesignImageServiceImpl implements DesignImageService {
 
         try{
 
-            Design design = designRepository.findById(design_id).orElseThrow();
+            Design design = designRepository.findById(design_id).orElseThrow(() -> new RuntimeException("Design not found"));
+
+            File uploadDir = new File(UPLOAD_DIR);
+
+            if (!uploadDir.exists()) {
+                uploadDir.mkdirs();
+            }
 
             String fileName = file.getOriginalFilename();
             String filePath = UPLOAD_DIR + fileName;
@@ -39,15 +45,17 @@ public class DesignImageServiceImpl implements DesignImageService {
             file.transferTo(destination);
 
             DesignImage image = new DesignImage();
-            image.setImageName(fileName);
-            image.setImagePath(filePath);
-            image.setUploadedAt(LocalDateTime.now());
+            image.setImage_name(fileName);
+            image.setImage_path(filePath);
+            image.setUploaded_at(LocalDateTime.now());
             image.setDesign(design);
 
             designImageRepository.save(image);
 
         }catch(IOException e){
-            throw new RuntimeException("Image Upload Failed");
+            //throw new RuntimeException("Image Upload Failed",e);
+            e.printStackTrace();
+            throw new RuntimeException("Image Upload Failed: " + e.getMessage());
         }
     }
 
