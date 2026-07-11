@@ -1,53 +1,62 @@
 package com.dreams.dreamscreations.entity;
 
+import com.fasterxml.jackson.annotation.JsonIgnoreProperties;
 import jakarta.persistence.*;
+import lombok.AllArgsConstructor;
+import lombok.Builder;
+import lombok.Data;
+import lombok.NoArgsConstructor;
+import org.hibernate.annotations.DynamicInsert;
+import java.math.BigDecimal;
+import java.time.LocalDateTime;
+import java.util.List;
 
+@JsonIgnoreProperties({"hibernateLazyInitializer", "handler"})
 @Entity
 @Table(name = "design")
+@Data
+@NoArgsConstructor
+@AllArgsConstructor
+@DynamicInsert
+@Builder
 public class Design {
 
     @Id
     @GeneratedValue(strategy = GenerationType.IDENTITY)
-    private Long design_id;
+    @Column(name = "design_id")
+    private Long designId;
 
-    private String description;
-    private String design_code;
+    @Column(name = "design_code", nullable = false, unique = true, length = 30)
+    private String designCode;
+
+    @Column(name = "name", nullable = false, length = 100)
     private String name;
 
-    public String getDescription() {
-        return description;
-    }
+    @Column(name = "description", columnDefinition = "TEXT")
+    private String description;
 
-    public void setDescription(String description) {
-        this.description = description;
-    }
+    /** Optional reference / catalog price for this design (Rs.) */
+    @Column(name = "base_price", precision = 10, scale = 2)
+    private BigDecimal basePrice;
 
-    public String getDesign_code() {
-        return design_code;
-    }
+    @Column(name = "is_featured", nullable = false, columnDefinition = "BOOLEAN DEFAULT false")
+    private Boolean isFeatured = false;
 
-    public void setDesign_code(String design_code) {
-        this.design_code = design_code;
-    }
+    @Column(name = "created_at", insertable = false, updatable = false)
+    private LocalDateTime createdAt;
 
-    public String getName() {
-        return name;
-    }
-
-    public void setName(String name) {
-        this.name = name;
-    }
-
-
-    @ManyToOne
-    @JoinColumn(name="category_id")
+    @ManyToOne(fetch = FetchType.LAZY)
+    @JoinColumn(name = "category_id", nullable = false)
     private Category category;
 
-    @ManyToOne
-    @JoinColumn(name="design_type_id")
+    @ManyToOne(fetch = FetchType.LAZY)
+    @JoinColumn(name = "design_type_id", nullable = false)
     private DesignType designType;
 
-    @ManyToOne
+    @ManyToOne(fetch = FetchType.LAZY)
     @JoinColumn(name = "embroidery_type_id")
     private EmbroideryType embroideryType;
+
+    @OneToMany(mappedBy = "design", cascade = CascadeType.ALL, fetch = FetchType.LAZY)
+    private List<DesignImage> images;
 }

@@ -1,77 +1,47 @@
 package com.dreams.dreamscreations.entity;
 
+import com.fasterxml.jackson.annotation.JsonIgnore;
+import com.fasterxml.jackson.annotation.JsonIgnoreProperties;
 import jakarta.persistence.*;
-
+import lombok.AllArgsConstructor;
+import lombok.Builder;
+import lombok.Data;
+import lombok.NoArgsConstructor;
+import org.hibernate.annotations.DynamicInsert;
 import java.time.LocalDateTime;
 
+@JsonIgnoreProperties({"hibernateLazyInitializer", "handler"})
 @Entity
 @Table(name = "design_image")
+@Data
+@NoArgsConstructor
+@AllArgsConstructor
+@DynamicInsert
+@Builder
 public class DesignImage {
 
     @Id
     @GeneratedValue(strategy = GenerationType.IDENTITY)
-    private Long image_id;
+    @Column(name = "design_image_id")
+    private Long designImageId;
 
-    private String image_name;
-
-    private String image_path;
-
-    private Boolean is_primary;
-
-    private LocalDateTime uploaded_at;
-
-    public Long getImage_id() {
-        return image_id;
-    }
-
-    public void setImage_id(Long image_id) {
-        this.image_id = image_id;
-    }
-
-    public String getImage_name() {
-        return image_name;
-    }
-
-    public void setImage_name(String image_name) {
-        this.image_name = image_name;
-    }
-
-    public String getImage_path() {
-        return image_path;
-    }
-
-    public void setImage_path(String image_path) {
-        this.image_path = image_path;
-    }
-
-    public Boolean getIs_primary() {
-        return is_primary;
-    }
-
-    public void setIs_primary(Boolean is_primary) {
-        this.is_primary = is_primary;
-    }
-
-    public LocalDateTime getUploaded_at() {
-        return uploaded_at;
-    }
-
-    public void setUploaded_at(LocalDateTime uploaded_at) {
-        this.uploaded_at = uploaded_at;
-    }
-
-    public Design getDesign(){
-        return design;
-    }
-
-    public void setDesign(Design design) {
-        this.design = design;
-    }
-
-    @ManyToOne
-    @JoinColumn(name = "design_id")
+    @JsonIgnore
+    @ManyToOne(fetch = FetchType.LAZY)
+    @JoinColumn(name = "design_id", nullable = false)
     private Design design;
 
-    public DesignImage() {
-    }
+    @Column(name = "image_name", nullable = false, length = 255)
+    private String imageName;
+
+    @Column(name = "image_path", nullable = false, length = 500)
+    private String imagePath;
+
+    @Column(name = "display_order", nullable = false, columnDefinition = "INT DEFAULT 0")
+    private Integer displayOrder = 0;
+
+    @Column(name = "is_primary", nullable = false, columnDefinition = "BOOLEAN DEFAULT false")
+    private Boolean isPrimary = false;
+
+    @Column(name = "uploaded_at")
+    private LocalDateTime uploadedAt;
 }
