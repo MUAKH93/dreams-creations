@@ -21,8 +21,13 @@ export function apiErrorMessage(error) {
   const msg = error.response?.data?.message
   if (msg) return msg
   if (error.response.status === 403) return 'Access denied. Try logging in again.'
-  if (error.response.status === 401) return 'Session expired. Please login again.'
+  if (error.response.status === 401) return 'Incorrect email/username or password.'
   return `Server error (${error.response.status})`
+}
+
+function isPublicAuthRequest(url = '') {
+  return ['/auth/login', '/auth/register', '/auth/forgot-password', '/auth/reset-password', '/auth/validate-reset-token']
+    .some(path => url.includes(path))
 }
 
 // Request interceptor — attach token before every request
@@ -46,7 +51,8 @@ client.interceptors.response.use(
   (error) => {
     const status = error.response?.status
     const hasToken = !!localStorage.getItem('token')
-    if (status === 401 || (status === 403 && hasToken)) {
+    const publicAuth = isPublicAuthRequest(error.config?.url)
+    if ((status === 401 || (status === 403 && hasToken)) && !publicAuth) {
       localStorage.removeItem('token')
       localStorage.removeItem('user')
       window.location.href = '/login'

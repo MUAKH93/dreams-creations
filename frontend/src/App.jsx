@@ -1,8 +1,9 @@
+import { useState } from 'react'
 import { Routes, Route, Navigate, useNavigate, useLocation } from 'react-router-dom'
-import { Layout, Menu, Typography, Avatar, Dropdown } from 'antd'
+import { Layout, Menu, Typography, Avatar, Dropdown, Drawer, Button, Grid } from 'antd'
 import {
   DashboardOutlined, ShoppingOutlined, TeamOutlined,
-  AlertOutlined, UserOutlined, LogoutOutlined,
+  AlertOutlined, UserOutlined, LogoutOutlined, MenuOutlined,
   AppstoreOutlined, SendOutlined, FileTextOutlined,
   PictureOutlined, InboxOutlined, CheckSquareOutlined, SafetyCertificateOutlined,
   SettingOutlined, BarChartOutlined, HistoryOutlined, SolutionOutlined,
@@ -15,6 +16,8 @@ import { MANAGEMENT_ROLES, ROLES, portalLabel, homeForRole } from './utils/roles
 import LoginPage          from './pages/auth/LoginPage'
 import PortalLoginPage    from './pages/auth/PortalLoginPage'
 import RegisterPage       from './pages/auth/RegisterPage'
+import ForgotPasswordPage from './pages/auth/ForgotPasswordPage'
+import ResetPasswordPage  from './pages/auth/ResetPasswordPage'
 import DashboardPage      from './pages/dashboard/DashboardPage'
 import AlertsPage         from './pages/dashboard/AlertsPage'
 import BatchesPage        from './pages/production/BatchesPage'
@@ -36,6 +39,32 @@ import SessionCheck from './components/SessionCheck'
 
 const { Sider, Content, Header } = Layout
 const { Text } = Typography
+const { useBreakpoint } = Grid
+
+function SidebarBrand({ role }) {
+  return (
+    <div className="app-sider-brand">
+      <Text strong style={{ color: '#fff', fontSize: 16 }}>Dreams Creations</Text>
+      <br />
+      <Text style={{ color: 'rgba(255,255,255,0.5)', fontSize: 11 }}>
+        {portalLabel(role)}
+      </Text>
+    </div>
+  )
+}
+
+function NavMenu({ items, selectedKey, onNavigate }) {
+  return (
+    <Menu
+      theme="dark"
+      mode="inline"
+      selectedKeys={[selectedKey]}
+      style={{ background: '#1a237e', borderRight: 0 }}
+      items={items}
+      onClick={({ key }) => onNavigate(key)}
+    />
+  )
+}
 
 const MANAGER_MENU = [
   { key: '/dashboard',  icon: <DashboardOutlined />, label: 'Dashboard' },
@@ -82,6 +111,9 @@ function AppLayout({ children }) {
   const { auth, logout } = useAuth()
   const navigate          = useNavigate()
   const location          = useLocation()
+  const screens           = useBreakpoint()
+  const isMobile          = !screens.lg
+  const [drawerOpen, setDrawerOpen] = useState(false)
 
   const menuItems = getMenu(auth?.role)
 
@@ -92,49 +124,67 @@ function AppLayout({ children }) {
     }]
   }
 
+  const handleNavigate = (key) => {
+    navigate(key)
+    setDrawerOpen(false)
+  }
+
   return (
-    <Layout style={{ minHeight: '100vh' }}>
-      <Sider theme="dark" width={220} style={{ background: '#1a237e' }}>
-        <div style={{
-          padding: '20px 16px', borderBottom: '1px solid rgba(255,255,255,0.1)', marginBottom: 8
-        }}>
-          <Text strong style={{ color: '#fff', fontSize: 16 }}>Dreams Creations</Text>
-          <br />
-          <Text style={{ color: 'rgba(255,255,255,0.5)', fontSize: 11 }}>
-            {portalLabel(auth?.role)}
-          </Text>
-        </div>
-        <Menu
-          theme="dark"
-          mode="inline"
-          selectedKeys={[location.pathname]}
-          style={{ background: '#1a237e', borderRight: 0 }}
-          items={menuItems}
-          onClick={({ key }) => navigate(key)}
-        />
-      </Sider>
+    <Layout className="app-layout">
+      {!isMobile && (
+        <Sider theme="dark" width={220} className="app-sider">
+          <SidebarBrand role={auth?.role} />
+          <NavMenu
+            items={menuItems}
+            selectedKey={location.pathname}
+            onNavigate={handleNavigate}
+          />
+        </Sider>
+      )}
 
       <Layout>
-        <Header style={{
-          background: '#fff', padding: '0 24px',
-          display: 'flex', alignItems: 'center',
-          justifyContent: 'flex-end',
-          boxShadow: '0 1px 4px rgba(0,0,0,0.08)',
-        }}>
-          <Dropdown menu={userMenu} placement="bottomRight">
-            <div style={{ cursor: 'pointer', display: 'flex', alignItems: 'center', gap: 8 }}>
-              <Avatar icon={<UserOutlined />} style={{ background: '#1a237e' }} />
-              <Text strong>{auth?.username}</Text>
-              <Text type="secondary" style={{ fontSize: 12 }}>({auth?.role})</Text>
-            </div>
-          </Dropdown>
+        <Header className="app-header">
+          {isMobile && (
+            <Button
+              type="text"
+              icon={<MenuOutlined />}
+              className="app-menu-trigger"
+              onClick={() => setDrawerOpen(true)}
+              aria-label="Open menu"
+            />
+          )}
+          <div className="app-header-user">
+            <Dropdown menu={userMenu} placement="bottomRight">
+              <div className="app-header-user-trigger">
+                <Avatar icon={<UserOutlined />} style={{ background: '#1a237e' }} />
+                <Text strong className="app-header-username">{auth?.username}</Text>
+                <Text type="secondary" className="app-header-role">({auth?.role})</Text>
+              </div>
+            </Dropdown>
+          </div>
         </Header>
 
-        <Content style={{ margin: 24 }}>
+        <Content className="app-content">
           <BackendStatus />
           {children}
         </Content>
       </Layout>
+
+      <Drawer
+        title={<SidebarBrand role={auth?.role} />}
+        placement="left"
+        onClose={() => setDrawerOpen(false)}
+        open={drawerOpen}
+        width={260}
+        styles={{ body: { padding: 0, background: '#1a237e' }, header: { background: '#1a237e', borderBottom: '1px solid rgba(255,255,255,0.1)' } }}
+        className="app-drawer"
+      >
+        <NavMenu
+          items={menuItems}
+          selectedKey={location.pathname}
+          onNavigate={handleNavigate}
+        />
+      </Drawer>
     </Layout>
   )
 }
@@ -164,6 +214,8 @@ export default function App() {
         auth ? <RoleHome /> : <PortalLoginPage portalKey="customer" />
       } />
       <Route path="/register" element={auth ? <RoleHome /> : <RegisterPage />} />
+      <Route path="/forgot-password" element={auth ? <RoleHome /> : <ForgotPasswordPage />} />
+      <Route path="/reset-password" element={auth ? <RoleHome /> : <ResetPasswordPage />} />
 
       {/* Dashboard — all roles, role-specific content inside */}
       <Route path="/dashboard" element={

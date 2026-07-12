@@ -5,6 +5,7 @@ import {
 } from '@ant-design/icons'
 import { useAuth } from '../../context/AuthContext'
 import { homeForRole } from '../../utils/roles'
+import AuthScreen from '../../components/AuthScreen'
 
 const { Title, Text } = Typography
 
@@ -29,7 +30,7 @@ const PORTAL_CARDS = [
     path: '/login/customer',
     icon: <ShoppingOutlined style={{ fontSize: 36, color: '#2e7d32' }} />,
     title: 'Customer',
-    description: 'Browse designs, view bills, and check your balance',
+    description: 'Browse designs, request quotes, view bills',
   },
 ]
 
@@ -41,47 +42,34 @@ export default function LoginPage() {
   }
 
   return (
-    <div style={{
-      minHeight: '100vh',
-      display: 'flex',
-      alignItems: 'center',
-      justifyContent: 'center',
-      background: 'linear-gradient(135deg, #1a237e 0%, #283593 100%)',
-      padding: 24,
-    }}>
-      <div style={{ maxWidth: 900, width: '100%' }}>
-        <div style={{ textAlign: 'center', marginBottom: 32 }}>
-          <Title level={2} style={{ color: '#fff', marginBottom: 8 }}>
-            Dreams Creations
-          </Title>
-          <Text style={{ color: 'rgba(255,255,255,0.75)' }}>
-            Choose your portal to sign in
-          </Text>
-        </div>
-
-        <Row gutter={[16, 16]}>
-          {PORTAL_CARDS.map(card => (
-            <Col key={card.key} xs={24} md={8}>
-              <Link to={card.path} style={{ textDecoration: 'none' }}>
-                <Card
-                  hoverable
-                  style={{ height: '100%', borderRadius: 12, textAlign: 'center' }}
-                  styles={{ body: { padding: 28 } }}
-                >
-                  <div style={{ marginBottom: 16 }}>{card.icon}</div>
-                  <Title level={4} style={{ marginBottom: 8 }}>{card.title}</Title>
-                  <Text type="secondary">{card.description}</Text>
-                  {card.note && (
-                    <div style={{ marginTop: 12 }}>
-                      <Text type="secondary" style={{ fontSize: 12 }}>{card.note}</Text>
-                    </div>
-                  )}
-                </Card>
-              </Link>
-            </Col>
-          ))}
-        </Row>
+    <AuthScreen maxWidth={900}>
+      <div style={{ textAlign: 'center', marginBottom: 32 }}>
+        <Title level={2} className="auth-portal-title">Dreams Creations</Title>
+        <Text className="auth-portal-subtitle">Choose your portal to sign in</Text>
       </div>
-    </div>
+
+      <Row gutter={[16, 16]}>
+        {PORTAL_CARDS.map(card => (
+          <Col key={card.key} xs={24} sm={24} md={8}>
+            <Link to={card.path} style={{ textDecoration: 'none' }}>
+              <Card
+                hoverable
+                className="auth-portal-card"
+                styles={{ body: { padding: '24px 20px' } }}
+              >
+                <div style={{ marginBottom: 16 }}>{card.icon}</div>
+                <Title level={4} style={{ marginBottom: 8 }}>{card.title}</Title>
+                <Text type="secondary">{card.description}</Text>
+                {card.note && (
+                  <div style={{ marginTop: 12 }}>
+                    <Text type="secondary" style={{ fontSize: 12 }}>{card.note}</Text>
+                  </div>
+                )}
+              </Card>
+            </Link>
+          </Col>
+        ))}
+      </Row>
+    </AuthScreen>
   )
 }

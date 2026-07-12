@@ -49,18 +49,33 @@ public class AuthServiceImpl {
     }
 
     public LoginResponse login(LoginRequest request) {
-        authManager.authenticate(
-                new UsernamePasswordAuthenticationToken(
-                        request.getUsername(), request.getPassword()));
+        String username = resolveLoginIdentifier(request.getUsername());
 
-        User user = userRepo.findFirstByUsername(request.getUsername())
+        authManager.authenticate(
+                new UsernamePasswordAuthenticationToken(username, request.getPassword()));
+
+        User user = userRepo.findFirstByUsername(username)
                 .orElseThrow(() -> new RuntimeException("User not found"));
 
-        UserDetails userDetails = userDetailsService.loadUserByUsername(request.getUsername());
+        UserDetails userDetails = userDetailsService.loadUserByUsername(username);
         String role = user.getRole() != null ? user.getRole().getRoleName() : "CUSTOMER";
         String token = jwtUtil.generateToken(userDetails, role, user.getUserId());
 
         return buildLoginResponse(token, user, role);
+    }
+
+    private String resolveLoginIdentifier(String input) {
+        if (input == null || input.isBlank()) {
+            throw new RuntimeException("Username or email is required");
+        }
+        String trimmed = input.trim();
+        if (trimmed.contains("@")) {
+            return userRepo.findAllByEmail(trimmed).stream()
+                    .findFirst()
+                    .map(User::getUsername)
+                    .orElse(trimmed);
+        }
+        return trimmed;
     }
 
     public LoginResponse register(RegisterRequest request) {

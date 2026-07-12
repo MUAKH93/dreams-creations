@@ -3,6 +3,7 @@ import { UserOutlined, LockOutlined, MailOutlined } from '@ant-design/icons'
 import { useNavigate, Link } from 'react-router-dom'
 import { useAuth } from '../../context/AuthContext'
 import { authAPI } from '../../api/auth'
+import AuthScreen from '../../components/AuthScreen'
 
 const { Title, Text } = Typography
 
@@ -23,14 +24,8 @@ export default function RegisterPage() {
   }
 
   return (
-    <div style={{
-      minHeight: '100vh',
-      display: 'flex',
-      alignItems: 'center',
-      justifyContent: 'center',
-      background: 'linear-gradient(135deg, #1a237e 0%, #283593 100%)',
-    }}>
-      <Card style={{ width: 420, borderRadius: 12, boxShadow: '0 8px 32px rgba(0,0,0,0.2)' }}>
+    <AuthScreen>
+      <Card className="auth-card">
         <div style={{ textAlign: 'center', marginBottom: 32 }}>
           <Title level={3} style={{ color: '#1a237e', marginBottom: 4 }}>
             Create Account
@@ -66,6 +61,6 @@ export default function RegisterPage() {
           </div>
         </Form>
       </Card>
-    </div>
+    </AuthScreen>
   )
 }
