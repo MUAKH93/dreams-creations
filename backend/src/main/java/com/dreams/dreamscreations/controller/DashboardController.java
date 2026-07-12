@@ -1,5 +1,6 @@
 package com.dreams.dreamscreations.controller;
 
+import com.dreams.dreamscreations.dto.DashboardChartsDTO;
 import com.dreams.dreamscreations.dto.DashboardSummaryDTO;
 import com.dreams.dreamscreations.service.DashboardService;
 import org.springframework.http.ResponseEntity;
@@ -20,5 +21,10 @@ public class DashboardController {
     @GetMapping("/summary")
     public ResponseEntity<DashboardSummaryDTO> getSummary() {
         return ResponseEntity.ok(service.getSummary());
+    }
+
+    @GetMapping("/charts")
+    public ResponseEntity<DashboardChartsDTO> getCharts() {
+        return ResponseEntity.ok(service.getCharts());
     }
 }

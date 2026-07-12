@@ -207,11 +207,19 @@ export default function BillsPage() {
       }
     }
     try {
+      let discount = values.discount || 0
+      if (!discount) {
+        const cust = customers.find(c => c.customerId === values.customerId)
+        if (cust?.discountPercent > 0) {
+          const subtotal = resolved.reduce((s, it) => s + it.quantity * it.unitPrice, 0)
+          discount = Math.round(subtotal * Number(cust.discountPercent) / 100)
+        }
+      }
       await salesAPI.createBill({
         billNumber: values.billNumber,
         customer:   { customerId: values.customerId },
         createdBy:  { userId: auth?.userId || 1 },
-        discount:   values.discount || 0,
+        discount,
         items: resolved.map(it => ({
           product:   { productId: it.product.productId },
           quantity:   it.quantity,

@@ -5,7 +5,7 @@ import {
   AlertOutlined, UserOutlined, LogoutOutlined,
   AppstoreOutlined, SendOutlined, FileTextOutlined,
   PictureOutlined, InboxOutlined, CheckSquareOutlined, SafetyCertificateOutlined,
-  SettingOutlined, BarChartOutlined, HistoryOutlined,
+  SettingOutlined, BarChartOutlined, HistoryOutlined, SolutionOutlined,
 } from '@ant-design/icons'
 import { useAuth } from './context/AuthContext'
 import ProtectedRoute from './routes/ProtectedRoute'
@@ -21,7 +21,9 @@ import BatchesPage        from './pages/production/BatchesPage'
 import DispatchPage       from './pages/production/DispatchPage'
 import CustomersPage      from './pages/sales/CustomersPage'
 import BillsPage          from './pages/sales/BillsPage'
+import QuotationsPage     from './pages/sales/QuotationsPage'
 import MyOrdersPage       from './pages/sales/MyOrdersPage'
+import MyQuotesPage       from './pages/sales/MyQuotesPage'
 import DesignsCatalogPage from './pages/catalog/DesignsCatalogPage'
 import InventoryPage      from './pages/inventory/InventoryPage'
 import AssignmentsPage    from './pages/production/AssignmentsPage'
@@ -42,6 +44,7 @@ const MANAGER_MENU = [
   { key: '/inventory',  icon: <InboxOutlined />,        label: 'Inventory' },
   { key: '/designs',    icon: <PictureOutlined />,    label: 'Designs Catalog' },
   { key: '/customers',  icon: <TeamOutlined />,       label: 'Customers' },
+  { key: '/quotations', icon: <SolutionOutlined />,   label: 'Quotations' },
   { key: '/bills',      icon: <FileTextOutlined />,   label: 'Bills & Payments' },
   { key: '/reports',    icon: <BarChartOutlined />,   label: 'Reports' },
   { key: '/activity',   icon: <HistoryOutlined />,    label: 'Activity Log' },
@@ -57,6 +60,7 @@ const ADMIN_MENU = [
 const CUSTOMER_MENU = [
   { key: '/dashboard',  icon: <DashboardOutlined />,  label: 'Dashboard' },
   { key: '/designs',    icon: <PictureOutlined />,    label: 'Designs Catalog' },
+  { key: '/my-quotes',  icon: <SolutionOutlined />,   label: 'My Quotes' },
   { key: '/my-orders',  icon: <FileTextOutlined />,   label: 'My Bills' },
 ]
 
@@ -194,6 +198,11 @@ export default function App() {
           <AppLayout><BillsPage /></AppLayout>
         </ProtectedRoute>
       } />
+      <Route path="/quotations" element={
+        <ProtectedRoute roles={MANAGEMENT_ROLES}>
+          <AppLayout><QuotationsPage /></AppLayout>
+        </ProtectedRoute>
+      } />
       <Route path="/reports" element={
         <ProtectedRoute roles={MANAGEMENT_ROLES}>
           <AppLayout><ReportsPage /></AppLayout>
@@ -240,6 +249,11 @@ export default function App() {
       <Route path="/my-orders" element={
         <ProtectedRoute roles={[ROLES.CUSTOMER]}>
           <AppLayout><MyOrdersPage /></AppLayout>
+        </ProtectedRoute>
+      } />
+      <Route path="/my-quotes" element={
+        <ProtectedRoute roles={[ROLES.CUSTOMER]}>
+          <AppLayout><MyQuotesPage /></AppLayout>
         </ProtectedRoute>
       } />
 

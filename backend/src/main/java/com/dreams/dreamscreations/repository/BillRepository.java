@@ -39,6 +39,9 @@ public interface BillRepository extends JpaRepository<Bill, Long> {
            "WHERE b.status IN ('unpaid', 'partial') AND b.billDate < :cutoff")
     List<Bill> findOverdueBills(@Param("cutoff") LocalDateTime cutoff);
 
+    @Query("SELECT b FROM Bill b WHERE b.status <> 'cancelled' AND b.billDate >= :since")
+    List<Bill> findActiveBillsSince(@Param("since") LocalDateTime since);
+
     @Query("SELECT COUNT(DISTINCT b.customer.customerId) FROM Bill b " +
            "WHERE b.status IN ('unpaid', 'partial') AND b.billDate < :cutoff")
     long countCustomersWithOverdueBills(@Param("cutoff") LocalDateTime cutoff);

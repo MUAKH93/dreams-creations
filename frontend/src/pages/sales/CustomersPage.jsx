@@ -1,6 +1,6 @@
 import { useEffect, useState } from 'react'
 import {
-  Table, Button, Modal, Form, Input, Tag, Typography, Space, message,
+  Table, Button, Modal, Form, Input, InputNumber, Tag, Typography, Space, message,
   Statistic, Card, Row, Col, Alert, Select, Popconfirm
 } from 'antd'
 import { PlusOutlined, WalletOutlined, EditOutlined, DeleteOutlined } from '@ant-design/icons'
@@ -68,6 +68,7 @@ export default function CustomersPage() {
       city: record.city,
       address: record.address,
       status: record.status || 'active',
+      discountPercent: record.discountPercent || 0,
     })
     setModalOpen(true)
   }
@@ -106,6 +107,7 @@ export default function CustomersPage() {
         city: values.city || null,
         address: values.address || null,
         status: values.status || 'active',
+        discountPercent: values.discountPercent || 0,
       }
 
       if (editingId) {
@@ -130,6 +132,8 @@ export default function CustomersPage() {
     { title: 'Phone', dataIndex: 'phone', key: 'phone', render: p => p || '—' },
     { title: 'Email', dataIndex: 'email', key: 'email', render: e => e || '—' },
     { title: 'City', dataIndex: 'city', key: 'city', render: c => c || '—' },
+    { title: 'Discount', dataIndex: 'discountPercent', key: 'discount',
+      render: v => (v > 0 ? <Tag color="blue">{v}%</Tag> : '—') },
     { title: 'Status', dataIndex: 'status', key: 'status',
       render: s => (
         <Tag color={s === 'active' ? 'green' : 'red'}>{s?.toUpperCase() || 'ACTIVE'}</Tag>
@@ -240,6 +244,9 @@ export default function CustomersPage() {
           </Form.Item>
           <Form.Item name="address" label="Address">
             <Input.TextArea rows={2} placeholder="Optional address" />
+          </Form.Item>
+          <Form.Item name="discountPercent" label="Standing Discount %" tooltip="Auto-applied on quotes and bills when discount is left at 0">
+            <InputNumber min={0} max={100} step={0.5} style={{ width: '100%' }} addonAfter="%" />
           </Form.Item>
           {editingId && (
             <Form.Item name="status" label="Status">

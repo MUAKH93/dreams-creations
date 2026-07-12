@@ -7,6 +7,7 @@ import lombok.Builder;
 import lombok.Data;
 import lombok.NoArgsConstructor;
 import org.hibernate.annotations.DynamicInsert;
+import java.math.BigDecimal;
 import java.time.LocalDateTime;
 
 @Entity
@@ -48,4 +49,7 @@ public class Customer {
     @Column(name = "status", nullable = false,
             columnDefinition = "VARCHAR(20) DEFAULT 'active'")
     private String status = "active";
+
+    @Column(name = "discount_percent", nullable = false, precision = 5, scale = 2)
+    private BigDecimal discountPercent = BigDecimal.ZERO;
 }

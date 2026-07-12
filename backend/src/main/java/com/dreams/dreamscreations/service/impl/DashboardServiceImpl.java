@@ -1,5 +1,6 @@
 package com.dreams.dreamscreations.service.impl;
 
+import com.dreams.dreamscreations.dto.DashboardChartsDTO;
 import com.dreams.dreamscreations.dto.DashboardSummaryDTO;
 import com.dreams.dreamscreations.dto.InventoryItemDTO;
 import com.dreams.dreamscreations.entity.Product;
@@ -16,6 +17,10 @@ import org.springframework.transaction.annotation.Transactional;
 
 import java.math.BigDecimal;
 import java.time.LocalDateTime;
+import java.time.YearMonth;
+import java.time.format.DateTimeFormatter;
+import java.util.LinkedHashMap;
+import java.util.List;
 import java.util.Map;
 import java.util.stream.Collectors;
 
@@ -90,6 +95,46 @@ public class DashboardServiceImpl implements DashboardService {
                 .paymentOverdueAlerts(alertRepo.findByStatus("open").stream()
                         .filter(a -> "PAYMENT_OVERDUE".equals(a.getAlertType()))
                         .count())
+                .build();
+    }
+
+    @Override
+    @Transactional(readOnly = true)
+    public DashboardChartsDTO getCharts() {
+        LocalDateTime since = LocalDateTime.now().minusMonths(5).withDayOfMonth(1).withHour(0).withMinute(0).withSecond(0);
+
+        Map<YearMonth, BigDecimal> salesMap = new LinkedHashMap<>();
+        for (int i = 5; i >= 0; i--) {
+            YearMonth ym = YearMonth.from(LocalDateTime.now().minusMonths(i));
+            salesMap.put(ym, BigDecimal.ZERO);
+        }
+
+        for (var bill : billRepo.findActiveBillsSince(since)) {
+            if (bill.getBillDate() == null) continue;
+            YearMonth ym = YearMonth.from(bill.getBillDate());
+            if (salesMap.containsKey(ym)) {
+                BigDecimal amt = bill.getFinalAmount() != null ? bill.getFinalAmount() : BigDecimal.ZERO;
+                salesMap.merge(ym, amt, BigDecimal::add);
+            }
+        }
+
+        DateTimeFormatter fmt = DateTimeFormatter.ofPattern("MMM yyyy");
+        List<DashboardChartsDTO.MonthlySalesPoint> salesByMonth = salesMap.entrySet().stream()
+                .map(e -> DashboardChartsDTO.MonthlySalesPoint.builder()
+                        .month(e.getKey().format(fmt))
+                        .amount(e.getValue())
+                        .build())
+                .collect(Collectors.toList());
+
+        Map<String, Long> pipeline = new LinkedHashMap<>();
+        pipeline.put("planned", batchRepo.findByStatus("planned").stream().count());
+        pipeline.put("in_progress", batchRepo.findByStatus("in_progress").stream().count());
+        pipeline.put("completed", batchRepo.findByStatus("completed").stream().count());
+        pipeline.put("cancelled", batchRepo.findByStatus("cancelled").stream().count());
+
+        return DashboardChartsDTO.builder()
+                .salesByMonth(salesByMonth)
+                .productionPipeline(pipeline)
                 .build();
     }
 

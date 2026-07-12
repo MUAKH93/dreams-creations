@@ -73,6 +73,9 @@ public class CustomerServiceImpl implements CustomerService {
         existing.setAddress(updated.getAddress());
         existing.setCity(updated.getCity());
         existing.setStatus(updated.getStatus());
+        if (updated.getDiscountPercent() != null) {
+            existing.setDiscountPercent(updated.getDiscountPercent());
+        }
         return customerRepo.save(existing);
     }
 

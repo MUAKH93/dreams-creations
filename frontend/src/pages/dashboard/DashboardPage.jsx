@@ -8,6 +8,7 @@ import { apiErrorMessage } from '../../api/client'
 import AdminManagerDashboard from './AdminManagerDashboard'
 import SupervisorDashboard from './SupervisorDashboard'
 import CustomerDashboard from './CustomerDashboard'
+import DashboardCharts from './DashboardCharts'
 
 const { Title } = Typography
 
@@ -81,7 +82,9 @@ export default function DashboardPage() {
       <Title level={4} className="page-title">{titles[role] || 'Dashboard'}</Title>
 
       {(role === 'ADMIN' || role === 'MANAGER') && (
-        <AdminManagerDashboard
+        <>
+          <DashboardCharts />
+          <AdminManagerDashboard
           role={role}
           summary={summary}
           alerts={alerts}
@@ -89,6 +92,7 @@ export default function DashboardPage() {
           loading={loading}
           fmtMoney={fmtMoney}
         />
+        </>
       )}
 
       {role === 'SUPERVISOR' && (
