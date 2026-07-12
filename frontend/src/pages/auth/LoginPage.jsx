@@ -1,33 +1,43 @@
-import { Form, Input, Button, Card, Typography, message } from 'antd'
-import { UserOutlined, LockOutlined } from '@ant-design/icons'
-import { useNavigate, Link } from 'react-router-dom'
+import { Card, Typography, Row, Col } from 'antd'
+import { Link, Navigate } from 'react-router-dom'
+import {
+  SafetyCertificateOutlined, TeamOutlined, ShoppingOutlined,
+} from '@ant-design/icons'
 import { useAuth } from '../../context/AuthContext'
-import { authAPI } from '../../api/auth'
+import { homeForRole } from '../../utils/roles'
 
 const { Title, Text } = Typography
 
+const PORTAL_CARDS = [
+  {
+    key: 'management',
+    path: '/login/management',
+    icon: <SafetyCertificateOutlined style={{ fontSize: 36, color: '#1a237e' }} />,
+    title: 'Management',
+    description: 'Admin & Manager — production, inventory, sales, reports',
+    note: 'Manager uses the same portal as Admin',
+  },
+  {
+    key: 'supervisor',
+    path: '/login/supervisor',
+    icon: <TeamOutlined style={{ fontSize: 36, color: '#1565c0' }} />,
+    title: 'Supervisor',
+    description: 'View assignments, record returns, track due dates',
+  },
+  {
+    key: 'customer',
+    path: '/login/customer',
+    icon: <ShoppingOutlined style={{ fontSize: 36, color: '#2e7d32' }} />,
+    title: 'Customer',
+    description: 'Browse designs, view bills, and check your balance',
+  },
+]
+
 export default function LoginPage() {
-  const { login } = useAuth()
-  const navigate   = useNavigate()
-  const [form]     = Form.useForm()
+  const { auth } = useAuth()
 
-  const onFinish = async (values) => {
-    try {
-      const res = await authAPI.login(values)
-      login(res.data)
-
-      // Redirect based on role
-      const role = res.data.role
-      if (role === 'ADMIN' || role === 'MANAGER') {
-        navigate('/dashboard')
-      } else if (role === 'SUPERVISOR') {
-        navigate('/assignments')
-      } else {
-        navigate('/my-orders')
-      }
-    } catch (err) {
-      message.error(err.response?.data?.message || 'Login failed')
-    }
+  if (auth) {
+    return <Navigate to={homeForRole(auth.role)} replace />
   }
 
   return (
@@ -37,42 +47,41 @@ export default function LoginPage() {
       alignItems: 'center',
       justifyContent: 'center',
       background: 'linear-gradient(135deg, #1a237e 0%, #283593 100%)',
+      padding: 24,
     }}>
-      <Card style={{ width: 400, borderRadius: 12, boxShadow: '0 8px 32px rgba(0,0,0,0.2)' }}>
+      <div style={{ maxWidth: 900, width: '100%' }}>
         <div style={{ textAlign: 'center', marginBottom: 32 }}>
-          <Title level={3} style={{ color: '#1a237e', marginBottom: 4 }}>
+          <Title level={2} style={{ color: '#fff', marginBottom: 8 }}>
             Dreams Creations
           </Title>
-          <Text type="secondary">Inventory & Production Management</Text>
+          <Text style={{ color: 'rgba(255,255,255,0.75)' }}>
+            Choose your portal to sign in
+          </Text>
         </div>
 
-        <Form form={form} onFinish={onFinish} layout="vertical" size="large">
-          <Form.Item
-            name="username"
-            rules={[{ required: true, message: 'Please enter your username' }]}
-          >
-            <Input prefix={<UserOutlined />} placeholder="Username" />
-          </Form.Item>
-
-          <Form.Item
-            name="password"
-            rules={[{ required: true, message: 'Please enter your password' }]}
-          >
-            <Input.Password prefix={<LockOutlined />} placeholder="Password" />
-          </Form.Item>
-
-          <Form.Item>
-            <Button type="primary" htmlType="submit" block>
-              Sign In
-            </Button>
-          </Form.Item>
-
-          <div style={{ textAlign: 'center' }}>
-            <Text type="secondary">New customer? </Text>
-            <Link to="/register">Create an account</Link>
-          </div>
-        </Form>
-      </Card>
+        <Row gutter={[16, 16]}>
+          {PORTAL_CARDS.map(card => (
+            <Col key={card.key} xs={24} md={8}>
+              <Link to={card.path} style={{ textDecoration: 'none' }}>
+                <Card
+                  hoverable
+                  style={{ height: '100%', borderRadius: 12, textAlign: 'center' }}
+                  styles={{ body: { padding: 28 } }}
+                >
+                  <div style={{ marginBottom: 16 }}>{card.icon}</div>
+                  <Title level={4} style={{ marginBottom: 8 }}>{card.title}</Title>
+                  <Text type="secondary">{card.description}</Text>
+                  {card.note && (
+                    <div style={{ marginTop: 12 }}>
+                      <Text type="secondary" style={{ fontSize: 12 }}>{card.note}</Text>
+                    </div>
+                  )}
+                </Card>
+              </Link>
+            </Col>
+          ))}
+        </Row>
+      </div>
     </div>
   )
 }

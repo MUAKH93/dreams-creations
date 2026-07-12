@@ -1,9 +1,9 @@
 import { useEffect, useState } from 'react'
 import {
   Table, Button, Modal, Form, Select, InputNumber,
-  Tag, Typography, Space, DatePicker, message, Drawer, Descriptions, Progress, Card, Alert
+  Tag, Typography, Space, DatePicker, message, Drawer, Descriptions, Progress, Card, Alert, Popconfirm
 } from 'antd'
-import { PlusOutlined, EyeOutlined } from '@ant-design/icons'
+import { PlusOutlined, EyeOutlined, EditOutlined, StopOutlined } from '@ant-design/icons'
 import { productionAPI } from '../../api/production'
 import { apiErrorMessage } from '../../api/client'
 import dayjs from 'dayjs'
@@ -19,9 +19,12 @@ export default function BatchesPage() {
   const [stagePath,  setStagePath]  = useState([])
   const [loading,    setLoading]    = useState(true)
   const [modalOpen,  setModalOpen]  = useState(false)
+  const [editOpen,   setEditOpen]   = useState(false)
+  const [editingBatch, setEditingBatch] = useState(null)
   const [flowDrawer, setFlowDrawer] = useState(false)
   const [flowData,   setFlowData]   = useState(null)
   const [form]                      = Form.useForm()
+  const [editForm]                  = Form.useForm()
 
   const load = () => {
     setLoading(true)
@@ -83,6 +86,43 @@ export default function BatchesPage() {
     }
   }
 
+  const openEditBatch = (batch) => {
+    setEditingBatch(batch)
+    editForm.setFieldsValue({
+      totalSuitPlanned: batch.totalSuitPlanned,
+      expectedCompletionDate: batch.expectedCompletionDate ? dayjs(batch.expectedCompletionDate) : null,
+    })
+    setEditOpen(true)
+  }
+
+  const onEditBatch = async (values) => {
+    try {
+      await productionAPI.updateBatch(editingBatch.batchId, {
+        totalSuitPlanned: values.totalSuitPlanned,
+        expectedCompletionDate: values.expectedCompletionDate?.format('YYYY-MM-DD'),
+      })
+      message.success('Batch updated')
+      setEditOpen(false)
+      setEditingBatch(null)
+      load()
+    } catch (err) {
+      message.error(err.response?.data?.message || 'Failed to update batch')
+    }
+  }
+
+  const cancelBatch = async (batchId) => {
+    try {
+      await productionAPI.cancelBatch(batchId)
+      message.success('Batch cancelled')
+      load()
+    } catch (err) {
+      message.error(err.response?.data?.message || 'Failed to cancel batch')
+    }
+  }
+
+  const canModifyBatch = (batch) =>
+    batch.status !== 'completed' && batch.status !== 'cancelled'
+
   const columns = [
     { title: 'Batch #',   dataIndex: 'batchNumber', key: 'batch' },
     { title: 'Suit',      key: 'suit',
@@ -103,7 +143,7 @@ export default function BatchesPage() {
       render: (d) => d ? dayjs(d).format('DD MMM YYYY') : '-' },
     { title: 'Status',    dataIndex: 'status', key: 'status',
       render: (s) => (
-        <Tag color={s === 'completed' ? 'green' : s === 'in_progress' ? 'blue' : 'default'}>
+        <Tag color={s === 'completed' ? 'green' : s === 'in_progress' ? 'blue' : s === 'cancelled' ? 'red' : 'default'}>
           {s?.replace('_', ' ').toUpperCase()}
         </Tag>
       )
@@ -111,8 +151,25 @@ export default function BatchesPage() {
     {
       title: 'Actions', key: 'actions',
       render: (_, r) => (
-        <Button icon={<EyeOutlined />} size="small"
-          onClick={() => viewFlow(r.batchId)}>Flow</Button>
+        <Space>
+          <Button icon={<EyeOutlined />} size="small"
+            onClick={() => viewFlow(r.batchId)}>Flow</Button>
+          {canModifyBatch(r) && (
+            <>
+              <Button icon={<EditOutlined />} size="small"
+                onClick={() => openEditBatch(r)}>Edit</Button>
+              <Popconfirm
+                title="Cancel this batch?"
+                description="Only batches without active dispatches can be cancelled."
+                onConfirm={() => cancelBatch(r.batchId)}
+                okText="Cancel batch"
+                okButtonProps={{ danger: true }}
+              >
+                <Button danger icon={<StopOutlined />} size="small">Cancel</Button>
+              </Popconfirm>
+            </>
+          )}
+        </Space>
       )
     },
   ]
@@ -201,6 +258,28 @@ export default function BatchesPage() {
             <Space>
               <Button type="primary" htmlType="submit">Create Order</Button>
               <Button onClick={() => setModalOpen(false)}>Cancel</Button>
+            </Space>
+          </Form.Item>
+        </Form>
+      </Modal>
+
+      <Modal title={`Edit Batch ${editingBatch?.batchNumber || ''}`} open={editOpen}
+        onCancel={() => { setEditOpen(false); setEditingBatch(null) }} footer={null}>
+        <Form form={editForm} onFinish={onEditBatch} layout="vertical">
+          <Alert type="info" showIcon style={{ marginBottom: 16 }}
+            message="You can adjust planned quantity and due date. Planned cannot be less than already produced." />
+          <Form.Item name="totalSuitPlanned" label="Planned Quantity"
+            rules={[{ required: true, message: 'Enter planned quantity' }]}>
+            <InputNumber min={editingBatch?.totalSuitProduced || 1} style={{ width: '100%' }} />
+          </Form.Item>
+          <Form.Item name="expectedCompletionDate" label="Expected Completion Date"
+            rules={[{ required: true, message: 'Select due date' }]}>
+            <DatePicker style={{ width: '100%' }} />
+          </Form.Item>
+          <Form.Item>
+            <Space>
+              <Button type="primary" htmlType="submit">Save</Button>
+              <Button onClick={() => { setEditOpen(false); setEditingBatch(null) }}>Cancel</Button>
             </Space>
           </Form.Item>
         </Form>

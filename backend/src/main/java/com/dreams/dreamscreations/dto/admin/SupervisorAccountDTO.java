@@ -15,4 +15,5 @@ public class SupervisorAccountDTO {
     private boolean hasLogin;
     private Long userId;
     private String username;
+    private Boolean loginEnabled;
 }

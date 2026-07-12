@@ -62,7 +62,7 @@ export default function RegisterPage() {
 
           <div style={{ textAlign: 'center' }}>
             <Text type="secondary">Already have an account? </Text>
-            <Link to="/login">Sign in</Link>
+            <Link to="/login/customer">Customer sign in</Link>
           </div>
         </Form>
       </Card>

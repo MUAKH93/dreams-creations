@@ -5,13 +5,15 @@ import {
   AlertOutlined, UserOutlined, LogoutOutlined,
   AppstoreOutlined, SendOutlined, FileTextOutlined,
   PictureOutlined, InboxOutlined, CheckSquareOutlined, SafetyCertificateOutlined,
-  SettingOutlined, BarChartOutlined,
+  SettingOutlined, BarChartOutlined, HistoryOutlined,
 } from '@ant-design/icons'
 import { useAuth } from './context/AuthContext'
 import ProtectedRoute from './routes/ProtectedRoute'
+import { MANAGEMENT_ROLES, ROLES, portalLabel, homeForRole } from './utils/roles'
 
 // Pages
 import LoginPage          from './pages/auth/LoginPage'
+import PortalLoginPage    from './pages/auth/PortalLoginPage'
 import RegisterPage       from './pages/auth/RegisterPage'
 import DashboardPage      from './pages/dashboard/DashboardPage'
 import AlertsPage         from './pages/dashboard/AlertsPage'
@@ -25,6 +27,7 @@ import InventoryPage      from './pages/inventory/InventoryPage'
 import AssignmentsPage    from './pages/production/AssignmentsPage'
 import StaffPage          from './pages/admin/StaffPage'
 import SetupPage          from './pages/admin/SetupPage'
+import ActivityLogPage    from './pages/admin/ActivityLogPage'
 import ReportsPage        from './pages/reports/ReportsPage'
 import BackendStatus from './components/BackendStatus'
 import SessionCheck from './components/SessionCheck'
@@ -32,7 +35,7 @@ import SessionCheck from './components/SessionCheck'
 const { Sider, Content, Header } = Layout
 const { Text } = Typography
 
-const ADMIN_MANAGER_MENU = [
+const MANAGER_MENU = [
   { key: '/dashboard',  icon: <DashboardOutlined />, label: 'Dashboard' },
   { key: '/batches',    icon: <AppstoreOutlined />,  label: 'Production Batches' },
   { key: '/dispatch',   icon: <SendOutlined />,       label: 'Dispatch Management' },
@@ -41,9 +44,14 @@ const ADMIN_MANAGER_MENU = [
   { key: '/customers',  icon: <TeamOutlined />,       label: 'Customers' },
   { key: '/bills',      icon: <FileTextOutlined />,   label: 'Bills & Payments' },
   { key: '/reports',    icon: <BarChartOutlined />,   label: 'Reports' },
-  { key: '/staff',      icon: <SafetyCertificateOutlined />, label: 'Staff & Supervisors' },
-  { key: '/setup',      icon: <SettingOutlined />,    label: 'Factory Setup' },
+  { key: '/activity',   icon: <HistoryOutlined />,    label: 'Activity Log' },
   { key: '/alerts',     icon: <AlertOutlined />,      label: 'Alerts' },
+]
+
+const ADMIN_MENU = [
+  ...MANAGER_MENU,
+  { key: '/staff', icon: <SafetyCertificateOutlined />, label: 'Staff & Supervisors' },
+  { key: '/setup', icon: <SettingOutlined />, label: 'Factory Setup' },
 ]
 
 const CUSTOMER_MENU = [
@@ -59,9 +67,10 @@ const SUPERVISOR_MENU = [
 ]
 
 function getMenu(role) {
-  if (role === 'ADMIN' || role === 'MANAGER') return ADMIN_MANAGER_MENU
-  if (role === 'CUSTOMER') return CUSTOMER_MENU
-  if (role === 'SUPERVISOR') return SUPERVISOR_MENU
+  if (role === ROLES.ADMIN) return ADMIN_MENU
+  if (role === ROLES.MANAGER) return MANAGER_MENU
+  if (role === ROLES.CUSTOMER) return CUSTOMER_MENU
+  if (role === ROLES.SUPERVISOR) return SUPERVISOR_MENU
   return []
 }
 
@@ -88,9 +97,7 @@ function AppLayout({ children }) {
           <Text strong style={{ color: '#fff', fontSize: 16 }}>Dreams Creations</Text>
           <br />
           <Text style={{ color: 'rgba(255,255,255,0.5)', fontSize: 11 }}>
-            {auth?.role === 'CUSTOMER' ? 'Customer Portal'
-              : auth?.role === 'SUPERVISOR' ? 'Supervisor Portal'
-              : 'Management System'}
+            {portalLabel(auth?.role)}
           </Text>
         </div>
         <Menu
@@ -128,7 +135,11 @@ function AppLayout({ children }) {
   )
 }
 
-const ADMIN_MANAGER = ['ADMIN', 'MANAGER']
+function RoleHome() {
+  const { auth } = useAuth()
+  if (!auth) return <Navigate to="/login" replace />
+  return <Navigate to={homeForRole(auth.role)} replace />
+}
 
 export default function App() {
   const { auth } = useAuth()
@@ -137,100 +148,110 @@ export default function App() {
     <>
       {auth && <SessionCheck />}
       <Routes>
-      {/* Public */}
-      <Route path="/login"    element={auth ? <Navigate to="/" /> : <LoginPage />} />
-      <Route path="/register" element={auth ? <Navigate to="/" /> : <RegisterPage />} />
+      {/* Public — separate login per portal; Manager shares Management with Admin */}
+      <Route path="/login" element={auth ? <RoleHome /> : <LoginPage />} />
+      <Route path="/login/management" element={
+        auth ? <RoleHome /> : <PortalLoginPage portalKey="management" />
+      } />
+      <Route path="/login/supervisor" element={
+        auth ? <RoleHome /> : <PortalLoginPage portalKey="supervisor" />
+      } />
+      <Route path="/login/customer" element={
+        auth ? <RoleHome /> : <PortalLoginPage portalKey="customer" />
+      } />
+      <Route path="/register" element={auth ? <RoleHome /> : <RegisterPage />} />
 
-      {/* Admin + Manager */}
+      {/* Dashboard — all roles, role-specific content inside */}
       <Route path="/dashboard" element={
-        <ProtectedRoute roles={['ADMIN','MANAGER','SUPERVISOR','CUSTOMER']}>
+        <ProtectedRoute roles={[ROLES.ADMIN, ROLES.MANAGER, ROLES.SUPERVISOR, ROLES.CUSTOMER]}>
           <AppLayout><DashboardPage /></AppLayout>
         </ProtectedRoute>
       } />
+
+      {/* Management operations — Admin & Manager (shared UI) */}
       <Route path="/batches" element={
-        <ProtectedRoute roles={ADMIN_MANAGER}>
+        <ProtectedRoute roles={MANAGEMENT_ROLES}>
           <AppLayout><BatchesPage /></AppLayout>
         </ProtectedRoute>
       } />
       <Route path="/dispatch" element={
-        <ProtectedRoute roles={ADMIN_MANAGER}>
+        <ProtectedRoute roles={MANAGEMENT_ROLES}>
           <AppLayout><DispatchPage /></AppLayout>
         </ProtectedRoute>
       } />
       <Route path="/inventory" element={
-        <ProtectedRoute roles={ADMIN_MANAGER}>
+        <ProtectedRoute roles={MANAGEMENT_ROLES}>
           <AppLayout><InventoryPage /></AppLayout>
         </ProtectedRoute>
       } />
       <Route path="/customers" element={
-        <ProtectedRoute roles={ADMIN_MANAGER}>
+        <ProtectedRoute roles={MANAGEMENT_ROLES}>
           <AppLayout><CustomersPage /></AppLayout>
         </ProtectedRoute>
       } />
       <Route path="/bills" element={
-        <ProtectedRoute roles={ADMIN_MANAGER}>
+        <ProtectedRoute roles={MANAGEMENT_ROLES}>
           <AppLayout><BillsPage /></AppLayout>
         </ProtectedRoute>
       } />
       <Route path="/reports" element={
-        <ProtectedRoute roles={ADMIN_MANAGER}>
+        <ProtectedRoute roles={MANAGEMENT_ROLES}>
           <AppLayout><ReportsPage /></AppLayout>
         </ProtectedRoute>
       } />
+      <Route path="/activity" element={
+        <ProtectedRoute roles={MANAGEMENT_ROLES}>
+          <AppLayout><ActivityLogPage /></AppLayout>
+        </ProtectedRoute>
+      } />
       <Route path="/alerts" element={
-        <ProtectedRoute roles={ADMIN_MANAGER}>
+        <ProtectedRoute roles={MANAGEMENT_ROLES}>
           <AppLayout><AlertsPage /></AppLayout>
         </ProtectedRoute>
       } />
+
+      {/* Admin-only setup (Manager has no separate portal; these are Admin-only) */}
       <Route path="/staff" element={
-        <ProtectedRoute roles={ADMIN_MANAGER}>
+        <ProtectedRoute roles={[ROLES.ADMIN]}>
           <AppLayout><StaffPage /></AppLayout>
         </ProtectedRoute>
       } />
       <Route path="/setup" element={
-        <ProtectedRoute roles={ADMIN_MANAGER}>
+        <ProtectedRoute roles={[ROLES.ADMIN]}>
           <AppLayout><SetupPage /></AppLayout>
         </ProtectedRoute>
       } />
 
       {/* Supervisor portal */}
       <Route path="/assignments" element={
-        <ProtectedRoute roles={['SUPERVISOR','ADMIN','MANAGER']}>
+        <ProtectedRoute roles={[ROLES.SUPERVISOR]}>
           <AppLayout><AssignmentsPage /></AppLayout>
         </ProtectedRoute>
       } />
 
-      {/* Shared — all logged-in roles */}
+      {/* Designs — management, supervisor (read), customer (browse) */}
       <Route path="/designs" element={
-        <ProtectedRoute roles={['ADMIN','MANAGER','CUSTOMER','SUPERVISOR']}>
+        <ProtectedRoute roles={[ROLES.ADMIN, ROLES.MANAGER, ROLES.CUSTOMER, ROLES.SUPERVISOR]}>
           <AppLayout><DesignsCatalogPage /></AppLayout>
         </ProtectedRoute>
       } />
 
       {/* Customer portal */}
       <Route path="/my-orders" element={
-        <ProtectedRoute roles={['CUSTOMER']}>
+        <ProtectedRoute roles={[ROLES.CUSTOMER]}>
           <AppLayout><MyOrdersPage /></AppLayout>
         </ProtectedRoute>
       } />
 
-      {/* Default redirect based on role */}
-      <Route path="/" element={
-        !auth
-          ? <Navigate to="/login" />
-          : auth.role === 'CUSTOMER'
-            ? <Navigate to="/dashboard" />
-            : auth.role === 'SUPERVISOR'
-              ? <Navigate to="/dashboard" />
-              : <Navigate to="/dashboard" />
-      } />
+      <Route path="/" element={<RoleHome />} />
 
       <Route path="/unauthorized" element={
         <div style={{ textAlign: 'center', padding: 80 }}>
           <h2>403 — Access Denied</h2>
+          <p>You do not have permission to view this page for your role.</p>
         </div>
       } />
-      <Route path="*" element={<Navigate to="/" />} />
+      <Route path="*" element={<Navigate to="/" replace />} />
     </Routes>
     </>
   )

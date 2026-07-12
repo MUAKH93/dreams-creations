@@ -1,6 +1,8 @@
 package com.dreams.dreamscreations.controller;
 
+import com.dreams.dreamscreations.dto.BatchUpdateRequest;
 import com.dreams.dreamscreations.entity.ProductionBatch;
+import com.dreams.dreamscreations.security.CurrentUserService;
 import com.dreams.dreamscreations.service.ProductionBatchService;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
@@ -12,7 +14,13 @@ import java.util.List;
 public class ProductionBatchController {
 
     private final ProductionBatchService service;
-    public ProductionBatchController(ProductionBatchService service) { this.service = service; }
+    private final CurrentUserService currentUserService;
+
+    public ProductionBatchController(ProductionBatchService service,
+                                     CurrentUserService currentUserService) {
+        this.service = service;
+        this.currentUserService = currentUserService;
+    }
 
     @PostMapping
     public ResponseEntity<ProductionBatch> create(@RequestBody ProductionBatch batch) {
@@ -38,8 +46,14 @@ public class ProductionBatchController {
     }
 
     @PutMapping("/{id}")
-    public ResponseEntity<ProductionBatch> update(@PathVariable Long id, @RequestBody ProductionBatch batch) {
-        return ResponseEntity.ok(service.update(id, batch));
+    public ResponseEntity<ProductionBatch> update(@PathVariable Long id,
+                                                  @RequestBody BatchUpdateRequest request) {
+        return ResponseEntity.ok(service.updateBatch(id, request, currentUserService.getCurrentUser()));
+    }
+
+    @PostMapping("/{id}/cancel")
+    public ResponseEntity<ProductionBatch> cancel(@PathVariable Long id) {
+        return ResponseEntity.ok(service.cancelBatch(id, currentUserService.getCurrentUser()));
     }
 
     @DeleteMapping("/{id}")

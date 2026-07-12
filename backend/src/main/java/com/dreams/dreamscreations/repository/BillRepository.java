@@ -6,6 +6,7 @@ import org.springframework.data.jpa.repository.JpaRepository;
 import org.springframework.data.jpa.repository.Query;
 import org.springframework.data.repository.query.Param;
 import java.math.BigDecimal;
+import java.time.LocalDateTime;
 import java.util.List;
 import java.util.Optional;
 
@@ -33,4 +34,12 @@ public interface BillRepository extends JpaRepository<Bill, Long> {
     @Query("SELECT COALESCE(SUM(b.finalAmount), 0) FROM Bill b " +
            "WHERE b.customer.customerId = :customerId AND b.status <> 'cancelled'")
     BigDecimal sumFinalAmountByCustomer(@Param("customerId") Long customerId);
+
+    @Query("SELECT b FROM Bill b JOIN FETCH b.customer " +
+           "WHERE b.status IN ('unpaid', 'partial') AND b.billDate < :cutoff")
+    List<Bill> findOverdueBills(@Param("cutoff") LocalDateTime cutoff);
+
+    @Query("SELECT COUNT(DISTINCT b.customer.customerId) FROM Bill b " +
+           "WHERE b.status IN ('unpaid', 'partial') AND b.billDate < :cutoff")
+    long countCustomersWithOverdueBills(@Param("cutoff") LocalDateTime cutoff);
 }

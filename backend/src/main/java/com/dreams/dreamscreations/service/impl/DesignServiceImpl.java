@@ -7,7 +7,9 @@ import com.dreams.dreamscreations.repository.DesignImageRepository;
 import com.dreams.dreamscreations.repository.DesignRepository;
 import com.dreams.dreamscreations.repository.DesignRequiredStageRepository;
 import com.dreams.dreamscreations.repository.SuitRepository;
+import com.dreams.dreamscreations.service.ActivityLogService;
 import com.dreams.dreamscreations.service.DesignService;
+import com.dreams.dreamscreations.security.CurrentUserService;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
@@ -22,17 +24,23 @@ public class DesignServiceImpl implements DesignService {
     private final DesignRequiredStageRepository requiredStageRepository;
     private final SuitRepository suitRepository;
     private final UploadStorage uploadStorage;
+    private final ActivityLogService activityLogService;
+    private final CurrentUserService currentUserService;
 
     public DesignServiceImpl(DesignRepository designRepository,
                              DesignImageRepository designImageRepository,
                              DesignRequiredStageRepository requiredStageRepository,
                              SuitRepository suitRepository,
-                             UploadStorage uploadStorage) {
+                             UploadStorage uploadStorage,
+                             ActivityLogService activityLogService,
+                             CurrentUserService currentUserService) {
         this.designRepository = designRepository;
         this.designImageRepository = designImageRepository;
         this.requiredStageRepository = requiredStageRepository;
         this.suitRepository = suitRepository;
         this.uploadStorage = uploadStorage;
+        this.activityLogService = activityLogService;
+        this.currentUserService = currentUserService;
     }
 
     @Override
@@ -58,6 +66,9 @@ public class DesignServiceImpl implements DesignService {
 
     @Override
     public Design updateDesign(Long id, Design updated) {
+        if (updated.getBasePrice() == null || updated.getBasePrice().signum() <= 0) {
+            throw new RuntimeException("Design price is required and must be greater than zero");
+        }
         Design existing = getDesignById(id);
         existing.setName(updated.getName());
         existing.setDesignCode(updated.getDesignCode());
@@ -67,7 +78,10 @@ public class DesignServiceImpl implements DesignService {
         existing.setDesignType(updated.getDesignType());
         existing.setEmbroideryType(updated.getEmbroideryType());
         existing.setIsFeatured(updated.getIsFeatured());
-        return designRepository.save(existing);
+        Design saved = designRepository.save(existing);
+        activityLogService.log(currentUserService.getCurrentUser(), "DESIGN_UPDATED", "DESIGN", id,
+                "Updated design " + saved.getDesignCode() + " — " + saved.getName());
+        return saved;
     }
 
     @Override

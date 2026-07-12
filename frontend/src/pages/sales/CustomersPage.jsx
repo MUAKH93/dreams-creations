@@ -7,7 +7,7 @@ import { PlusOutlined, WalletOutlined, EditOutlined, DeleteOutlined } from '@ant
 import { salesAPI } from '../../api/sales'
 import { apiErrorMessage } from '../../api/client'
 
-const { Title } = Typography
+const { Title, Text } = Typography
 
 const COUNTRY_CODES = ['+92', '+971', '+1', '+44']
 
@@ -22,6 +22,7 @@ function splitPhone(phone) {
 
 export default function CustomersPage() {
   const [customers, setCustomers] = useState([])
+  const [reminders, setReminders] = useState([])
   const [loading, setLoading] = useState(true)
   const [loadError, setLoadError] = useState(null)
   const [modalOpen, setModalOpen] = useState(false)
@@ -33,13 +34,17 @@ export default function CustomersPage() {
   const load = () => {
     setLoading(true)
     setLoadError(null)
-    salesAPI.getCustomers()
-      .then(r => setCustomers(r.data))
-      .catch(err => {
-        setLoadError(apiErrorMessage(err))
-        message.error(apiErrorMessage(err))
-      })
-      .finally(() => setLoading(false))
+    Promise.allSettled([
+      salesAPI.getCustomers(),
+      salesAPI.getPaymentReminders(30),
+    ]).then(([cust, rem]) => {
+      if (cust.status === 'fulfilled') setCustomers(cust.value.data)
+      else {
+        setLoadError(apiErrorMessage(cust.reason))
+        message.error(apiErrorMessage(cust.reason))
+      }
+      if (rem.status === 'fulfilled') setReminders(rem.value.data)
+    }).finally(() => setLoading(false))
   }
 
   useEffect(() => { load() }, [])
@@ -151,6 +156,16 @@ export default function CustomersPage() {
       ) },
   ]
 
+  const reminderColumns = [
+    { title: 'Customer', dataIndex: 'customerName', key: 'name' },
+    { title: 'Phone', dataIndex: 'phone', key: 'phone', render: p => p || '—' },
+    { title: 'Balance Due', dataIndex: 'balanceDue', key: 'balance',
+      render: (v) => <Text type="danger">Rs. {Number(v || 0).toLocaleString()}</Text> },
+    { title: 'Overdue Bills', dataIndex: 'overdueBillCount', key: 'bills' },
+    { title: 'Days Overdue', dataIndex: 'daysOverdue', key: 'days',
+      render: (d) => <Tag color="red">{d} days</Tag> },
+  ]
+
   return (
     <div>
       <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: 24 }}>
@@ -162,6 +177,18 @@ export default function CustomersPage() {
 
       {loadError && (
         <Alert type="error" message={loadError} style={{ marginBottom: 16 }} showIcon />
+      )}
+
+      {reminders.length > 0 && (
+        <Card title="Payment Reminders (30+ days overdue)" style={{ marginBottom: 24 }}>
+          <Table
+            dataSource={reminders}
+            columns={reminderColumns}
+            rowKey="customerId"
+            pagination={false}
+            size="small"
+          />
+        </Card>
       )}
 
       <Table

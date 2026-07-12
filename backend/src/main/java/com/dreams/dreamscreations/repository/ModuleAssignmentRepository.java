@@ -46,6 +46,7 @@ public interface ModuleAssignmentRepository extends JpaRepository<ModuleAssignme
     List<ModuleAssignment> findByBatch(ProductionBatch batch);
     List<ModuleAssignment> findByStatus(String status);
     List<ModuleAssignment> findBySupervisor(Supervisor supervisor);
+    long countBySupervisor_SupervisorId(Long supervisorId);
     List<ModuleAssignment> findByBatchAndModule(ProductionBatch batch, ProductionModule module);
 
     // All overdue dispatches (due date passed, not yet returned)

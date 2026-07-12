@@ -1,5 +1,6 @@
 package com.dreams.dreamscreations.service;
 
+import com.dreams.dreamscreations.dto.PaymentReminderDTO;
 import com.dreams.dreamscreations.entity.Customer;
 import com.dreams.dreamscreations.entity.CustomerBalance;
 import java.util.List;
@@ -14,4 +15,5 @@ public interface CustomerService {
     Customer update(Long id, Customer customer);
     void delete(Long id);
     CustomerBalance getBalance(Long customerId);
+    List<PaymentReminderDTO> getPaymentReminders(int overdueDays);
 }

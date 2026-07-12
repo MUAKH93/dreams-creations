@@ -1,5 +1,6 @@
 package com.dreams.dreamscreations.controller;
 
+import com.dreams.dreamscreations.dto.PaymentReminderDTO;
 import com.dreams.dreamscreations.entity.Customer;
 import com.dreams.dreamscreations.entity.CustomerBalance;
 import com.dreams.dreamscreations.security.CurrentUserService;
@@ -33,6 +34,12 @@ public class CustomerController {
     public ResponseEntity<CustomerBalance> getMyBalance() {
         Long customerId = currentUserService.requireCustomerId();
         return ResponseEntity.ok(service.getBalance(customerId));
+    }
+
+    @GetMapping("/payment-reminders")
+    public ResponseEntity<List<PaymentReminderDTO>> getPaymentReminders(
+            @RequestParam(defaultValue = "30") int days) {
+        return ResponseEntity.ok(service.getPaymentReminders(days));
     }
 
     @GetMapping("/{id}/balance")

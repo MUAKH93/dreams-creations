@@ -13,6 +13,7 @@ import com.dreams.dreamscreations.repository.InventoryAdjustmentRepository;
 import com.dreams.dreamscreations.repository.InventoryRepository;
 import com.dreams.dreamscreations.repository.ProductRepository;
 import com.dreams.dreamscreations.repository.SuitRepository;
+import com.dreams.dreamscreations.service.ActivityLogService;
 import com.dreams.dreamscreations.service.InventoryService;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
@@ -31,17 +32,20 @@ public class InventoryServiceImpl implements InventoryService {
     private final ProductRepository productRepo;
     private final AlertRepository alertRepo;
     private final InventoryAdjustmentRepository adjustmentRepo;
+    private final ActivityLogService activityLogService;
 
     public InventoryServiceImpl(InventoryRepository inventoryRepo,
                                 SuitRepository suitRepo,
                                 ProductRepository productRepo,
                                 AlertRepository alertRepo,
-                                InventoryAdjustmentRepository adjustmentRepo) {
+                                InventoryAdjustmentRepository adjustmentRepo,
+                                ActivityLogService activityLogService) {
         this.inventoryRepo = inventoryRepo;
         this.suitRepo = suitRepo;
         this.productRepo = productRepo;
         this.alertRepo = alertRepo;
         this.adjustmentRepo = adjustmentRepo;
+        this.activityLogService = activityLogService;
     }
 
     @Override
@@ -153,6 +157,10 @@ public class InventoryServiceImpl implements InventoryService {
                 .reason(reason.trim())
                 .adjustedBy(adjustedBy)
                 .build());
+
+        activityLogService.log(adjustedBy, "STOCK_ADJUSTED", "SUIT", suitId,
+                "Stock adjusted for " + stockLabel(suit) + ": " + previous + " → " + newQuantity
+                        + " (" + reason.trim() + ")");
 
         if (newQuantity > 0) {
             ensureProductListing(suit);

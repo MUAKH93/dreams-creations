@@ -35,4 +35,22 @@ public interface UserRepository extends JpaRepository<User, Long> {
     default boolean usernameTaken(String username) {
         return !findAllByUsername(username).isEmpty();
     }
+
+    @Query("SELECT u FROM User u JOIN FETCH u.role WHERE u.role.roleName = :roleName ORDER BY u.username")
+    List<User> findAllByRoleName(@Param("roleName") String roleName);
+
+    default Optional<User> findManagerById(Long userId) {
+        return findById(userId).filter(u ->
+                u.getRole() != null && "MANAGER".equals(u.getRole().getRoleName()));
+    }
+
+    default boolean usernameTakenByOther(String username, Long excludeUserId) {
+        return findAllByUsername(username.trim()).stream()
+                .anyMatch(u -> !u.getUserId().equals(excludeUserId));
+    }
+
+    default boolean emailTakenByOther(String email, Long excludeUserId) {
+        return findAllByEmail(email).stream()
+                .anyMatch(u -> !u.getUserId().equals(excludeUserId));
+    }
 }

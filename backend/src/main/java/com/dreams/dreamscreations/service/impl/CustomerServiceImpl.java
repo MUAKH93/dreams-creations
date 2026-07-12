@@ -1,5 +1,7 @@
 package com.dreams.dreamscreations.service.impl;
 
+import com.dreams.dreamscreations.dto.PaymentReminderDTO;
+import com.dreams.dreamscreations.entity.Bill;
 import com.dreams.dreamscreations.entity.Customer;
 import com.dreams.dreamscreations.entity.CustomerBalance;
 import com.dreams.dreamscreations.repository.BillRepository;
@@ -9,7 +11,13 @@ import com.dreams.dreamscreations.service.CustomerService;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 import java.math.BigDecimal;
+import java.time.LocalDateTime;
+import java.time.temporal.ChronoUnit;
+import java.util.ArrayList;
+import java.util.Comparator;
+import java.util.LinkedHashMap;
 import java.util.List;
+import java.util.Map;
 import java.util.Optional;
 
 @Service
@@ -83,5 +91,54 @@ public class CustomerServiceImpl implements CustomerService {
     public CustomerBalance getBalance(Long customerId) {
         return balanceRepo.findByCustomer_CustomerId(customerId)
                 .orElseThrow(() -> new RuntimeException("Balance not found for customer: " + customerId));
+    }
+
+    @Override
+    @Transactional(readOnly = true)
+    public List<PaymentReminderDTO> getPaymentReminders(int overdueDays) {
+        if (overdueDays < 1) {
+            overdueDays = 30;
+        }
+        LocalDateTime cutoff = LocalDateTime.now().minusDays(overdueDays);
+        List<Bill> overdueBills = billRepo.findOverdueBills(cutoff);
+
+        Map<Long, List<Bill>> byCustomer = new LinkedHashMap<>();
+        for (Bill bill : overdueBills) {
+            Long customerId = bill.getCustomer().getCustomerId();
+            byCustomer.computeIfAbsent(customerId, k -> new ArrayList<>()).add(bill);
+        }
+
+        List<PaymentReminderDTO> reminders = new ArrayList<>();
+        for (Map.Entry<Long, List<Bill>> entry : byCustomer.entrySet()) {
+            List<Bill> bills = entry.getValue();
+            Bill oldest = bills.stream()
+                    .min(Comparator.comparing(Bill::getBillDate))
+                    .orElse(bills.get(0));
+            Customer customer = oldest.getCustomer();
+            BigDecimal balanceDue = balanceRepo.findByCustomer_CustomerId(customer.getCustomerId())
+                    .map(b -> b.getBalance() != null ? b.getBalance() : BigDecimal.ZERO)
+                    .orElse(BigDecimal.ZERO);
+
+            if (balanceDue.signum() <= 0) {
+                continue;
+            }
+
+            long days = oldest.getBillDate() != null
+                    ? ChronoUnit.DAYS.between(oldest.getBillDate(), LocalDateTime.now())
+                    : overdueDays;
+
+            reminders.add(PaymentReminderDTO.builder()
+                    .customerId(customer.getCustomerId())
+                    .customerName(customer.getFirstName() + " " + customer.getLastName())
+                    .phone(customer.getPhone())
+                    .balanceDue(balanceDue)
+                    .overdueBillCount(bills.size())
+                    .oldestBillDate(oldest.getBillDate())
+                    .daysOverdue((int) days)
+                    .build());
+        }
+
+        reminders.sort(Comparator.comparingInt(PaymentReminderDTO::getDaysOverdue).reversed());
+        return reminders;
     }
 }

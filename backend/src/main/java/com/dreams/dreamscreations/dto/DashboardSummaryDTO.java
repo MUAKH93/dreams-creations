@@ -18,4 +18,6 @@ public class DashboardSummaryDTO {
     private long totalStockUnits;
     private BigDecimal estimatedStockValue;
     private BigDecimal totalOutstandingBalance;
+    private long overduePaymentCustomers;
+    private long paymentOverdueAlerts;
 }

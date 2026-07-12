@@ -3,7 +3,7 @@ import {
   Card, Row, Col, Tag, Typography, Input, Select, Empty, Spin, Badge,
   Modal, Form, Button, Descriptions, Space, message, Checkbox, Divider, Alert, InputNumber, Upload, Popconfirm
 } from 'antd'
-import { SearchOutlined, PlusOutlined, UploadOutlined, PictureOutlined, DeleteOutlined } from '@ant-design/icons'
+import { SearchOutlined, PlusOutlined, UploadOutlined, PictureOutlined, DeleteOutlined, EditOutlined } from '@ant-design/icons'
 import { productionAPI } from '../../api/production'
 import { apiErrorMessage } from '../../api/client'
 import { useAuth } from '../../context/AuthContext'
@@ -39,9 +39,11 @@ export default function DesignsCatalogPage() {
   const [filterCat,   setFilterCat]   = useState(null)
   const [detail,      setDetail]      = useState(null)
   const [addOpen,     setAddOpen]     = useState(false)
+  const [editOpen,    setEditOpen]    = useState(false)
   const [catOpen,     setCatOpen]     = useState(false)
   const [typeOpen,    setTypeOpen]    = useState(false)
   const [form]                        = Form.useForm()
+  const [editForm]                    = Form.useForm()
   const [catForm]                     = Form.useForm()
   const [typeForm]                    = Form.useForm()
   const [allStages, setAllStages]     = useState([])
@@ -161,6 +163,41 @@ export default function DesignsCatalogPage() {
       load()
     } catch (err) {
       message.error(err.response?.data?.message || 'Failed to delete design')
+    }
+  }
+
+  const openEditDesign = () => {
+    if (!detail) return
+    editForm.setFieldsValue({
+      designCode: detail.designCode,
+      name: detail.name,
+      description: detail.description,
+      basePrice: detail.basePrice != null ? Number(detail.basePrice) : undefined,
+      categoryId: detail.category?.categoryId,
+      designTypeId: detail.designType?.designTypeId,
+      isFeatured: detail.isFeatured || false,
+    })
+    setEditOpen(true)
+  }
+
+  const onEditDesign = async (values) => {
+    try {
+      await productionAPI.updateDesign(detail.designId, {
+        designCode: values.designCode,
+        name: values.name,
+        description: values.description,
+        basePrice: values.basePrice,
+        category: { categoryId: values.categoryId },
+        designType: { designTypeId: values.designTypeId },
+        isFeatured: values.isFeatured || false,
+      })
+      message.success('Design updated')
+      setEditOpen(false)
+      const refreshed = await productionAPI.getDesign(detail.designId)
+      setDetail(refreshed.data)
+      load()
+    } catch (err) {
+      message.error(err.response?.data?.message || 'Failed to update design')
     }
   }
 
@@ -330,15 +367,18 @@ export default function DesignsCatalogPage() {
         onCancel={() => setDetail(null)}
         footer={canManage ? (
           <Space style={{ width: '100%', justifyContent: 'space-between' }}>
-            <Popconfirm
-              title="Delete this design?"
-              description="Designs with suits, stock, or production cannot be deleted."
-              onConfirm={() => handleDeleteDesign(detail.designId)}
-              okText="Delete"
-              okButtonProps={{ danger: true }}
-            >
-              <Button danger icon={<DeleteOutlined />}>Delete design</Button>
-            </Popconfirm>
+            <Space>
+              <Button icon={<EditOutlined />} onClick={openEditDesign}>Edit design</Button>
+              <Popconfirm
+                title="Delete this design?"
+                description="Designs with suits, stock, or production cannot be deleted."
+                onConfirm={() => handleDeleteDesign(detail.designId)}
+                okText="Delete"
+                okButtonProps={{ danger: true }}
+              >
+                <Button danger icon={<DeleteOutlined />}>Delete design</Button>
+              </Popconfirm>
+            </Space>
             <Button onClick={() => setDetail(null)}>Close</Button>
           </Space>
         ) : null}
@@ -442,6 +482,47 @@ export default function DesignsCatalogPage() {
             )}
           </>
         )}
+      </Modal>
+
+      <Modal title="Edit Design" open={editOpen}
+        onCancel={() => setEditOpen(false)} footer={null}>
+        <Form form={editForm} onFinish={onEditDesign} layout="vertical">
+          <Form.Item name="designCode" label="Design Code" rules={[{ required: true }]}>
+            <Input />
+          </Form.Item>
+          <Form.Item name="name" label="Design Name" rules={[{ required: true }]}>
+            <Input />
+          </Form.Item>
+          <Form.Item name="categoryId" label="Category" rules={[{ required: true }]}>
+            <Select placeholder="Select category">
+              {categories.map(c => (
+                <Select.Option key={c.categoryId} value={c.categoryId}>{c.categoryName}</Select.Option>
+              ))}
+            </Select>
+          </Form.Item>
+          <Form.Item name="designTypeId" label="Design Type" rules={[{ required: true }]}>
+            <Select placeholder="Select type">
+              {designTypes.map(t => (
+                <Select.Option key={t.designTypeId} value={t.designTypeId}>{t.typeName}</Select.Option>
+              ))}
+            </Select>
+          </Form.Item>
+          <Form.Item name="description" label="Description">
+            <Input.TextArea rows={3} />
+          </Form.Item>
+          <Form.Item name="basePrice" label="Price (Rs.)" rules={[{ required: true, message: 'Enter design price' }]}>
+            <InputNumber min={1} style={{ width: '100%' }} />
+          </Form.Item>
+          <Form.Item name="isFeatured" valuePropName="checked">
+            <Checkbox>Featured design</Checkbox>
+          </Form.Item>
+          <Form.Item>
+            <Space>
+              <Button type="primary" htmlType="submit">Save changes</Button>
+              <Button onClick={() => setEditOpen(false)}>Cancel</Button>
+            </Space>
+          </Form.Item>
+        </Form>
       </Modal>
 
       <Modal title="Add New Design" open={addOpen}

@@ -6,6 +6,7 @@ export const productionAPI = {
   getBatch:         (id)     => client.get(`/production-batches/${id}`),
   createBatch:      (data)   => client.post('/production-batches', data),
   updateBatch:      (id, d)  => client.put(`/production-batches/${id}`, d),
+  cancelBatch:      (id)     => client.post(`/production-batches/${id}/cancel`),
 
   // Design-first production order
   startProductionOrder: (data) => client.post('/production/start-order', data),

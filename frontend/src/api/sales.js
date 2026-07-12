@@ -9,6 +9,7 @@ export const salesAPI = {
   updateCustomer: (id, data) => client.put(`/customers/${id}`, data),
   deleteCustomer: (id)     => client.delete(`/customers/${id}`),
   getBalance:     (id)     => client.get(`/customers/${id}/balance`),
+  getPaymentReminders: (days = 30) => client.get('/customers/payment-reminders', { params: { days } }),
 
   // Bills
   getBills:       ()       => client.get('/bills'),

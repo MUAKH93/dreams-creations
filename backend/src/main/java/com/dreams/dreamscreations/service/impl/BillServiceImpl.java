@@ -2,6 +2,7 @@ package com.dreams.dreamscreations.service.impl;
 
 import com.dreams.dreamscreations.entity.*;
 import com.dreams.dreamscreations.repository.*;
+import com.dreams.dreamscreations.service.ActivityLogService;
 import com.dreams.dreamscreations.service.BillService;
 import com.dreams.dreamscreations.security.CurrentUserService;
 import com.dreams.dreamscreations.service.InventoryService;
@@ -22,6 +23,7 @@ public class BillServiceImpl implements BillService {
     private final ProductRepository productRepo;
     private final InventoryService inventoryService;
     private final CurrentUserService currentUserService;
+    private final ActivityLogService activityLogService;
 
     public BillServiceImpl(BillRepository billRepo,
                            BillItemRepository billItemRepo,
@@ -29,7 +31,8 @@ public class BillServiceImpl implements BillService {
                            CustomerBalanceRepository balanceRepo,
                            ProductRepository productRepo,
                            InventoryService inventoryService,
-                           CurrentUserService currentUserService) {
+                           CurrentUserService currentUserService,
+                           ActivityLogService activityLogService) {
         this.billRepo = billRepo;
         this.billItemRepo = billItemRepo;
         this.customerRepo = customerRepo;
@@ -37,6 +40,7 @@ public class BillServiceImpl implements BillService {
         this.productRepo = productRepo;
         this.inventoryService = inventoryService;
         this.currentUserService = currentUserService;
+        this.activityLogService = activityLogService;
     }
 
     @Override
@@ -135,6 +139,8 @@ public class BillServiceImpl implements BillService {
             Bill saved = billRepo.save(bill);
             restoreStockForBill(saved);
             updateCustomerBalance(saved.getCustomer().getCustomerId());
+            activityLogService.log(currentUserService.getCurrentUser(), "BILL_CANCELLED", "BILL", id,
+                    "Cancelled bill " + saved.getBillNumber());
             return billRepo.findById(saved.getBillId()).orElse(saved);
         }
 

@@ -85,6 +85,11 @@ public class DashboardServiceImpl implements DashboardService {
                 .totalStockUnits(totalUnits)
                 .estimatedStockValue(stockValue)
                 .totalOutstandingBalance(outstanding)
+                .overduePaymentCustomers(billRepo.countCustomersWithOverdueBills(
+                        java.time.LocalDateTime.now().minusDays(AlertServiceImpl.PAYMENT_OVERDUE_DAYS)))
+                .paymentOverdueAlerts(alertRepo.findByStatus("open").stream()
+                        .filter(a -> "PAYMENT_OVERDUE".equals(a.getAlertType()))
+                        .count())
                 .build();
     }
 

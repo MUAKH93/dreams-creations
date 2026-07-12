@@ -36,6 +36,7 @@ build/
 backend/src/main/resources/application.properties
 backend/uploads/*
 !backend/uploads/.gitkeep
+uploads/
 
 # Frontend (Node / Vite)
 frontend/node_modules/

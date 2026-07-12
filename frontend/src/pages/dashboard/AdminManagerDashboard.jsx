@@ -18,7 +18,7 @@ export default function AdminManagerDashboard({
 
   const alertColumns = [
     { title: 'Type', dataIndex: 'alertType', key: 'type',
-      render: (t) => <Tag color={t === 'OVERDUE' ? 'red' : t === 'LOW_STOCK' ? 'orange' : 'gold'}>{t}</Tag> },
+      render: (t) => <Tag color={t === 'OVERDUE' ? 'red' : t === 'LOW_STOCK' ? 'orange' : t === 'PAYMENT_OVERDUE' ? 'magenta' : 'gold'}>{t}</Tag> },
     { title: 'Message', dataIndex: 'message', key: 'message', ellipsis: true },
     { title: 'Date', dataIndex: 'createdDate', key: 'date',
       render: (d) => d ? new Date(d).toLocaleDateString() : '-' },
@@ -42,13 +42,23 @@ export default function AdminManagerDashboard({
         type="info"
         showIcon
         style={{ marginBottom: 16 }}
-        message={isAdmin ? 'Admin overview — factory, sales, inventory & staff' : 'Manager overview — production, sales & inventory'}
+        message={isAdmin ? 'Admin overview — factory, sales, inventory & staff' : 'Manager overview — daily operations (production, sales & inventory)'}
         action={isAdmin ? (
           <a onClick={() => navigate('/staff')}>Staff & Supervisors</a>
         ) : (
           <a onClick={() => navigate('/reports')}>Reports</a>
         )}
       />
+
+      {(s.overduePaymentCustomers > 0) && (
+        <Alert
+          message={`${s.overduePaymentCustomers} customer(s) with payments overdue (30+ days)`}
+          type="error"
+          showIcon
+          style={{ marginBottom: 24, cursor: 'pointer' }}
+          onClick={() => navigate('/customers')}
+        />
+      )}
 
       {(s.openAlerts > 0 || s.lowStockItems > 0) && (
         <Alert
@@ -100,6 +110,13 @@ export default function AdminManagerDashboard({
           </Card>
         </Col>
         <Col xs={24} sm={12} lg={6}>
+          <Card hoverable style={cardStyle} onClick={() => navigate('/customers')}>
+            <Statistic title="Payment Overdue (30d+)" value={s.overduePaymentCustomers ?? 0}
+              prefix={<FileExclamationOutlined />}
+              valueStyle={{ color: (s.overduePaymentCustomers || 0) > 0 ? '#cf1322' : '#3f8600' }} />
+          </Card>
+        </Col>
+        <Col xs={24} sm={12} lg={6}>
           <Card hoverable style={cardStyle} onClick={() => navigate('/inventory')}>
             <Statistic title="Stock Units" value={s.totalStockUnits ?? 0} prefix={<InboxOutlined />} />
           </Card>
@@ -111,22 +128,30 @@ export default function AdminManagerDashboard({
         </Col>
       </Row>
 
-      {isAdmin && (
-        <Row gutter={[16, 16]} style={{ marginBottom: 16 }}>
-          <Col xs={24} sm={12} lg={6}>
-            <Card hoverable style={cardStyle} onClick={() => navigate('/staff')}>
-              <Statistic title="Staff & Setup" value="→" prefix={<SafetyCertificateOutlined />}
-                valueStyle={{ fontSize: 20 }} />
-            </Card>
-          </Col>
-          <Col xs={24} sm={12} lg={6}>
-            <Card hoverable style={cardStyle} onClick={() => navigate('/reports')}>
-              <Statistic title="Reports" value="→" prefix={<FileExclamationOutlined />}
-                valueStyle={{ fontSize: 20 }} />
-            </Card>
-          </Col>
-        </Row>
-      )}
+      <Row gutter={[16, 16]} style={{ marginBottom: 16 }}>
+        <Col xs={24} sm={12} lg={6}>
+          <Card hoverable style={cardStyle} onClick={() => navigate('/activity')}>
+            <Statistic title="Activity Log" value="→" prefix={<SafetyCertificateOutlined />}
+              valueStyle={{ fontSize: 20 }} />
+          </Card>
+        </Col>
+        {isAdmin && (
+          <>
+            <Col xs={24} sm={12} lg={6}>
+              <Card hoverable style={cardStyle} onClick={() => navigate('/staff')}>
+                <Statistic title="Staff & Setup" value="→" prefix={<SafetyCertificateOutlined />}
+                  valueStyle={{ fontSize: 20 }} />
+              </Card>
+            </Col>
+            <Col xs={24} sm={12} lg={6}>
+              <Card hoverable style={cardStyle} onClick={() => navigate('/reports')}>
+                <Statistic title="Reports" value="→" prefix={<FileExclamationOutlined />}
+                  valueStyle={{ fontSize: 20 }} />
+              </Card>
+            </Col>
+          </>
+        )}
+      </Row>
 
       <Row gutter={[16, 16]}>
         <Col xs={24} lg={12}>
