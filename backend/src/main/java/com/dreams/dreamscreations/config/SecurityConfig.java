@@ -136,6 +136,7 @@ public class SecurityConfig {
                 .requestMatchers(HttpMethod.GET, "/api/inventory", "/api/inventory/**").hasAnyRole("ADMIN","MANAGER")
                 .requestMatchers(HttpMethod.POST, "/api/inventory", "/api/inventory/**").hasAnyRole("ADMIN","MANAGER")
                 .requestMatchers(HttpMethod.GET, "/api/dashboard", "/api/dashboard/**").hasAnyRole("ADMIN","MANAGER")
+                .requestMatchers(HttpMethod.GET, "/api/analytics", "/api/analytics/**").hasAnyRole("ADMIN","MANAGER")
                 .requestMatchers(HttpMethod.GET, "/api/quotations/my").hasAnyRole("CUSTOMER","ADMIN","MANAGER")
                 .requestMatchers(HttpMethod.GET, "/api/quotations/next-number").hasAnyRole("ADMIN","MANAGER")
                 .requestMatchers(HttpMethod.GET, "/api/quotations/*").hasAnyRole("CUSTOMER","ADMIN","MANAGER")

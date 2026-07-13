@@ -6,7 +6,7 @@ import {
   AlertOutlined, UserOutlined, LogoutOutlined, MenuOutlined,
   AppstoreOutlined, SendOutlined, FileTextOutlined,
   PictureOutlined, InboxOutlined, CheckSquareOutlined, SafetyCertificateOutlined,
-  SettingOutlined, BarChartOutlined, HistoryOutlined, SolutionOutlined,
+  SettingOutlined,   BarChartOutlined, HistoryOutlined, SolutionOutlined, LineChartOutlined,
 } from '@ant-design/icons'
 import { useAuth } from './context/AuthContext'
 import ProtectedRoute from './routes/ProtectedRoute'
@@ -34,6 +34,7 @@ import StaffPage          from './pages/admin/StaffPage'
 import SetupPage          from './pages/admin/SetupPage'
 import ActivityLogPage    from './pages/admin/ActivityLogPage'
 import ReportsPage        from './pages/reports/ReportsPage'
+import AnalyticsPage      from './pages/analytics/AnalyticsPage'
 import BackendStatus from './components/BackendStatus'
 import SessionCheck from './components/SessionCheck'
 
@@ -76,6 +77,7 @@ const MANAGER_MENU = [
   { key: '/quotations', icon: <SolutionOutlined />,   label: 'Quotations' },
   { key: '/bills',      icon: <FileTextOutlined />,   label: 'Bills & Payments' },
   { key: '/reports',    icon: <BarChartOutlined />,   label: 'Reports' },
+  { key: '/analytics',  icon: <LineChartOutlined />,  label: 'Analytics' },
   { key: '/activity',   icon: <HistoryOutlined />,    label: 'Activity Log' },
   { key: '/alerts',     icon: <AlertOutlined />,      label: 'Alerts' },
 ]
@@ -258,6 +260,11 @@ export default function App() {
       <Route path="/reports" element={
         <ProtectedRoute roles={MANAGEMENT_ROLES}>
           <AppLayout><ReportsPage /></AppLayout>
+        </ProtectedRoute>
+      } />
+      <Route path="/analytics" element={
+        <ProtectedRoute roles={MANAGEMENT_ROLES}>
+          <AppLayout><AnalyticsPage /></AppLayout>
         </ProtectedRoute>
       } />
       <Route path="/activity" element={

@@ -65,6 +65,9 @@ public interface ModuleAssignmentRepository extends JpaRepository<ModuleAssignme
     Integer sumSentByBatchAndModule(@Param("batchId") Long batchId,
                                     @Param("moduleId") Long moduleId);
 
+    @Query("SELECT ma FROM ModuleAssignment ma JOIN FETCH ma.supervisor")
+    List<ModuleAssignment> findAllWithSupervisor();
+
     // Pieces received at a module but not yet forwarded to next module
     // = sum of quantityReturnedOk from module N - sum of quantitySent to module N+1
     // This is computed in the service layer using the two queries above

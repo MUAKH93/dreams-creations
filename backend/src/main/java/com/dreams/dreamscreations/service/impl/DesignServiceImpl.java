@@ -74,6 +74,7 @@ public class DesignServiceImpl implements DesignService {
         existing.setDesignCode(updated.getDesignCode());
         existing.setDescription(updated.getDescription());
         existing.setBasePrice(updated.getBasePrice());
+        existing.setProductionCost(updated.getProductionCost());
         existing.setCategory(updated.getCategory());
         existing.setDesignType(updated.getDesignType());
         existing.setEmbroideryType(updated.getEmbroideryType());

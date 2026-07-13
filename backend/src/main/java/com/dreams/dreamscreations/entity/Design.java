@@ -39,6 +39,10 @@ public class Design {
     @Column(name = "base_price", precision = 10, scale = 2)
     private BigDecimal basePrice;
 
+    /** Estimated production cost per suit (Rs.) — for profitability reports */
+    @Column(name = "production_cost", precision = 10, scale = 2)
+    private BigDecimal productionCost;
+
     @Column(name = "is_featured", nullable = false, columnDefinition = "BOOLEAN DEFAULT false")
     private Boolean isFeatured = false;
 

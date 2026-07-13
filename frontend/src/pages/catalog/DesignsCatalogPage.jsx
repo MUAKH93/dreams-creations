@@ -131,6 +131,7 @@ export default function DesignsCatalogPage() {
         name: values.name,
         description: values.description,
         basePrice: values.basePrice ?? null,
+        productionCost: values.productionCost ?? null,
         category: { categoryId: values.categoryId },
         designType: { designTypeId: values.designTypeId },
         isFeatured: values.isFeatured || false,
@@ -173,6 +174,7 @@ export default function DesignsCatalogPage() {
       name: detail.name,
       description: detail.description,
       basePrice: detail.basePrice != null ? Number(detail.basePrice) : undefined,
+      productionCost: detail.productionCost != null ? Number(detail.productionCost) : undefined,
       categoryId: detail.category?.categoryId,
       designTypeId: detail.designType?.designTypeId,
       isFeatured: detail.isFeatured || false,
@@ -187,6 +189,7 @@ export default function DesignsCatalogPage() {
         name: values.name,
         description: values.description,
         basePrice: values.basePrice,
+        productionCost: values.productionCost ?? null,
         category: { categoryId: values.categoryId },
         designType: { designTypeId: values.designTypeId },
         isFeatured: values.isFeatured || false,
@@ -437,8 +440,13 @@ export default function DesignsCatalogPage() {
               )}
               <Descriptions.Item label="Description">{detail.description || '—'}</Descriptions.Item>
               {detail.basePrice != null && (
-                <Descriptions.Item label="Base Price">
+                <Descriptions.Item label="Selling Price">
                   Rs. {Number(detail.basePrice).toLocaleString()}
+                </Descriptions.Item>
+              )}
+              {detail.productionCost != null && (
+                <Descriptions.Item label="Production Cost">
+                  Rs. {Number(detail.productionCost).toLocaleString()}
                 </Descriptions.Item>
               )}
             </Descriptions>
@@ -510,8 +518,12 @@ export default function DesignsCatalogPage() {
           <Form.Item name="description" label="Description">
             <Input.TextArea rows={3} />
           </Form.Item>
-          <Form.Item name="basePrice" label="Price (Rs.)" rules={[{ required: true, message: 'Enter design price' }]}>
+          <Form.Item name="basePrice" label="Selling Price (Rs.)" rules={[{ required: true, message: 'Enter design price' }]}>
             <InputNumber min={1} style={{ width: '100%' }} />
+          </Form.Item>
+          <Form.Item name="productionCost" label="Production Cost (Rs.)"
+            tooltip="Estimated cost per suit — used in Analytics profitability">
+            <InputNumber min={0} style={{ width: '100%' }} placeholder="Optional" />
           </Form.Item>
           <Form.Item name="isFeatured" valuePropName="checked">
             <Checkbox>Featured design</Checkbox>
@@ -577,8 +589,12 @@ export default function DesignsCatalogPage() {
           <Form.Item name="description" label="Description">
             <Input.TextArea rows={3} />
           </Form.Item>
-          <Form.Item name="basePrice" label="Price (Rs.)" rules={[{ required: true, message: 'Enter design price' }]}>
+          <Form.Item name="basePrice" label="Selling Price (Rs.)" rules={[{ required: true, message: 'Enter design price' }]}>
             <InputNumber min={1} style={{ width: '100%' }} placeholder="Selling price for this design" />
+          </Form.Item>
+          <Form.Item name="productionCost" label="Production Cost (Rs.)"
+            tooltip="Estimated cost per suit — used in Analytics profitability">
+            <InputNumber min={0} style={{ width: '100%' }} placeholder="Optional" />
           </Form.Item>
           <Form.Item label="Design Image" required>
             <Upload
