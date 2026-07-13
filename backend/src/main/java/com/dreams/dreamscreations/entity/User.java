@@ -42,6 +42,22 @@ public class User {
     @Column(name = "email", nullable = false, unique = true, length = 100)
     private String email;
 
+    @Column(name = "first_name", length = 50)
+    private String firstName;
+
+    @Column(name = "last_name", length = 50)
+    private String lastName;
+
+    @Column(name = "phone", length = 20)
+    private String phone;
+
+    @Column(name = "profile_photo", length = 255)
+    private String profilePhoto;
+
+    @Column(name = "email_verified", nullable = false,
+            columnDefinition = "BOOLEAN DEFAULT false")
+    private Boolean emailVerified = false;
+
     @Column(name = "status", nullable = false,
             columnDefinition = "BOOLEAN DEFAULT true")
     private Boolean status = true;

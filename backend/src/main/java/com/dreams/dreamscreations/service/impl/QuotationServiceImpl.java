@@ -1,5 +1,6 @@
 package com.dreams.dreamscreations.service.impl;
 
+import com.dreams.dreamscreations.dto.QuotationListDTO;
 import com.dreams.dreamscreations.entity.*;
 import com.dreams.dreamscreations.repository.*;
 import com.dreams.dreamscreations.security.CurrentUserService;
@@ -130,8 +131,33 @@ public class QuotationServiceImpl implements QuotationService {
 
     @Override
     @Transactional(readOnly = true)
-    public List<Quotation> getAll() {
-        return quotationRepo.findAllWithDetails();
+    public List<QuotationListDTO> getAllSummaries() {
+        return quotationRepo.findAllWithDetails().stream()
+                .map(this::toListDto)
+                .toList();
+    }
+
+    private QuotationListDTO toListDto(Quotation q) {
+        String name = "";
+        Long customerId = null;
+        if (q.getCustomer() != null) {
+            customerId = q.getCustomer().getCustomerId();
+            name = (q.getCustomer().getFirstName() + " "
+                    + (q.getCustomer().getLastName() != null ? q.getCustomer().getLastName() : "")).trim();
+        }
+        int itemCount = q.getItems() != null ? q.getItems().size() : 0;
+        return QuotationListDTO.builder()
+                .quotationId(q.getQuotationId())
+                .quotationNumber(q.getQuotationNumber())
+                .customerId(customerId)
+                .customerName(name)
+                .status(q.getStatus())
+                .totalAmount(q.getTotalAmount())
+                .discount(q.getDiscount())
+                .finalAmount(q.getFinalAmount())
+                .createdAt(q.getCreatedAt())
+                .itemCount(itemCount)
+                .build();
     }
 
     @Override
@@ -189,11 +215,22 @@ public class QuotationServiceImpl implements QuotationService {
         }
 
         Quotation quotation = getById(id);
-        if (!"submitted".equalsIgnoreCase(quotation.getStatus())) {
-            throw new RuntimeException("Only submitted quotations can be approved or rejected");
-        }
-        if ("converted".equalsIgnoreCase(quotation.getStatus())) {
+        String current = quotation.getStatus() != null ? quotation.getStatus().toLowerCase() : "";
+
+        if ("converted".equals(current)) {
             throw new RuntimeException("Quotation is already converted to a bill");
+        }
+
+        if ("approved".equals(newStatus)) {
+            if (!List.of("submitted", "draft").contains(current)) {
+                throw new RuntimeException("Only draft or submitted quotations can be approved");
+            }
+        }
+
+        if ("rejected".equals(newStatus)) {
+            if (!List.of("submitted", "draft").contains(current)) {
+                throw new RuntimeException("Only draft or submitted quotations can be rejected");
+            }
         }
 
         quotation.setStatus(newStatus);

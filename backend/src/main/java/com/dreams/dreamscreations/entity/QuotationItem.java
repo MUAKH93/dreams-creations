@@ -1,5 +1,7 @@
 package com.dreams.dreamscreations.entity;
 
+import com.fasterxml.jackson.annotation.JsonBackReference;
+import com.fasterxml.jackson.annotation.JsonIgnore;
 import com.fasterxml.jackson.annotation.JsonIgnoreProperties;
 import jakarta.persistence.*;
 import lombok.AllArgsConstructor;
@@ -23,16 +25,19 @@ public class QuotationItem {
     @Column(name = "quotation_item_id")
     private Long quotationItemId;
 
+    @JsonBackReference
     @ManyToOne(fetch = FetchType.LAZY)
     @JoinColumn(name = "quotation_id", nullable = false)
     private Quotation quotation;
 
     @ManyToOne(fetch = FetchType.LAZY)
     @JoinColumn(name = "design_id", nullable = false)
+    @JsonIgnoreProperties({"images", "category", "designType", "embroideryType"})
     private Design design;
 
     @ManyToOne(fetch = FetchType.LAZY)
     @JoinColumn(name = "size_id")
+    @JsonIgnoreProperties({"category"})
     private Size size;
 
     @Column(name = "color", length = 50)

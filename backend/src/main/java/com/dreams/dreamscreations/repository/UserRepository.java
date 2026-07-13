@@ -49,6 +49,18 @@ public interface UserRepository extends JpaRepository<User, Long> {
                 .anyMatch(u -> !u.getUserId().equals(excludeUserId));
     }
 
+    default Optional<User> findCustomerUserByEmail(String email) {
+        return findAllByEmailWithRole(email).stream()
+                .filter(u -> u.getRole() != null && "CUSTOMER".equals(u.getRole().getRoleName()))
+                .findFirst();
+    }
+
+    default Optional<User> findCustomerUserByUsername(String username) {
+        if (username == null || username.isBlank()) return Optional.empty();
+        return findFirstByUsername(username.trim())
+                .filter(u -> u.getRole() != null && "CUSTOMER".equals(u.getRole().getRoleName()));
+    }
+
     default boolean emailTakenByOther(String email, Long excludeUserId) {
         return findAllByEmail(email).stream()
                 .anyMatch(u -> !u.getUserId().equals(excludeUserId));

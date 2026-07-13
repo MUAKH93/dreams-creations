@@ -1,7 +1,7 @@
 import { useEffect, useState } from 'react'
 import {
   Table, Button, Modal, Form, Select, InputNumber, Input, Tag, Typography,
-  Space, message, Descriptions, Divider, Popconfirm, Alert,
+  Space, message, Descriptions, Divider, Popconfirm, Alert, Tabs, Badge,
 } from 'antd'
 import { PlusOutlined, EyeOutlined, CheckOutlined, CloseOutlined, FileTextOutlined } from '@ant-design/icons'
 import { quotationsAPI } from '../../api/quotations'
@@ -22,6 +22,16 @@ const statusColor = {
   converted: 'purple',
 }
 
+function normStatus(status) {
+  return (status || '').toLowerCase().trim()
+}
+
+/** Admin/manager can review customer drafts and submitted quotes */
+function canReview(status) {
+  const s = normStatus(status)
+  return s === 'draft' || s === 'submitted'
+}
+
 function customerName(c) {
   if (!c) return '—'
   return `${c.firstName || ''} ${c.lastName || ''}`.trim()
@@ -33,6 +43,8 @@ export default function QuotationsPage() {
   const [designs, setDesigns] = useState([])
   const [sizes, setSizes] = useState([])
   const [loading, setLoading] = useState(true)
+  const [loadError, setLoadError] = useState(null)
+  const [statusFilter, setStatusFilter] = useState('pending')
   const [modalOpen, setModalOpen] = useState(false)
   const [detailOpen, setDetailOpen] = useState(false)
   const [selected, setSelected] = useState(null)
@@ -41,14 +53,20 @@ export default function QuotationsPage() {
 
   const load = () => {
     setLoading(true)
+    setLoadError(null)
     Promise.allSettled([
       quotationsAPI.getAll(),
       salesAPI.getCustomers(),
       salesAPI.getDesigns(),
       salesAPI.getSizes(),
     ]).then(([q, c, d, sz]) => {
-      if (q.status === 'fulfilled') setQuotations(q.value.data)
-      else message.error(apiErrorMessage(q.reason))
+      if (q.status === 'fulfilled') {
+        setQuotations(Array.isArray(q.value.data) ? q.value.data : [])
+      } else {
+        const err = apiErrorMessage(q.reason)
+        setLoadError(err)
+        message.error(err)
+      }
       if (c.status === 'fulfilled') setCustomers(c.value.data)
       if (d.status === 'fulfilled') setDesigns(d.value.data)
       if (sz.status === 'fulfilled') setSizes(sz.value.data)
@@ -166,19 +184,55 @@ export default function QuotationsPage() {
     }
   }
 
+  const displayCustomer = (r) => r.customerName || customerName(r.customer)
+
+  const pendingCount = quotations.filter(q => canReview(q.status)).length
+
+  const filtered = statusFilter === 'all'
+    ? quotations
+    : statusFilter === 'pending'
+      ? quotations.filter(q => canReview(q.status))
+      : quotations.filter(q => normStatus(q.status) === statusFilter)
+
   const columns = [
     { title: 'Quote #', dataIndex: 'quotationNumber', key: 'num' },
-    { title: 'Customer', key: 'cust', render: (_, r) => customerName(r.customer) },
+    { title: 'Customer', key: 'cust', render: (_, r) => displayCustomer(r) },
     { title: 'Status', dataIndex: 'status', key: 'status',
-      render: s => <Tag color={statusColor[s] || 'default'}>{s?.toUpperCase()}</Tag> },
+      render: s => {
+        const n = normStatus(s)
+        return <Tag color={statusColor[n] || 'default'}>{n ? n.toUpperCase() : '—'}</Tag>
+      } },
+    { title: 'Items', dataIndex: 'itemCount', key: 'items', width: 70 },
     { title: 'Total', dataIndex: 'finalAmount', key: 'total',
       render: v => `Rs. ${Number(v || 0).toLocaleString()}` },
     { title: 'Date', dataIndex: 'createdAt', key: 'date',
       render: d => d ? new Date(d).toLocaleDateString() : '—' },
-    { title: 'Actions', key: 'actions',
+    { title: 'Actions', key: 'actions', fixed: 'right', width: 300,
       render: (_, r) => (
-        <Button size="small" icon={<EyeOutlined />} onClick={() => viewDetail(r)}>View</Button>
+        <Space wrap>
+          <Button size="small" icon={<EyeOutlined />} onClick={() => viewDetail(r)}>View</Button>
+          {canReview(r.status) && (
+            <>
+              <Popconfirm title="Approve this quotation?" onConfirm={() => handleStatus(r.quotationId, 'approved')}>
+                <Button size="small" type="primary" icon={<CheckOutlined />}>Approve</Button>
+              </Popconfirm>
+              <Popconfirm title="Reject this quotation?" onConfirm={() => handleStatus(r.quotationId, 'rejected')}>
+                <Button size="small" danger icon={<CloseOutlined />}>Reject</Button>
+              </Popconfirm>
+            </>
+          )}
+        </Space>
       ) },
+  ]
+
+  const statusTabs = [
+    { key: 'all', label: `All (${quotations.length})` },
+    { key: 'pending', label: <Badge count={pendingCount} offset={[8, 0]}>Needs Review</Badge> },
+    { key: 'draft', label: 'Draft' },
+    { key: 'submitted', label: 'Submitted' },
+    { key: 'approved', label: 'Approved' },
+    { key: 'rejected', label: 'Rejected' },
+    { key: 'converted', label: 'Converted' },
   ]
 
   return (
@@ -188,14 +242,51 @@ export default function QuotationsPage() {
         <Button type="primary" icon={<PlusOutlined />} onClick={openCreate}>New Quotation</Button>
       </div>
 
+      {loadError && (
+        <Alert
+          type="error"
+          showIcon
+          style={{ marginBottom: 16 }}
+          message="Could not load quotations"
+          description={loadError}
+          action={<Button size="small" onClick={load}>Retry</Button>}
+        />
+      )}
+
+      {pendingCount > 0 && (
+        <Alert
+          type="warning"
+          showIcon
+          style={{ marginBottom: 16 }}
+          message={`${pendingCount} quotation(s) need review (draft or submitted)`}
+          description="Use Approve or Reject on each row. Draft quotes from customers or staff can be approved directly."
+        />
+      )}
+
       <Alert
         type="info"
         showIcon
         style={{ marginBottom: 16 }}
-        message="Approve submitted quotes, then convert to a bill when stock is available. Customer discount % applies automatically when discount is left at 0."
+        message="Approve draft or submitted quotes, then convert to a bill when stock is available."
       />
 
-      <Table dataSource={quotations} columns={columns} rowKey="quotationId" loading={loading} />
+      <Tabs
+        activeKey={statusFilter}
+        onChange={setStatusFilter}
+        items={statusTabs}
+        style={{ marginBottom: 16 }}
+      />
+
+      <Table
+        dataSource={filtered}
+        columns={columns}
+        rowKey="quotationId"
+        loading={loading}
+        scroll={{ x: 900 }}
+        locale={{ emptyText: statusFilter === 'pending'
+          ? 'No quotes need review right now'
+          : 'No quotations yet' }}
+      />
 
       <Modal title="New Quotation" open={modalOpen} onCancel={() => setModalOpen(false)} footer={null} width={720}>
         <Form form={form} layout="vertical" onFinish={onCreate}>
@@ -248,7 +339,7 @@ export default function QuotationsPage() {
         onCancel={() => setDetailOpen(false)}
         footer={selected ? (
           <Space>
-            {selected.status === 'submitted' && (
+            {canReview(selected.status) && (
               <>
                 <Popconfirm title="Approve this quotation?" onConfirm={() => handleStatus(selected.quotationId, 'approved')}>
                   <Button type="primary" icon={<CheckOutlined />}>Approve</Button>
@@ -258,7 +349,7 @@ export default function QuotationsPage() {
                 </Popconfirm>
               </>
             )}
-            {['submitted', 'approved'].includes(selected.status) && (
+            {['submitted', 'approved'].includes(normStatus(selected.status)) && (
               <Popconfirm
                 title="Convert to bill?"
                 description="Stock will be deducted. Each line needs size, color & available stock."
@@ -277,7 +368,7 @@ export default function QuotationsPage() {
             <Descriptions column={2} size="small" bordered>
               <Descriptions.Item label="Customer">{customerName(selected.customer)}</Descriptions.Item>
               <Descriptions.Item label="Status">
-                <Tag color={statusColor[selected.status]}>{selected.status?.toUpperCase()}</Tag>
+                <Tag color={statusColor[normStatus(selected.status)]}>{normStatus(selected.status).toUpperCase() || '—'}</Tag>
               </Descriptions.Item>
               <Descriptions.Item label="Subtotal">Rs. {Number(selected.totalAmount || 0).toLocaleString()}</Descriptions.Item>
               <Descriptions.Item label="Discount">Rs. {Number(selected.discount || 0).toLocaleString()}</Descriptions.Item>

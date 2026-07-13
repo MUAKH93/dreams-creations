@@ -3,6 +3,7 @@ import { Row, Col, Card, Statistic, Table, Tag, Alert, Typography, Badge } from 
 import {
   AlertOutlined, ShoppingOutlined, TeamOutlined, CheckCircleOutlined,
   WarningOutlined, FileExclamationOutlined, InboxOutlined, SafetyCertificateOutlined,
+  SolutionOutlined,
 } from '@ant-design/icons'
 
 const { Text } = Typography
@@ -60,6 +61,17 @@ export default function AdminManagerDashboard({
         />
       )}
 
+      {(s.pendingQuotations > 0) && (
+        <Alert
+          message={`${s.pendingQuotations} quotation(s) need review`}
+          type="warning"
+          showIcon
+          style={{ marginBottom: 24, cursor: 'pointer' }}
+          onClick={() => navigate('/quotations')}
+          action={<a onClick={(e) => { e.stopPropagation(); navigate('/quotations') }}>Review now</a>}
+        />
+      )}
+
       {(s.openAlerts > 0 || s.lowStockItems > 0) && (
         <Alert
           message={`${s.openAlerts || 0} open alert(s)${s.lowStockItems > 0 ? `, ${s.lowStockItems} low-stock item(s)` : ''}`}
@@ -97,6 +109,12 @@ export default function AdminManagerDashboard({
       </Row>
 
       <Row gutter={[16, 16]} style={{ marginBottom: 16 }}>
+        <Col xs={24} sm={12} lg={6}>
+          <Card hoverable style={cardStyle} onClick={() => navigate('/quotations')}>
+            <Statistic title="Pending Quotations" value={s.pendingQuotations ?? 0} prefix={<SolutionOutlined />}
+              valueStyle={{ color: (s.pendingQuotations || 0) > 0 ? '#fa8c16' : '#3f8600' }} />
+          </Card>
+        </Col>
         <Col xs={24} sm={12} lg={6}>
           <Card hoverable style={cardStyle} onClick={() => navigate('/bills')}>
             <Statistic title="Unpaid Bills" value={s.unpaidBills ?? 0} prefix={<FileExclamationOutlined />}

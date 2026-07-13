@@ -21,4 +21,18 @@ app.upload.dir=${user.home}/dreams-creations/uploads
 jwt.secret=CHANGE_ME_TO_A_LONG_RANDOM_SECRET_KEY
 jwt.expiration=86400000
 
+app.frontend.url=http://localhost:3000
+app.password-reset.expose-link=true
+app.email-verification.expose-link=true
+
+# Email — set app.mail.enabled=true and configure SMTP to send real emails
+app.mail.enabled=false
+app.mail.from=noreply@dreamscreations.local
+# spring.mail.host=smtp.gmail.com
+# spring.mail.port=587
+# spring.mail.username=your@gmail.com
+# spring.mail.password=your-app-password
+# spring.mail.properties.mail.smtp.auth=true
+# spring.mail.properties.mail.smtp.starttls.enable=true
+
 # Copy this file to application.properties and fill in real values.

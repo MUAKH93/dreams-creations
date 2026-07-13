@@ -10,15 +10,33 @@ export function AuthProvider({ children }) {
   })
 
   const login = (data) => {
-    localStorage.setItem('token', data.token)
-    localStorage.setItem('user', JSON.stringify({
+    const userPayload = {
       username:     data.username,
       role:         data.role,
       userId:       data.userId,
       customerId:   data.customerId ?? null,
       supervisorId: data.supervisorId ?? null,
-    }))
-    setAuth(data)
+      profilePhotoUrl: data.profilePhotoUrl ?? null,
+    }
+    localStorage.setItem('token', data.token)
+    localStorage.setItem('user', JSON.stringify(userPayload))
+    setAuth({ token: data.token, ...userPayload })
+  }
+
+  const updateProfilePhoto = (profilePhotoUrl) => {
+    setAuth(prev => {
+      if (!prev) return prev
+      const updated = { ...prev, profilePhotoUrl }
+      localStorage.setItem('user', JSON.stringify({
+        username: updated.username,
+        role: updated.role,
+        userId: updated.userId,
+        customerId: updated.customerId,
+        supervisorId: updated.supervisorId,
+        profilePhotoUrl: updated.profilePhotoUrl,
+      }))
+      return updated
+    })
   }
 
   const logout = () => {
@@ -28,7 +46,7 @@ export function AuthProvider({ children }) {
   }
 
   return (
-    <AuthContext.Provider value={{ auth, login, logout }}>
+    <AuthContext.Provider value={{ auth, login, logout, updateProfilePhoto }}>
       {children}
     </AuthContext.Provider>
   )

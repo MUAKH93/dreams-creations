@@ -20,4 +20,5 @@ public class DashboardSummaryDTO {
     private BigDecimal totalOutstandingBalance;
     private long overduePaymentCustomers;
     private long paymentOverdueAlerts;
+    private long pendingQuotations;
 }

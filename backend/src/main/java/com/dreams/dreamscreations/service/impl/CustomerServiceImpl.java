@@ -4,9 +4,14 @@ import com.dreams.dreamscreations.dto.PaymentReminderDTO;
 import com.dreams.dreamscreations.entity.Bill;
 import com.dreams.dreamscreations.entity.Customer;
 import com.dreams.dreamscreations.entity.CustomerBalance;
+import com.dreams.dreamscreations.entity.User;
 import com.dreams.dreamscreations.repository.BillRepository;
 import com.dreams.dreamscreations.repository.CustomerBalanceRepository;
 import com.dreams.dreamscreations.repository.CustomerRepository;
+import com.dreams.dreamscreations.repository.EmailVerificationTokenRepository;
+import com.dreams.dreamscreations.repository.PasswordResetTokenRepository;
+import com.dreams.dreamscreations.repository.QuotationRepository;
+import com.dreams.dreamscreations.repository.UserRepository;
 import com.dreams.dreamscreations.service.CustomerService;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
@@ -26,13 +31,25 @@ public class CustomerServiceImpl implements CustomerService {
     private final CustomerRepository customerRepo;
     private final CustomerBalanceRepository balanceRepo;
     private final BillRepository billRepo;
+    private final QuotationRepository quotationRepo;
+    private final UserRepository userRepo;
+    private final EmailVerificationTokenRepository emailVerifyTokenRepo;
+    private final PasswordResetTokenRepository passwordResetTokenRepo;
 
     public CustomerServiceImpl(CustomerRepository customerRepo,
                                CustomerBalanceRepository balanceRepo,
-                               BillRepository billRepo) {
+                               BillRepository billRepo,
+                               QuotationRepository quotationRepo,
+                               UserRepository userRepo,
+                               EmailVerificationTokenRepository emailVerifyTokenRepo,
+                               PasswordResetTokenRepository passwordResetTokenRepo) {
         this.customerRepo = customerRepo;
         this.balanceRepo = balanceRepo;
         this.billRepo = billRepo;
+        this.quotationRepo = quotationRepo;
+        this.userRepo = userRepo;
+        this.emailVerifyTokenRepo = emailVerifyTokenRepo;
+        this.passwordResetTokenRepo = passwordResetTokenRepo;
     }
 
     @Override
@@ -86,8 +103,21 @@ public class CustomerServiceImpl implements CustomerService {
         if (billRepo.countByCustomer_CustomerId(id) > 0) {
             throw new RuntimeException("Cannot delete customer with existing bills");
         }
+
+        quotationRepo.deleteAll(quotationRepo.findByCustomer_CustomerId(id));
         balanceRepo.findByCustomer_CustomerId(id).ifPresent(balanceRepo::delete);
+
+        if (customer.getEmail() != null && !customer.getEmail().isBlank()) {
+            userRepo.findCustomerUserByEmail(customer.getEmail()).ifPresent(this::deleteCustomerLogin);
+        }
+
         customerRepo.delete(customer);
+    }
+
+    private void deleteCustomerLogin(User user) {
+        emailVerifyTokenRepo.deleteByUser_UserId(user.getUserId());
+        passwordResetTokenRepo.deleteByUser_UserId(user.getUserId());
+        userRepo.delete(user);
     }
 
     @Override

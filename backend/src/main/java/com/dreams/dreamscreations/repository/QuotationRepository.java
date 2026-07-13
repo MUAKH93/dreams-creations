@@ -39,4 +39,7 @@ public interface QuotationRepository extends JpaRepository<Quotation, Long> {
     Optional<Quotation> findByQuotationNumber(String quotationNumber);
 
     long count();
+    long countByStatus(String status);
+
+    List<Quotation> findByCustomer_CustomerId(Long customerId);
 }

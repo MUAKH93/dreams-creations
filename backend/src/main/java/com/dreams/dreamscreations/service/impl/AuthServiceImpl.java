@@ -3,15 +3,18 @@ package com.dreams.dreamscreations.service.impl;
 import com.dreams.dreamscreations.dto.auth.LoginRequest;
 import com.dreams.dreamscreations.dto.auth.LoginResponse;
 import com.dreams.dreamscreations.dto.auth.RegisterRequest;
+import com.dreams.dreamscreations.dto.auth.RegisterResponse;
 import com.dreams.dreamscreations.entity.Customer;
 import com.dreams.dreamscreations.entity.Role;
 import com.dreams.dreamscreations.entity.User;
+import com.dreams.dreamscreations.exception.EmailNotVerifiedException;
 import com.dreams.dreamscreations.repository.RoleRepository;
 import com.dreams.dreamscreations.repository.UserRepository;
 import com.dreams.dreamscreations.security.CurrentUserService;
 import com.dreams.dreamscreations.security.JwtUtil;
 import com.dreams.dreamscreations.security.UserDetailsServiceImpl;
 import com.dreams.dreamscreations.service.CustomerService;
+import com.dreams.dreamscreations.service.EmailVerificationService;
 import org.springframework.security.authentication.AuthenticationManager;
 import org.springframework.security.authentication.UsernamePasswordAuthenticationToken;
 import org.springframework.security.core.userdetails.UserDetails;
@@ -29,6 +32,7 @@ public class AuthServiceImpl {
     private final UserDetailsServiceImpl userDetailsService;
     private final CustomerService customerService;
     private final CurrentUserService currentUserService;
+    private final EmailVerificationService emailVerificationService;
 
     public AuthServiceImpl(UserRepository userRepo,
                            RoleRepository roleRepo,
@@ -37,7 +41,8 @@ public class AuthServiceImpl {
                            JwtUtil jwtUtil,
                            UserDetailsServiceImpl userDetailsService,
                            CustomerService customerService,
-                           CurrentUserService currentUserService) {
+                           CurrentUserService currentUserService,
+                           EmailVerificationService emailVerificationService) {
         this.userRepo = userRepo;
         this.roleRepo = roleRepo;
         this.passwordEncoder = passwordEncoder;
@@ -46,6 +51,7 @@ public class AuthServiceImpl {
         this.userDetailsService = userDetailsService;
         this.customerService = customerService;
         this.currentUserService = currentUserService;
+        this.emailVerificationService = emailVerificationService;
     }
 
     public LoginResponse login(LoginRequest request) {
@@ -57,8 +63,13 @@ public class AuthServiceImpl {
         User user = userRepo.findFirstByUsername(username)
                 .orElseThrow(() -> new RuntimeException("User not found"));
 
-        UserDetails userDetails = userDetailsService.loadUserByUsername(username);
         String role = user.getRole() != null ? user.getRole().getRoleName() : "CUSTOMER";
+        if ("CUSTOMER".equals(role) && !Boolean.TRUE.equals(user.getEmailVerified())) {
+            throw new EmailNotVerifiedException(
+                    "Please verify your email before signing in. Check your inbox or request a new verification link.");
+        }
+
+        UserDetails userDetails = userDetailsService.loadUserByUsername(username);
         String token = jwtUtil.generateToken(userDetails, role, user.getUserId());
 
         return buildLoginResponse(token, user, role);
@@ -78,7 +89,9 @@ public class AuthServiceImpl {
         return trimmed;
     }
 
-    public LoginResponse register(RegisterRequest request) {
+    public RegisterResponse register(RegisterRequest request) {
+        validateRegisterRequest(request);
+
         if (userRepo.usernameTaken(request.getUsername())) {
             throw new RuntimeException("Username already taken: " + request.getUsername());
         }
@@ -90,25 +103,48 @@ public class AuthServiceImpl {
                 .orElseThrow(() -> new RuntimeException(
                         "CUSTOMER role not found — run the role seed SQL"));
 
+        String email = request.getEmail().trim().toLowerCase();
         User user = User.builder()
-                .username(request.getUsername())
+                .username(request.getUsername().trim())
                 .password(passwordEncoder.encode(request.getPassword()))
-                .email(request.getEmail())
+                .email(email)
+                .firstName(request.getFirstName().trim())
+                .lastName(request.getLastName() != null ? request.getLastName().trim() : null)
+                .phone(request.getPhone().trim())
                 .role(customerRole)
                 .status(true)
+                .emailVerified(false)
                 .build();
         userRepo.save(user);
 
-        customerService.findByEmail(request.getEmail()).orElseGet(() ->
+        customerService.findByEmail(email).orElseGet(() ->
                 customerService.save(Customer.builder()
-                        .firstName(request.getUsername())
-                        .email(request.getEmail())
+                        .firstName(user.getFirstName())
+                        .lastName(user.getLastName())
+                        .phone(user.getPhone())
+                        .email(email)
                         .status("active")
                         .build()));
 
-        UserDetails userDetails = userDetailsService.loadUserByUsername(request.getUsername());
-        String token = jwtUtil.generateToken(userDetails, "CUSTOMER", user.getUserId());
-        return buildLoginResponse(token, user, "CUSTOMER");
+        return emailVerificationService.sendVerificationForUser(user);
+    }
+
+    private void validateRegisterRequest(RegisterRequest request) {
+        if (request.getUsername() == null || request.getUsername().trim().length() < 3) {
+            throw new RuntimeException("Username must be at least 3 characters");
+        }
+        if (request.getPassword() == null || request.getPassword().length() < 6) {
+            throw new RuntimeException("Password must be at least 6 characters");
+        }
+        if (request.getEmail() == null || !request.getEmail().contains("@")) {
+            throw new RuntimeException("A valid email is required");
+        }
+        if (request.getFirstName() == null || request.getFirstName().isBlank()) {
+            throw new RuntimeException("First name is required");
+        }
+        if (request.getPhone() == null || request.getPhone().isBlank()) {
+            throw new RuntimeException("Phone number is required");
+        }
     }
 
     private LoginResponse buildLoginResponse(String token, User user, String role) {

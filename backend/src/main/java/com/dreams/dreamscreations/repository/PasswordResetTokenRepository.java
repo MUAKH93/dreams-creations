@@ -18,4 +18,6 @@ public interface PasswordResetTokenRepository extends JpaRepository<PasswordRese
     @Modifying
     @Query("UPDATE PasswordResetToken t SET t.usedAt = :usedAt WHERE t.user = :user AND t.usedAt IS NULL")
     void invalidateActiveTokensForUser(@Param("user") User user, @Param("usedAt") LocalDateTime usedAt);
+
+    void deleteByUser_UserId(Long userId);
 }

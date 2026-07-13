@@ -1,5 +1,6 @@
 package com.dreams.dreamscreations.controller;
 
+import com.dreams.dreamscreations.dto.QuotationListDTO;
 import com.dreams.dreamscreations.entity.Quotation;
 import com.dreams.dreamscreations.service.QuotationService;
 import org.springframework.http.HttpStatus;
@@ -30,8 +31,8 @@ public class QuotationController {
     }
 
     @GetMapping
-    public ResponseEntity<List<Quotation>> getAll() {
-        return ResponseEntity.ok(service.getAll());
+    public ResponseEntity<List<QuotationListDTO>> getAll() {
+        return ResponseEntity.ok(service.getAllSummaries());
     }
 
     @GetMapping("/my")

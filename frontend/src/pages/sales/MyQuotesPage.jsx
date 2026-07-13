@@ -33,17 +33,26 @@ export default function MyQuotesPage() {
   const [detailOpen, setDetailOpen] = useState(false)
   const [selected, setSelected] = useState(null)
   const [items, setItems] = useState([emptyLine()])
+  const [submitting, setSubmitting] = useState(false)
+  const [saving, setSaving] = useState(false)
+  const [loadError, setLoadError] = useState(null)
   const [form] = Form.useForm()
 
   const load = () => {
     setLoading(true)
+    setLoadError(null)
     Promise.allSettled([
       quotationsAPI.getMy(),
       salesAPI.getDesigns(),
       salesAPI.getSizes(),
     ]).then(([q, d, sz]) => {
-      if (q.status === 'fulfilled') setQuotations(q.value.data)
-      else message.error(apiErrorMessage(q.reason))
+      if (q.status === 'fulfilled') {
+        setQuotations(Array.isArray(q.value.data) ? q.value.data : [])
+      } else {
+        const err = apiErrorMessage(q.reason)
+        setLoadError(err)
+        message.error(err)
+      }
       if (d.status === 'fulfilled') setDesigns(d.value.data)
       if (sz.status === 'fulfilled') setSizes(sz.value.data)
     }).finally(() => setLoading(false))
@@ -97,6 +106,7 @@ export default function MyQuotesPage() {
       message.error('Each line needs a design and quantity')
       return
     }
+    setSaving(true)
     try {
       await quotationsAPI.create({
         notes: values.notes || null,
@@ -115,18 +125,24 @@ export default function MyQuotesPage() {
       setItems([emptyLine()])
       load()
     } catch (err) {
-      message.error(err.response?.data?.message || 'Failed to save quote')
+      message.error(apiErrorMessage(err))
+    } finally {
+      setSaving(false)
     }
   }
 
   const handleSubmit = async (id) => {
+    setSubmitting(true)
     try {
       await quotationsAPI.submit(id)
       message.success('Quote submitted for review')
       setDetailOpen(false)
+      setSelected(null)
       load()
     } catch (err) {
-      message.error(err.response?.data?.message || 'Submit failed')
+      message.error(apiErrorMessage(err))
+    } finally {
+      setSubmitting(false)
     }
   }
 
@@ -161,7 +177,24 @@ export default function MyQuotesPage() {
         message="Browse designs, build a quote request, and submit it. Our team will review and convert approved quotes to bills."
       />
 
-      <Table dataSource={quotations} columns={columns} rowKey="quotationId" loading={loading} />
+      {loadError && (
+        <Alert
+          type="error"
+          showIcon
+          style={{ marginBottom: 16 }}
+          message="Could not load your quotes"
+          description={loadError}
+          action={<Button size="small" onClick={load}>Retry</Button>}
+        />
+      )}
+
+      <Table
+        dataSource={quotations}
+        columns={columns}
+        rowKey="quotationId"
+        loading={loading}
+        locale={{ emptyText: loadError ? ' ' : 'No quote requests yet — click Request Quote to start' }}
+      />
 
       <Modal title="Request a Quote" open={modalOpen} onCancel={() => setModalOpen(false)} footer={null} width={720}>
         <Form form={form} layout="vertical" onFinish={onSave}>
@@ -178,7 +211,7 @@ export default function MyQuotesPage() {
                   style={{ width: 180 }}
                   value={line.designId}
                   onChange={v => onDesignChange(i, v)}
-                  options={designs.filter(d => d.status !== 'inactive').map(d => ({
+                  options={designs.map(d => ({
                     value: d.designId,
                     label: `${d.designCode} — Rs. ${Number(d.basePrice || 0).toLocaleString()}`,
                   }))}
@@ -216,7 +249,7 @@ export default function MyQuotesPage() {
 
           <Form.Item>
             <Space>
-              <Button type="primary" htmlType="submit">Save Draft</Button>
+              <Button type="primary" htmlType="submit" loading={saving}>Save Draft</Button>
               <Button onClick={() => setModalOpen(false)}>Cancel</Button>
             </Space>
           </Form.Item>
@@ -230,7 +263,8 @@ export default function MyQuotesPage() {
         footer={selected ? (
           <Space>
             {selected.status === 'draft' && (
-              <Button type="primary" icon={<SendOutlined />} onClick={() => handleSubmit(selected.quotationId)}>
+              <Button type="primary" icon={<SendOutlined />} loading={submitting}
+                onClick={() => handleSubmit(selected.quotationId)}>
                 Submit for Review
               </Button>
             )}

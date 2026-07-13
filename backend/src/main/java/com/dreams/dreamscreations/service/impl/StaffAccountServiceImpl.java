@@ -202,6 +202,7 @@ public class StaffAccountServiceImpl implements StaffAccountService {
                 .email(request.getEmail().trim().toLowerCase())
                 .role(managerRole)
                 .status(true)
+                .emailVerified(true)
                 .build());
 
         return toManagerDto(user);
@@ -266,6 +267,7 @@ public class StaffAccountServiceImpl implements StaffAccountService {
                 .email(email.trim().toLowerCase())
                 .role(supervisorRole)
                 .status(true)
+                .emailVerified(true)
                 .build());
     }
 

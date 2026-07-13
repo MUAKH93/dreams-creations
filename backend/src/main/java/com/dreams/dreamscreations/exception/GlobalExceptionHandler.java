@@ -1,5 +1,6 @@
 package com.dreams.dreamscreations.exception;
 
+import com.dreams.dreamscreations.exception.EmailNotVerifiedException;
 import jakarta.persistence.NonUniqueResultException;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
@@ -41,6 +42,16 @@ public class GlobalExceptionHandler {
                 "status", 401,
                 "message", "This account is disabled. Contact your administrator.",
                 "error", "ACCOUNT_DISABLED",
+                "timestamp", LocalDateTime.now().toString()
+        ));
+    }
+
+    @ExceptionHandler(EmailNotVerifiedException.class)
+    public ResponseEntity<Map<String, Object>> handleEmailNotVerified(EmailNotVerifiedException ex) {
+        return ResponseEntity.status(HttpStatus.FORBIDDEN).body(Map.of(
+                "status", 403,
+                "message", ex.getMessage(),
+                "error", "EMAIL_NOT_VERIFIED",
                 "timestamp", LocalDateTime.now().toString()
         ));
     }

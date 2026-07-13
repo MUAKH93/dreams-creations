@@ -52,7 +52,7 @@ client.interceptors.response.use(
     const status = error.response?.status
     const hasToken = !!localStorage.getItem('token')
     const publicAuth = isPublicAuthRequest(error.config?.url)
-    if ((status === 401 || (status === 403 && hasToken)) && !publicAuth) {
+    if (status === 401 && hasToken && !publicAuth) {
       localStorage.removeItem('token')
       localStorage.removeItem('user')
       window.location.href = '/login'

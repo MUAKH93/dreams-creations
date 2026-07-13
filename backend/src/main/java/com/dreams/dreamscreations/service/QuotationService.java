@@ -1,5 +1,6 @@
 package com.dreams.dreamscreations.service;
 
+import com.dreams.dreamscreations.dto.QuotationListDTO;
 import com.dreams.dreamscreations.entity.Quotation;
 
 import java.util.List;
@@ -7,7 +8,7 @@ import java.util.List;
 public interface QuotationService {
     Quotation create(Quotation quotation);
     Quotation update(Long id, Quotation quotation);
-    List<Quotation> getAll();
+    List<QuotationListDTO> getAllSummaries();
     Quotation getById(Long id);
     List<Quotation> getMyQuotations();
     Quotation submit(Long id);

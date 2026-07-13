@@ -10,6 +10,7 @@ import com.dreams.dreamscreations.repository.CustomerBalanceRepository;
 import com.dreams.dreamscreations.repository.ModuleAssignmentRepository;
 import com.dreams.dreamscreations.repository.ProductRepository;
 import com.dreams.dreamscreations.repository.ProductionBatchRepository;
+import com.dreams.dreamscreations.repository.QuotationRepository;
 import com.dreams.dreamscreations.service.DashboardService;
 import com.dreams.dreamscreations.service.InventoryService;
 import org.springframework.stereotype.Service;
@@ -34,6 +35,7 @@ public class DashboardServiceImpl implements DashboardService {
     private final CustomerBalanceRepository balanceRepo;
     private final InventoryService inventoryService;
     private final ProductRepository productRepo;
+    private final QuotationRepository quotationRepo;
 
     public DashboardServiceImpl(AlertRepository alertRepo,
                                 ProductionBatchRepository batchRepo,
@@ -41,7 +43,8 @@ public class DashboardServiceImpl implements DashboardService {
                                 BillRepository billRepo,
                                 CustomerBalanceRepository balanceRepo,
                                 InventoryService inventoryService,
-                                ProductRepository productRepo) {
+                                ProductRepository productRepo,
+                                QuotationRepository quotationRepo) {
         this.alertRepo = alertRepo;
         this.batchRepo = batchRepo;
         this.assignmentRepo = assignmentRepo;
@@ -49,6 +52,7 @@ public class DashboardServiceImpl implements DashboardService {
         this.balanceRepo = balanceRepo;
         this.inventoryService = inventoryService;
         this.productRepo = productRepo;
+        this.quotationRepo = quotationRepo;
     }
 
     @Override
@@ -95,6 +99,7 @@ public class DashboardServiceImpl implements DashboardService {
                 .paymentOverdueAlerts(alertRepo.findByStatus("open").stream()
                         .filter(a -> "PAYMENT_OVERDUE".equals(a.getAlertType()))
                         .count())
+                .pendingQuotations(quotationRepo.countByStatus("submitted") + quotationRepo.countByStatus("draft"))
                 .build();
     }
 

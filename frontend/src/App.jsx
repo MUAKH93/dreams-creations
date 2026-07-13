@@ -1,4 +1,4 @@
-import { useState } from 'react'
+import { useState, useEffect } from 'react'
 import { Routes, Route, Navigate, useNavigate, useLocation } from 'react-router-dom'
 import { Layout, Menu, Typography, Avatar, Dropdown, Drawer, Button, Grid } from 'antd'
 import {
@@ -7,6 +7,7 @@ import {
   AppstoreOutlined, SendOutlined, FileTextOutlined,
   PictureOutlined, InboxOutlined, CheckSquareOutlined, SafetyCertificateOutlined,
   SettingOutlined,   BarChartOutlined, HistoryOutlined, SolutionOutlined, LineChartOutlined,
+  IdcardOutlined,
 } from '@ant-design/icons'
 import { useAuth } from './context/AuthContext'
 import ProtectedRoute from './routes/ProtectedRoute'
@@ -35,8 +36,11 @@ import SetupPage          from './pages/admin/SetupPage'
 import ActivityLogPage    from './pages/admin/ActivityLogPage'
 import ReportsPage        from './pages/reports/ReportsPage'
 import AnalyticsPage      from './pages/analytics/AnalyticsPage'
+import ProfilePage        from './pages/profile/ProfilePage'
+import VerifyEmailPage    from './pages/auth/VerifyEmailPage'
 import BackendStatus from './components/BackendStatus'
 import SessionCheck from './components/SessionCheck'
+import { profileAPI } from './api/profile'
 
 const { Sider, Content, Header } = Layout
 const { Text } = Typography
@@ -67,6 +71,8 @@ function NavMenu({ items, selectedKey, onNavigate }) {
   )
 }
 
+const PROFILE_ITEM = { key: '/profile', icon: <IdcardOutlined />, label: 'My Profile' }
+
 const MANAGER_MENU = [
   { key: '/dashboard',  icon: <DashboardOutlined />, label: 'Dashboard' },
   { key: '/batches',    icon: <AppstoreOutlined />,  label: 'Production Batches' },
@@ -80,6 +86,7 @@ const MANAGER_MENU = [
   { key: '/analytics',  icon: <LineChartOutlined />,  label: 'Analytics' },
   { key: '/activity',   icon: <HistoryOutlined />,    label: 'Activity Log' },
   { key: '/alerts',     icon: <AlertOutlined />,      label: 'Alerts' },
+  PROFILE_ITEM,
 ]
 
 const ADMIN_MENU = [
@@ -93,12 +100,14 @@ const CUSTOMER_MENU = [
   { key: '/designs',    icon: <PictureOutlined />,    label: 'Designs Catalog' },
   { key: '/my-quotes',  icon: <SolutionOutlined />,   label: 'My Quotes' },
   { key: '/my-orders',  icon: <FileTextOutlined />,   label: 'My Bills' },
+  PROFILE_ITEM,
 ]
 
 const SUPERVISOR_MENU = [
   { key: '/dashboard',   icon: <DashboardOutlined />,   label: 'Dashboard' },
   { key: '/assignments', icon: <CheckSquareOutlined />, label: 'My Assignments' },
   { key: '/designs',     icon: <PictureOutlined />,    label: 'Designs Catalog' },
+  PROFILE_ITEM,
 ]
 
 function getMenu(role) {
@@ -110,20 +119,35 @@ function getMenu(role) {
 }
 
 function AppLayout({ children }) {
-  const { auth, logout } = useAuth()
+  const { auth, logout, updateProfilePhoto } = useAuth()
   const navigate          = useNavigate()
   const location          = useLocation()
   const screens           = useBreakpoint()
   const isMobile          = !screens.lg
   const [drawerOpen, setDrawerOpen] = useState(false)
 
+  useEffect(() => {
+    if (!auth?.token || auth?.profilePhotoUrl) return
+    profileAPI.getMy()
+      .then(r => {
+        if (r.data?.profilePhotoUrl) updateProfilePhoto(r.data.profilePhotoUrl)
+      })
+      .catch(() => {})
+  }, [auth?.token])
+
   const menuItems = getMenu(auth?.role)
 
   const userMenu = {
-    items: [{
-      key: 'logout', icon: <LogoutOutlined />, label: 'Logout',
-      onClick: () => { logout(); navigate('/login') }
-    }]
+    items: [
+      {
+        key: 'profile', icon: <IdcardOutlined />, label: 'My Profile',
+        onClick: () => navigate('/profile'),
+      },
+      {
+        key: 'logout', icon: <LogoutOutlined />, label: 'Logout',
+        onClick: () => { logout(); navigate('/login') },
+      },
+    ],
   }
 
   const handleNavigate = (key) => {
@@ -158,7 +182,11 @@ function AppLayout({ children }) {
           <div className="app-header-user">
             <Dropdown menu={userMenu} placement="bottomRight">
               <div className="app-header-user-trigger">
-                <Avatar icon={<UserOutlined />} style={{ background: '#1a237e' }} />
+                <Avatar
+                  src={auth?.profilePhotoUrl || undefined}
+                  icon={<UserOutlined />}
+                  style={{ background: '#1a237e' }}
+                />
                 <Text strong className="app-header-username">{auth?.username}</Text>
                 <Text type="secondary" className="app-header-role">({auth?.role})</Text>
               </div>
@@ -216,8 +244,16 @@ export default function App() {
         auth ? <RoleHome /> : <PortalLoginPage portalKey="customer" />
       } />
       <Route path="/register" element={auth ? <RoleHome /> : <RegisterPage />} />
+      <Route path="/verify-email" element={<VerifyEmailPage />} />
       <Route path="/forgot-password" element={auth ? <RoleHome /> : <ForgotPasswordPage />} />
       <Route path="/reset-password" element={auth ? <RoleHome /> : <ResetPasswordPage />} />
+
+      {/* Profile — all authenticated roles */}
+      <Route path="/profile" element={
+        <ProtectedRoute roles={[ROLES.ADMIN, ROLES.MANAGER, ROLES.SUPERVISOR, ROLES.CUSTOMER]}>
+          <AppLayout><ProfilePage /></AppLayout>
+        </ProtectedRoute>
+      } />
 
       {/* Dashboard — all roles, role-specific content inside */}
       <Route path="/dashboard" element={
