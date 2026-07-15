@@ -1,9 +1,9 @@
 import { useEffect, useState } from 'react'
 import {
   Table, Button, Modal, Form, Input, InputNumber, Tag, Typography, Space, message,
-  Statistic, Card, Row, Col, Alert, Select, Popconfirm
+  Statistic, Card, Row, Col, Alert, Select, Popconfirm, Divider
 } from 'antd'
-import { PlusOutlined, WalletOutlined, EditOutlined, DeleteOutlined } from '@ant-design/icons'
+import { PlusOutlined, WalletOutlined, EditOutlined, DeleteOutlined, DollarOutlined } from '@ant-design/icons'
 import { salesAPI } from '../../api/sales'
 import { apiErrorMessage } from '../../api/client'
 
@@ -27,9 +27,15 @@ export default function CustomersPage() {
   const [loadError, setLoadError] = useState(null)
   const [modalOpen, setModalOpen] = useState(false)
   const [editingId, setEditingId] = useState(null)
+  const [accountOpen, setAccountOpen] = useState(false)
+  const [payOpen, setPayOpen] = useState(false)
+  const [selectedCustomer, setSelectedCustomer] = useState(null)
   const [balance, setBalance] = useState(null)
-  const [balDrawer, setBalDrawer] = useState(false)
+  const [payments, setPayments] = useState([])
+  const [customerBills, setCustomerBills] = useState([])
+  const [paymentMethods, setPaymentMethods] = useState([])
   const [form] = Form.useForm()
+  const [payForm] = Form.useForm()
 
   const load = () => {
     setLoading(true)
@@ -73,13 +79,47 @@ export default function CustomersPage() {
     setModalOpen(true)
   }
 
-  const viewBalance = async (customerId) => {
+  const openCustomerAccount = async (customer) => {
+    setSelectedCustomer(customer)
     try {
-      const res = await salesAPI.getBalance(customerId)
-      setBalance(res.data)
-      setBalDrawer(true)
+      const [balRes, payRes, billsRes, pmRes] = await Promise.all([
+        salesAPI.getBalance(customer.customerId),
+        salesAPI.getByCustomer(customer.customerId),
+        salesAPI.getBillsByCustomer(customer.customerId),
+        salesAPI.getPaymentMethods(),
+      ])
+      setBalance(balRes.data)
+      setPayments(payRes.data)
+      setCustomerBills(billsRes.data)
+      setPaymentMethods(pmRes.data)
+      setAccountOpen(true)
     } catch {
-      message.error('Could not load balance')
+      message.error('Could not load customer account')
+    }
+  }
+
+  const openRecordPayment = (bill) => {
+    setPayOpen(true)
+    payForm.resetFields()
+    payForm.setFieldsValue({ billId: bill.billId })
+  }
+
+  const onRecordPayment = async (values) => {
+    try {
+      await salesAPI.recordPayment({
+        bill: { billId: values.billId },
+        paymentMethod: { paymentMethodId: values.paymentMethodId },
+        amount: values.amount,
+        notes: values.notes,
+        referenceNo: values.referenceNo,
+      })
+      message.success('Payment recorded — bill closed')
+      setPayOpen(false)
+      payForm.resetFields()
+      if (selectedCustomer) openCustomerAccount(selectedCustomer)
+      load()
+    } catch (err) {
+      message.error(err.response?.data?.message || 'Payment failed')
     }
   }
 
@@ -126,6 +166,8 @@ export default function CustomersPage() {
     }
   }
 
+  const unpaidBills = customerBills.filter(b => b.status === 'unpaid')
+
   const columns = [
     { title: 'Name', key: 'name',
       render: (_, r) => `${r.firstName} ${r.lastName || ''}`.trim() },
@@ -141,8 +183,8 @@ export default function CustomersPage() {
     { title: 'Actions', key: 'actions',
       render: (_, r) => (
         <Space>
-          <Button icon={<WalletOutlined />} size="small" onClick={() => viewBalance(r.customerId)}>
-            Balance
+          <Button icon={<WalletOutlined />} size="small" onClick={() => openCustomerAccount(r)}>
+            Records
           </Button>
           <Button icon={<EditOutlined />} size="small" onClick={() => openEdit(r)}>
             Edit
@@ -183,6 +225,10 @@ export default function CustomersPage() {
         <Alert type="error" message={loadError} style={{ marginBottom: 16 }} showIcon />
       )}
 
+      <Alert type="info" showIcon style={{ marginBottom: 16 }}
+        message="Customer account model"
+        description="Bills show invoice totals only. All payments are recorded here. Partial payment closes a bill; remaining amount stays as customer balance due." />
+
       {reminders.length > 0 && (
         <Card title="Payment Reminders (30+ days overdue)" style={{ marginBottom: 24 }}>
           <Table
@@ -203,6 +249,7 @@ export default function CustomersPage() {
         locale={{ emptyText: loading ? 'Loading...' : 'No customers yet — click Add Customer' }}
       />
 
+      {/* Add/Edit customer modal — unchanged structure */}
       <Modal
         title={editingId ? 'Edit Customer' : 'Add Customer'}
         open={modalOpen}
@@ -245,7 +292,7 @@ export default function CustomersPage() {
           <Form.Item name="address" label="Address">
             <Input.TextArea rows={2} placeholder="Optional address" />
           </Form.Item>
-          <Form.Item name="discountPercent" label="Standing Discount %" tooltip="Auto-applied on quotes and bills when discount is left at 0">
+          <Form.Item name="discountPercent" label="Standing Discount %">
             <InputNumber min={0} max={100} step={0.5} style={{ width: '100%' }} addonAfter="%" />
           </Form.Item>
           {editingId && (
@@ -265,21 +312,108 @@ export default function CustomersPage() {
         </Form>
       </Modal>
 
-      <Modal title="Customer Balance" open={balDrawer} onCancel={() => setBalDrawer(false)} footer={null}>
+      <Modal
+        title={selectedCustomer ? `Customer Records — ${selectedCustomer.firstName} ${selectedCustomer.lastName || ''}` : 'Customer Records'}
+        open={accountOpen}
+        onCancel={() => { setAccountOpen(false); setSelectedCustomer(null) }}
+        footer={null}
+        width={900}
+      >
         {balance && (
-          <Row gutter={16}>
-            <Col span={8}>
-              <Card><Statistic title="Total Sales" value={balance.totalSales} prefix="Rs." precision={2} /></Card>
-            </Col>
-            <Col span={8}>
-              <Card><Statistic title="Total Paid" value={balance.totalPaid} prefix="Rs." precision={2} valueStyle={{ color: '#3f8600' }} /></Card>
-            </Col>
-            <Col span={8}>
-              <Card><Statistic title="Balance Due" value={balance.balance} prefix="Rs." precision={2}
-                valueStyle={{ color: balance.balance > 0 ? '#cf1322' : '#3f8600' }} /></Card>
-            </Col>
-          </Row>
+          <>
+            <Row gutter={16} style={{ marginBottom: 16 }}>
+              <Col span={8}>
+                <Card size="small"><Statistic title="Total Sales" value={balance.totalSales} prefix="Rs." precision={2} /></Card>
+              </Col>
+              <Col span={8}>
+                <Card size="small"><Statistic title="Total Paid" value={balance.totalPaid} prefix="Rs." precision={2} valueStyle={{ color: '#3f8600' }} /></Card>
+              </Col>
+              <Col span={8}>
+                <Card size="small"><Statistic title="Balance Due" value={balance.balance} prefix="Rs." precision={2}
+                  valueStyle={{ color: balance.balance > 0 ? '#cf1322' : '#3f8600' }} /></Card>
+              </Col>
+            </Row>
+
+            <Divider orientation="left">Open Bills (unpaid)</Divider>
+            <Table
+              dataSource={unpaidBills}
+              rowKey="billId"
+              size="small"
+              pagination={false}
+              locale={{ emptyText: 'No open bills' }}
+              columns={[
+                { title: 'Bill #', dataIndex: 'billNumber' },
+                { title: 'Bill Total', dataIndex: 'finalAmount',
+                  render: v => `Rs. ${Number(v).toLocaleString()}` },
+                { title: 'Grand Total', key: 'grand',
+                  render: (_, r) => `Rs. ${Number(r.grandTotal || r.finalAmount).toLocaleString()}` },
+                { title: '', key: 'act',
+                  render: (_, r) => (
+                    <Button size="small" type="primary" icon={<DollarOutlined />}
+                      onClick={() => openRecordPayment(r)}>Receive Payment</Button>
+                  ) },
+              ]}
+              style={{ marginBottom: 16 }}
+            />
+
+            <Divider orientation="left">Payment History</Divider>
+            <Table
+              dataSource={payments}
+              rowKey="paymentId"
+              size="small"
+              pagination={{ pageSize: 8 }}
+              locale={{ emptyText: 'No payments recorded yet' }}
+              columns={[
+                { title: 'Date', dataIndex: 'paymentDate',
+                  render: d => d ? new Date(d).toLocaleString() : '—' },
+                { title: 'Bill #', key: 'bill',
+                  render: (_, r) => r.bill?.billNumber || '—' },
+                { title: 'Amount', dataIndex: 'amount',
+                  render: v => <Text strong>Rs. {Number(v).toLocaleString()}</Text> },
+                { title: 'Method', key: 'method',
+                  render: (_, r) => r.paymentMethod?.methodName || '—' },
+                { title: 'Reference', dataIndex: 'referenceNo', render: v => v || '—' },
+                { title: 'Notes', dataIndex: 'notes', render: v => v || '—' },
+              ]}
+            />
+          </>
         )}
+      </Modal>
+
+      <Modal title="Receive Payment" open={payOpen} onCancel={() => setPayOpen(false)} footer={null} width={480}>
+        <Alert type="info" showIcon style={{ marginBottom: 16 }}
+          message="Partial payment is allowed"
+          description="Bill closes on any payment. Remaining due stays on customer balance." />
+        <Form form={payForm} onFinish={onRecordPayment} layout="vertical">
+          <Form.Item name="billId" label="Bill" rules={[{ required: true }]}>
+            <Select placeholder="Select open bill">
+              {unpaidBills.map(b => (
+                <Select.Option key={b.billId} value={b.billId}>
+                  {b.billNumber} — Grand Rs. {Number(b.grandTotal || b.finalAmount).toLocaleString()}
+                </Select.Option>
+              ))}
+            </Select>
+          </Form.Item>
+          <Form.Item name="paymentMethodId" label="Payment Method" rules={[{ required: true }]}>
+            <Select placeholder="Select method">
+              {paymentMethods.map(pm => (
+                <Select.Option key={pm.paymentMethodId} value={pm.paymentMethodId}>{pm.methodName}</Select.Option>
+              ))}
+            </Select>
+          </Form.Item>
+          <Form.Item name="amount" label="Amount Received (Rs.)" rules={[{ required: true }]}>
+            <InputNumber min={1} style={{ width: '100%' }} />
+          </Form.Item>
+          <Form.Item name="referenceNo" label="Reference / Transaction No.">
+            <Input />
+          </Form.Item>
+          <Form.Item name="notes" label="Notes">
+            <Input.TextArea rows={2} />
+          </Form.Item>
+          <Form.Item>
+            <Button type="primary" htmlType="submit">Record Payment</Button>
+          </Form.Item>
+        </Form>
       </Modal>
     </div>
   )

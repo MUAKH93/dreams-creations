@@ -257,6 +257,22 @@ public class StaffAccountServiceImpl implements StaffAccountService {
         userRepo.delete(user);
     }
 
+    @Override
+    @Transactional
+    public void resetStaffPassword(Long userId, String newPassword, Long actingAdminUserId) {
+        if (newPassword == null || newPassword.length() < 6) {
+            throw new RuntimeException("Password must be at least 6 characters");
+        }
+        User user = userRepo.findById(userId)
+                .orElseThrow(() -> new RuntimeException("User account not found: " + userId));
+        String roleName = user.getRole() != null ? user.getRole().getRoleName() : "";
+        if ("CUSTOMER".equalsIgnoreCase(roleName)) {
+            throw new RuntimeException("Customer passwords cannot be reset here — use forgot password");
+        }
+        user.setPassword(passwordEncoder.encode(newPassword));
+        userRepo.save(user);
+    }
+
     private User createSupervisorUser(String username, String email, String password) {
         Role supervisorRole = roleRepo.findFirstByRoleName("SUPERVISOR")
                 .orElseThrow(() -> new RuntimeException("SUPERVISOR role not found — run role seed SQL"));

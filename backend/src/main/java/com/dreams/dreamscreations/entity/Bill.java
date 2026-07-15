@@ -45,7 +45,15 @@ public class Bill {
     @Column(name = "final_amount", nullable = false, precision = 12, scale = 2)
     private BigDecimal finalAmount = BigDecimal.ZERO;
 
-    // unpaid → partial → paid
+    /** Customer balance due before this bill was created */
+    @Column(name = "previous_balance", nullable = false, precision = 12, scale = 2)
+    private BigDecimal previousBalance = BigDecimal.ZERO;
+
+    /** final_amount + previous_balance at time of billing */
+    @Column(name = "grand_total", nullable = false, precision = 12, scale = 2)
+    private BigDecimal grandTotal = BigDecimal.ZERO;
+
+    // unpaid → paid (any payment closes bill) | cancelled
     @Column(name = "status", nullable = false,
             columnDefinition = "VARCHAR(20) DEFAULT 'unpaid'")
     private String status = "unpaid";

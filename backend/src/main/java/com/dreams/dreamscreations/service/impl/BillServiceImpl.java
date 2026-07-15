@@ -75,7 +75,18 @@ public class BillServiceImpl implements BillService {
 
         bill.setTotalAmount(total);
         bill.setDiscount(discount);
-        bill.setFinalAmount(total.subtract(discount));
+        BigDecimal finalAmount = total.subtract(discount);
+        bill.setFinalAmount(finalAmount);
+
+        Long customerId = bill.getCustomer().getCustomerId();
+        BigDecimal previousBalance = BigDecimal.ZERO;
+        CustomerBalance existingBalance = balanceRepo.findByCustomer_CustomerId(customerId).orElse(null);
+        if (existingBalance != null && existingBalance.getBalance() != null
+                && existingBalance.getBalance().compareTo(BigDecimal.ZERO) > 0) {
+            previousBalance = existingBalance.getBalance();
+        }
+        bill.setPreviousBalance(previousBalance);
+        bill.setGrandTotal(finalAmount.add(previousBalance));
 
         Bill saved = billRepo.save(bill);
         billRepo.flush();

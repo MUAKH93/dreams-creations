@@ -34,6 +34,9 @@ export default function AssignmentsPage() {
 
   useEffect(() => { load() }, [])
 
+  const isPressAndPackingStage = (record) =>
+    record?.module?.stage?.stageName === 'Press and Packing'
+
   const openReturn = (record) => {
     setSelected(record)
     returnForm.resetFields()
@@ -137,12 +140,17 @@ export default function AssignmentsPage() {
 
       <Alert type="info" showIcon style={{ marginBottom: 16 }}
         message="Record returns when work is finished"
-        description="For Cutting & Stitching dispatches with size/color lines, return each line separately. Inventory updates per size/color on final stage return." />
+        description="Cutting & Stitching returns auto-forward to Press and Packing. The packing supervisor records the return here — inventory updates only when Press and Packing is returned, not before." />
 
       <Tabs items={tabItems} />
 
       <Modal title={`Record Return — Dispatch #${selected?.assignmentId}`}
         open={returnModal} onCancel={() => setReturnModal(false)} footer={null} width={560}>
+        {isPressAndPackingStage(selected) && (
+          <Alert type="success" showIcon style={{ marginBottom: 16 }}
+            message="This return sends OK pieces to inventory"
+            description="Record how many pieces finished press and packing. Only OK counts are added to stock." />
+        )}
         {selected?.skuLines?.length > 0 ? (
           <>
             <Alert type="info" showIcon style={{ marginBottom: 16 }}

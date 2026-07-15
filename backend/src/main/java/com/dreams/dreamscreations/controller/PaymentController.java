@@ -38,4 +38,9 @@ public class PaymentController {
     public ResponseEntity<List<Payment>> getByBill(@PathVariable Long billId) {
         return ResponseEntity.ok(service.getByBillId(billId));
     }
+
+    @GetMapping("/customer/{customerId}")
+    public ResponseEntity<List<Payment>> getByCustomer(@PathVariable Long customerId) {
+        return ResponseEntity.ok(service.getByCustomerId(customerId));
+    }
 }

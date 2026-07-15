@@ -71,7 +71,8 @@ public class DashboardServiceImpl implements DashboardService {
         for (InventoryItemDTO item : inventoryService.getAllStock()) {
             int qty = item.getQuantity() != null ? item.getQuantity() : 0;
             totalUnits += qty;
-            if (qty <= InventoryServiceImpl.LOW_STOCK_THRESHOLD) {
+            if (qty <= InventoryServiceImpl.LOW_STOCK_THRESHOLD
+                    && !"inactive".equalsIgnoreCase(item.getDesignStatus())) {
                 lowStock++;
             }
             BigDecimal price = priceBySuit.getOrDefault(item.getSuitId(), BigDecimal.ZERO);

@@ -47,7 +47,7 @@ export default function VerifyEmailPage() {
               <CheckCircleOutlined style={{ fontSize: 48, color: '#52c41a' }} />
               <Title level={4} style={{ marginTop: 16 }}>Email verified</Title>
               <Alert type="success" message={message} style={{ marginTop: 16, textAlign: 'left' }} />
-              <Button type="primary" style={{ marginTop: 24 }} onClick={() => navigate('/login/customer')}>
+              <Button type="primary" style={{ marginTop: 24 }} onClick={() => navigate('/login')}>
                 Sign in
               </Button>
             </>
@@ -58,7 +58,7 @@ export default function VerifyEmailPage() {
               <Title level={4} style={{ marginTop: 16 }}>Verification failed</Title>
               <Alert type="error" message={message} style={{ marginTop: 16, textAlign: 'left' }} />
               <Text type="secondary" style={{ display: 'block', marginTop: 16 }}>
-                <Link to="/login/customer">Back to sign in</Link>
+                <Link to="/login">Back to sign in</Link>
               </Text>
             </>
           )}

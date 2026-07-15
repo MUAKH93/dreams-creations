@@ -1,7 +1,7 @@
 import { useEffect, useState } from 'react'
 import {
-  Table, Button, Modal, Form, Select, InputNumber,
-  Tag, Typography, Space, DatePicker, message, Drawer, Descriptions, Progress, Card, Alert, Popconfirm
+  Table, Button, Modal, Form, Select, InputNumber, Input,
+  Tag, Typography, Space, DatePicker, message, Drawer, Descriptions, Progress, Card, Alert, Popconfirm, Row, Col
 } from 'antd'
 import { PlusOutlined, EyeOutlined, EditOutlined, StopOutlined } from '@ant-design/icons'
 import { productionAPI } from '../../api/production'
@@ -68,14 +68,20 @@ export default function BatchesPage() {
 
   const onFinish = async (values) => {
     try {
+      const designLines = (values.designLines || []).map(line => ({
+        designId: line.designId,
+        quantity: line.quantity,
+        designLabel: line.designLabel,
+        articleName: line.articleName,
+        color: line.color,
+      }))
       const res = await productionAPI.startProductionOrder({
-        designId: values.designId,
         categoryId: values.categoryId,
-        quantity: values.quantity,
         supervisorId: values.supervisorId,
         designingWorkTypeId: values.designingWorkTypeId,
         expectedCompletionDate: values.endDate?.format('YYYY-MM-DD'),
         dueDate: values.endDate?.format('YYYY-MM-DDTHH:mm:ss'),
+        designLines,
       })
       message.success(res.data.message || 'Production order created')
       setModalOpen(false)
@@ -124,10 +130,18 @@ export default function BatchesPage() {
     batch.status !== 'completed' && batch.status !== 'cancelled'
 
   const columns = [
-    { title: 'Batch #',   dataIndex: 'batchNumber', key: 'batch' },
+    { title: 'Batch #', key: 'batch',
+      render: (_, r) => {
+        const batchNo = r.batchNumber || '—'
+        return r.articleName
+          ? `${batchNo} — ${r.articleName}`
+          : batchNo
+      } },
+    { title: 'Design', key: 'design',
+      render: (_, r) => r.designLabel || r.suit?.design?.name || 'Design' },
     { title: 'Suit',      key: 'suit',
       render: (_, r) => r.suit
-        ? `${r.suit.design?.name || 'Design'} — ${r.suit.size?.sizeValue || 'Size TBD'} — ${r.suit.color || ''}`
+        ? `${r.suit.design?.designCode || ''} — ${r.suit.size?.sizeValue || 'Size TBD'} — ${r.suit.color || ''}`
         : '-' },
     { title: 'Planned',   dataIndex: 'totalSuitPlanned',  key: 'planned' },
     { title: 'Produced',  dataIndex: 'totalSuitProduced', key: 'produced',
@@ -187,45 +201,101 @@ export default function BatchesPage() {
         type="info"
         showIcon
         style={{ marginBottom: 16 }}
-        message="Production flow: Designing → (optional Filling) → Cutting & Stitching"
-        description="Create a batch — suits go to Designing with a work type. Size and color are assigned when dispatching to Cutting & Stitching."
+        message="Production flow: Designing → (optional Filling) → Cutting & Stitching → Press and Packing"
+        description="Add one or more designs per order. Batch numbers are auto-generated; enter an article name to identify each line. Size/color assigned at Cutting & Stitching."
       />
 
       <Table dataSource={batches} columns={columns} rowKey="batchId" loading={loading} />
 
       <Modal title="New Production Order (Design Phase)" open={modalOpen}
-        onCancel={() => setModalOpen(false)} footer={null} width={560}>
-        <Form form={form} onFinish={onFinish} layout="vertical">
+        onCancel={() => setModalOpen(false)} footer={null} width={720}>
+        <Form form={form} onFinish={onFinish} layout="vertical"
+          initialValues={{ designLines: [{ quantity: 1, color: '' }] }}>
           <Form.Item name="categoryId" label="Category" rules={[{ required: true, message: 'Select category' }]}>
-            <Select placeholder="Women, Kids, etc." onChange={() => form.setFieldValue('sizeId', undefined)}>
+            <Select placeholder="Women, Kids, etc.">
               {categories.map(c => (
                 <Select.Option key={c.categoryId} value={c.categoryId}>{c.categoryName}</Select.Option>
               ))}
             </Select>
           </Form.Item>
-          <Form.Item name="designId" label="Design Number / Code" rules={[{ required: true, message: 'Select design' }]}>
-            <Select placeholder="Select design" showSearch optionFilterProp="label"
-              onChange={onDesignChange}>
-              {designs.map(d => (
-                <Select.Option key={d.designId} value={d.designId} label={d.designCode}>
-                  {d.designCode} — {d.name}
-                </Select.Option>
-              ))}
-            </Select>
-          </Form.Item>
-          <Form.Item noStyle shouldUpdate={(prev, cur) => prev.designId !== cur.designId}>
-            {({ getFieldValue }) => {
-              const d = selectedDesign(getFieldValue('designId'))
-              return d ? (
-                <Alert type="info" showIcon style={{ marginBottom: 16 }}
-                  message={`Embroidery: ${d.embroideryType?.name || 'None'}`}
-                  description={stagePath.length
-                    ? `Stage path: ${stagePath.map(s => s.stageName).join(' → ')}`
-                    : 'Stage path will load when design is selected'}
-                />
-              ) : null
-            }}
-          </Form.Item>
+
+          <Typography.Text strong>Designs in this order</Typography.Text>
+          <Form.List name="designLines" rules={[{
+            validator: async (_, lines) => {
+              if (!lines || lines.length < 1) throw new Error('Add at least one design')
+            },
+          }]}>
+            {(fields, { add, remove }) => (
+              <>
+                {fields.map(({ key, name, ...rest }) => (
+                  <Card key={key} size="small" style={{ marginBottom: 12, marginTop: 8 }}>
+                    <Row gutter={8}>
+                      <Col span={24}>
+                        <Form.Item {...rest} name={[name, 'designId']} label="Design"
+                          rules={[{ required: true, message: 'Select design' }]}>
+                          <Select placeholder="Select design" showSearch optionFilterProp="label"
+                            onChange={(designId) => {
+                              const d = designs.find(x => x.designId === designId)
+                              if (d) {
+                                const lines = form.getFieldValue('designLines') || []
+                                lines[name] = { ...lines[name], designLabel: d.name }
+                                form.setFieldsValue({ designLines: lines })
+                              }
+                              onDesignChange(designId)
+                            }}>
+                            {designs.map(d => (
+                              <Select.Option key={d.designId} value={d.designId} label={d.designCode}>
+                                {d.designCode} — {d.name}
+                              </Select.Option>
+                            ))}
+                          </Select>
+                        </Form.Item>
+                      </Col>
+                      <Col span={12}>
+                        <Form.Item {...rest} name={[name, 'designLabel']} label="Design name (label)">
+                          <Input placeholder="Display name on batch" />
+                        </Form.Item>
+                      </Col>
+                      <Col span={12}>
+                        <Form.Item {...rest} name={[name, 'articleName']} label="Article/Party name">
+                          <Input placeholder="e.g. Silk Kurta Set (optional)" />
+                        </Form.Item>
+                      </Col>
+                      <Col span={12}>
+                        <Form.Item {...rest} name={[name, 'color']} label="Color"
+                          rules={[{ required: true, message: 'Enter color' }]}>
+                          <Input placeholder="e.g. Navy Blue, Maroon" />
+                        </Form.Item>
+                      </Col>
+                      <Col span={12}>
+                        <Form.Item {...rest} name={[name, 'quantity']} label="Quantity"
+                          rules={[{ required: true, message: 'Enter quantity' }]}>
+                          <InputNumber min={1} style={{ width: '100%' }} />
+                        </Form.Item>
+                      </Col>
+                      <Col span={12} style={{ display: 'flex', alignItems: 'flex-end' }}>
+                        {fields.length > 1 && (
+                          <Button danger onClick={() => remove(name)} style={{ marginBottom: 24 }}>
+                            Remove design
+                          </Button>
+                        )}
+                      </Col>
+                    </Row>
+                  </Card>
+                ))}
+                <Button type="dashed" onClick={() => add({ quantity: 1, color: '' })} block style={{ marginBottom: 16 }}>
+                  + Add another design
+                </Button>
+              </>
+            )}
+          </Form.List>
+
+          {stagePath.length > 0 && (
+            <Alert type="info" showIcon style={{ marginBottom: 16 }}
+              message={`Stage path: ${stagePath.map(s => s.stageName).join(' → ')}`}
+              description="Each design line gets its own auto batch number. Article name is shown next to the batch number for identification." />
+          )}
+
           <Form.Item name="designingWorkTypeId" label="Designing Type"
             rules={[{ required: true, message: 'Select designing type' }]}>
             <Select placeholder="Type of designing work">
@@ -236,13 +306,8 @@ export default function BatchesPage() {
               ))}
             </Select>
           </Form.Item>
-          <Alert type="info" showIcon style={{ marginBottom: 16 }}
-            message="Size and color are assigned later"
-            description="When forwarding to Cutting & Stitching, you will split quantities by size and color in Dispatch Management." />
-          <Form.Item name="quantity" label="Quantity" rules={[{ required: true, message: 'Enter quantity' }]}>
-            <InputNumber min={1} style={{ width: '100%' }} />
-          </Form.Item>
-          <Form.Item name="supervisorId" label="Supervisor" rules={[{ required: true, message: 'Select supervisor' }]}>
+          <Form.Item name="supervisorId" label="Designing Supervisor"
+            rules={[{ required: true, message: 'Select supervisor' }]}>
             <Select placeholder="Select supervisor">
               {supervisors.map(s => (
                 <Select.Option key={s.supervisorId} value={s.supervisorId}>

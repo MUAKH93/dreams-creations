@@ -11,6 +11,12 @@ import java.util.List;
 public interface PaymentRepository extends JpaRepository<Payment, Long> {
     List<Payment> findByBill(Bill bill);
 
+    List<Payment> findByBill_Customer_CustomerIdOrderByPaymentDateDesc(Long customerId);
+
+    @Query("SELECT p FROM Payment p JOIN FETCH p.bill JOIN FETCH p.paymentMethod "
+            + "WHERE p.bill.customer.customerId = :customerId ORDER BY p.paymentDate DESC")
+    List<Payment> findByCustomerWithDetails(@Param("customerId") Long customerId);
+
     // Total paid against a specific bill
     @Query("SELECT COALESCE(SUM(p.amount), 0) FROM Payment p WHERE p.bill.billId = :billId")
     BigDecimal sumAmountByBill(@Param("billId") Long billId);

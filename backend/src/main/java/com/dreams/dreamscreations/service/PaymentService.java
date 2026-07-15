@@ -6,5 +6,6 @@ import java.util.List;
 public interface PaymentService {
     Payment recordPayment(Payment payment);
     List<Payment> getByBillId(Long billId);
+    List<Payment> getByCustomerId(Long customerId);
     List<Payment> getAll();
 }

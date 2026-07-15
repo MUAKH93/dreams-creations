@@ -31,7 +31,7 @@ export default function BillsPage() {
   const [payModal,       setPayModal]       = useState(false)
   const [detailModal,    setDetailModal]    = useState(false)
   const [selectedBill,   setSelectedBill]   = useState(null)
-  const [billPayments,   setBillPayments]   = useState([])
+  const [customerPrevBalance, setCustomerPrevBalance] = useState(0)
   const [billForm]       = Form.useForm()
   const [payForm]        = Form.useForm()
   const [items,          setItems]          = useState([emptyLine()])
@@ -49,7 +49,7 @@ export default function BillsPage() {
     ]).then(([b, c, d, sz, p, pm]) => {
       if (b.status === 'fulfilled') setBills(b.value.data)
       if (c.status === 'fulfilled') setCustomers(c.value.data)
-      if (d.status === 'fulfilled') setDesigns(d.value.data)
+      if (d.status === 'fulfilled') setDesigns(d.value.data.filter(x => x.status !== 'inactive'))
       if (sz.status === 'fulfilled') setSizes(sz.value.data)
       if (p.status === 'fulfilled') setProducts(p.value.data)
       if (pm.status === 'fulfilled') setPaymentMethods(pm.value.data)
@@ -138,12 +138,8 @@ export default function BillsPage() {
 
   const viewBill = async (bill) => {
     try {
-      const [billRes, payRes] = await Promise.all([
-        salesAPI.getBill(bill.billId),
-        salesAPI.getByBill(bill.billId),
-      ])
+      const billRes = await salesAPI.getBill(bill.billId)
       setSelectedBill(billRes.data)
-      setBillPayments(payRes.data)
       setDetailModal(true)
     } catch {
       message.error('Could not load bill details')
@@ -152,15 +148,24 @@ export default function BillsPage() {
 
   const handlePrint = async (bill) => {
     try {
-      const [billRes, payRes] = await Promise.all([
-        salesAPI.getBill(bill.billId),
-        salesAPI.getByBill(bill.billId),
-      ])
+      const billRes = await salesAPI.getBill(bill.billId)
       setSelectedBill(billRes.data)
-      setBillPayments(payRes.data)
       setTimeout(() => printBillDocument(), 150)
     } catch {
       message.error('Could not load bill for printing')
+    }
+  }
+
+  const onCustomerSelect = async (customerId) => {
+    if (!customerId) {
+      setCustomerPrevBalance(0)
+      return
+    }
+    try {
+      const res = await salesAPI.getBalance(customerId)
+      setCustomerPrevBalance(Math.max(0, Number(res.data.balance || 0)))
+    } catch {
+      setCustomerPrevBalance(0)
     }
   }
 
@@ -180,6 +185,7 @@ export default function BillsPage() {
       billForm.setFieldsValue({ discount: 0 })
     }
     setItems([emptyLine()])
+    setCustomerPrevBalance(0)
     setBillModal(true)
   }
 
@@ -245,7 +251,7 @@ export default function BillsPage() {
         notes:          values.notes,
         referenceNo:    values.referenceNo,
       })
-      message.success('Payment recorded')
+      message.success('Payment recorded — bill closed. Remaining balance is on customer account.')
       setPayModal(false)
       payForm.resetFields()
       load()
@@ -316,6 +322,9 @@ export default function BillsPage() {
   ]
 
   const lineTotal = items.reduce((sum, it) => sum + (it.quantity * it.unitPrice), 0)
+  const discountPreview = billForm.getFieldValue('discount') || 0
+  const billTotalPreview = Math.max(0, lineTotal - discountPreview)
+  const grandTotalPreview = billTotalPreview + customerPrevBalance
 
   return (
     <div>
@@ -357,7 +366,7 @@ export default function BillsPage() {
             </Col>
             <Col span={12}>
               <Form.Item name="customerId" label="Customer" rules={[{ required: true, message: 'Select a customer' }]}>
-                <Select placeholder="Select customer">
+                <Select placeholder="Select customer" onChange={onCustomerSelect}>
                   {customers.map(c => (
                     <Select.Option key={c.customerId} value={c.customerId}>
                       {c.firstName} {c.lastName || ''}
@@ -499,7 +508,14 @@ export default function BillsPage() {
             </Col>
             <Col span={12}>
               <div style={{ paddingTop: 30 }}>
-                <Text strong>Subtotal: Rs. {lineTotal.toLocaleString()}</Text>
+                <div>Subtotal: <Text strong>Rs. {lineTotal.toLocaleString()}</Text></div>
+                <div>Bill Total: <Text strong>Rs. {billTotalPreview.toLocaleString()}</Text></div>
+                {customerPrevBalance > 0 && (
+                  <div>Previous Balance: <Text type="warning">Rs. {customerPrevBalance.toLocaleString()}</Text></div>
+                )}
+                <div style={{ marginTop: 4 }}>
+                  Grand Total Due: <Text strong type="danger">Rs. {grandTotalPreview.toLocaleString()}</Text>
+                </div>
               </div>
             </Col>
           </Row>
@@ -516,12 +532,21 @@ export default function BillsPage() {
       <Modal title={`Record Payment — ${selectedBill?.billNumber}`}
         open={payModal} onCancel={() => setPayModal(false)} footer={null}>
         {selectedBill && (
-          <Row gutter={16} style={{ marginBottom: 16 }}>
-            <Col span={12}>
-              <Statistic title="Final Amount" prefix="Rs."
-                value={Number(selectedBill.finalAmount).toLocaleString()} />
-            </Col>
-          </Row>
+          <>
+            <Alert type="info" showIcon style={{ marginBottom: 16 }}
+              message="Partial payment closes this bill"
+              description="Any amount received closes the bill. Remaining due stays on the customer account. Full payment history is in Customer Records." />
+            <Row gutter={16} style={{ marginBottom: 16 }}>
+              <Col span={12}>
+                <Statistic title="Bill Total" prefix="Rs."
+                  value={Number(selectedBill.finalAmount).toLocaleString()} />
+              </Col>
+              <Col span={12}>
+                <Statistic title="Grand Total Due" prefix="Rs."
+                  value={Number(selectedBill.grandTotal || selectedBill.finalAmount).toLocaleString()} />
+              </Col>
+            </Row>
+          </>
         )}
         <Form form={payForm} onFinish={onRecordPayment} layout="vertical">
           <Form.Item name="paymentMethodId" label="Payment Method" rules={[{ required: true }]}>
@@ -533,9 +558,9 @@ export default function BillsPage() {
               ))}
             </Select>
           </Form.Item>
-          <Form.Item name="amount" label="Amount (Rs.)" rules={[{ required: true }]}>
+          <Form.Item name="amount" label="Amount Received (Rs.)" rules={[{ required: true }]}>
             <InputNumber min={1} style={{ width: '100%' }}
-              max={selectedBill ? Number(selectedBill.finalAmount) : undefined} />
+              max={selectedBill ? Number(selectedBill.grandTotal || selectedBill.finalAmount) : undefined} />
           </Form.Item>
           <Form.Item name="referenceNo" label="Reference / Transaction No.">
             <Input placeholder="Cheque no., bank ref, etc." />
@@ -580,22 +605,19 @@ export default function BillsPage() {
         {selectedBill && (
           <>
             <Descriptions bordered size="small" style={{ marginBottom: 16 }}>
-              <Descriptions.Item label="Customer" span={2}>
+              <Descriptions.Item label="Customer" span={3}>
                 {selectedBill.customer?.firstName} {selectedBill.customer?.lastName}
+              </Descriptions.Item>
+              <Descriptions.Item label="Phone">
+                {selectedBill.customer?.phone || '—'}
+              </Descriptions.Item>
+              <Descriptions.Item label="City">
+                {selectedBill.customer?.city || '—'}
               </Descriptions.Item>
               <Descriptions.Item label="Status">
                 <Tag color={statusColor(selectedBill.status)}>
                   {selectedBill.status?.toUpperCase()}
                 </Tag>
-              </Descriptions.Item>
-              <Descriptions.Item label="Total">
-                Rs. {Number(selectedBill.totalAmount).toLocaleString()}
-              </Descriptions.Item>
-              <Descriptions.Item label="Discount">
-                Rs. {Number(selectedBill.discount).toLocaleString()}
-              </Descriptions.Item>
-              <Descriptions.Item label="Final">
-                <Text strong>Rs. {Number(selectedBill.finalAmount).toLocaleString()}</Text>
               </Descriptions.Item>
             </Descriptions>
 
@@ -620,27 +642,41 @@ export default function BillsPage() {
               ]}
             />
 
-            <Divider>Payments</Divider>
-            <Table
-              dataSource={billPayments}
-              rowKey="paymentId"
-              size="small"
-              pagination={false}
-              columns={[
-                { title: 'Amount', dataIndex: 'amount',
-                  render: v => `Rs. ${Number(v).toLocaleString()}` },
-                { title: 'Method', key: 'method',
-                  render: (_, r) => r.paymentMethod?.methodName },
-                { title: 'Date', dataIndex: 'paymentDate',
-                  render: d => d ? new Date(d).toLocaleDateString() : '-' },
-                { title: 'Ref', dataIndex: 'referenceNo' },
-              ]}
-            />
+            <div style={{ marginTop: 16, marginBottom: 16, maxWidth: 360, marginLeft: 'auto' }}>
+              <Row justify="space-between" style={{ marginBottom: 6 }}>
+                <Col><Text>Subtotal</Text></Col>
+                <Col>Rs. {Number(selectedBill.totalAmount).toLocaleString()}</Col>
+              </Row>
+              <Row justify="space-between" style={{ marginBottom: 6 }}>
+                <Col><Text>Discount</Text></Col>
+                <Col>Rs. {Number(selectedBill.discount).toLocaleString()}</Col>
+              </Row>
+              <Row justify="space-between" style={{ marginBottom: 6 }}>
+                <Col><Text strong>Bill Total</Text></Col>
+                <Col><Text strong>Rs. {Number(selectedBill.finalAmount).toLocaleString()}</Text></Col>
+              </Row>
+              {Number(selectedBill.previousBalance) > 0 && (
+                <Row justify="space-between" style={{ marginBottom: 6 }}>
+                  <Col><Text>Previous Balance</Text></Col>
+                  <Col>Rs. {Number(selectedBill.previousBalance).toLocaleString()}</Col>
+                </Row>
+              )}
+              <Row justify="space-between" style={{ borderTop: '1px solid #ddd', paddingTop: 8 }}>
+                <Col><Text strong>Grand Total Due</Text></Col>
+                <Col>
+                  <Text strong type="danger">
+                    Rs. {Number(selectedBill.grandTotal || selectedBill.finalAmount).toLocaleString()}
+                  </Text>
+                </Col>
+              </Row>
+            </div>
+            <Alert type="info" showIcon
+              message="Payment details are recorded under Customer Records, not on the bill." />
           </>
         )}
       </Modal>
 
-      <BillPrint bill={selectedBill} payments={billPayments} />
+      <BillPrint bill={selectedBill} />
     </div>
   )
 }

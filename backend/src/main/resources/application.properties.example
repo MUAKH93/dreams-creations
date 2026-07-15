@@ -25,6 +25,9 @@ app.frontend.url=http://localhost:3000
 app.password-reset.expose-link=true
 app.email-verification.expose-link=true
 
+# Default packing supervisor (first name) — used until admin sets one in Factory Setup
+app.production.default-packing-supervisor-name=Asif
+
 # Email — set app.mail.enabled=true and configure SMTP to send real emails
 app.mail.enabled=false
 app.mail.from=noreply@dreamscreations.local

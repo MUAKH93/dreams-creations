@@ -88,4 +88,15 @@ public class AdminStaffController {
         service.deleteManagerAccount(userId, currentUserService.getCurrentUser().getUserId());
         return ResponseEntity.noContent().build();
     }
+
+    @PostMapping("/staff/{userId}/reset-password")
+    public ResponseEntity<Void> resetStaffPassword(
+            @PathVariable Long userId,
+            @RequestBody ResetStaffPasswordRequest request) {
+        service.resetStaffPassword(
+                userId,
+                request.getNewPassword(),
+                currentUserService.getCurrentUser().getUserId());
+        return ResponseEntity.noContent().build();
+    }
 }

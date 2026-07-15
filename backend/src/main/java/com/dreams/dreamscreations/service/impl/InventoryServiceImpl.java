@@ -230,6 +230,7 @@ public class InventoryServiceImpl implements InventoryService {
                 .suitId(suit.getSuitId())
                 .designCode(suit.getDesign().getDesignCode())
                 .designName(suit.getDesign().getName())
+                .designStatus(suit.getDesign().getStatus())
                 .categoryName(categoryNameFor(suit))
                 .sizeValue(suit.getSize() != null ? suit.getSize().getSizeValue() : "TBD")
                 .color(suit.getColor())
@@ -251,6 +252,15 @@ public class InventoryServiceImpl implements InventoryService {
             var openAlerts = alertRepo.findByRelatedEntityTypeAndRelatedEntityId("SUIT", suitId).stream()
                     .filter(a -> "open".equals(a.getStatus()) && "LOW_STOCK".equals(a.getAlertType()))
                     .toList();
+
+            if (suit.getDesign() != null && "inactive".equalsIgnoreCase(suit.getDesign().getStatus())) {
+                openAlerts.forEach(a -> {
+                    a.setStatus("resolved");
+                    a.setResolvedDate(LocalDateTime.now());
+                    alertRepo.save(a);
+                });
+                return;
+            }
 
             if (isLow) {
                 String msg = "Low stock: " + stockLabel(suit)

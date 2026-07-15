@@ -67,7 +67,7 @@ export default function ResetPasswordPage() {
               style={{ marginBottom: 16 }}
             />
             <div style={{ textAlign: 'center' }}>
-              <Link to="/login"><ArrowLeftOutlined /> Back to portals</Link>
+              <Link to="/login"><ArrowLeftOutlined /> Back to sign in</Link>
             </div>
           </>
         ) : (

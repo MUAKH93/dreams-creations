@@ -8,6 +8,7 @@ import com.dreams.dreamscreations.security.CurrentUserService;
 import com.dreams.dreamscreations.service.DesignRequiredStageService;
 import com.dreams.dreamscreations.service.InventoryService;
 import com.dreams.dreamscreations.service.ModuleAssignmentService;
+import com.dreams.dreamscreations.service.ProductionSettingsService;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
@@ -31,6 +32,7 @@ public class ModuleAssignmentServiceImpl implements ModuleAssignmentService {
     private final DesignRequiredStageService stagePathService;
     private final InventoryService inventoryService;
     private final CurrentUserService currentUserService;
+    private final ProductionSettingsService productionSettingsService;
 
     public ModuleAssignmentServiceImpl(ModuleAssignmentRepository assignmentRepo,
                                        ModuleAssignmentDependencyRepository dependencyRepo,
@@ -43,7 +45,8 @@ public class ModuleAssignmentServiceImpl implements ModuleAssignmentService {
                                        SuitRepository suitRepo,
                                        DesignRequiredStageService stagePathService,
                                        InventoryService inventoryService,
-                                       CurrentUserService currentUserService) {
+                                       CurrentUserService currentUserService,
+                                       ProductionSettingsService productionSettingsService) {
         this.assignmentRepo = assignmentRepo;
         this.dependencyRepo = dependencyRepo;
         this.batchRepo = batchRepo;
@@ -56,6 +59,7 @@ public class ModuleAssignmentServiceImpl implements ModuleAssignmentService {
         this.stagePathService = stagePathService;
         this.inventoryService = inventoryService;
         this.currentUserService = currentUserService;
+        this.productionSettingsService = productionSettingsService;
     }
 
     @Override
@@ -74,9 +78,7 @@ public class ModuleAssignmentServiceImpl implements ModuleAssignmentService {
                 .orElseThrow(() -> new RuntimeException("Supervisor not found"));
 
         ProductionStage stage = module.getStage();
-        Long designId = batch.getSuit().getDesign().getDesignId();
-        ProductionStage finalStage = stagePathService.getFinalStage(designId);
-        boolean isFinalStage = stage.getStageId().equals(finalStage.getStageId());
+        boolean requiresSkuBreakdown = requiresSkuBreakdown(stage);
 
         ModuleAssignment assignment = ModuleAssignment.builder()
                 .batch(batch)
@@ -101,7 +103,7 @@ public class ModuleAssignmentServiceImpl implements ModuleAssignmentService {
                     .orElseThrow(() -> new RuntimeException("Filling work type not found")));
         }
 
-        if (isFinalStage) {
+        if (requiresSkuBreakdown) {
             List<DispatchRequest.SkuLineRequest> lines = request.getSkuLines();
             if (lines == null || lines.isEmpty()) {
                 throw new RuntimeException(
@@ -226,16 +228,15 @@ public class ModuleAssignmentServiceImpl implements ModuleAssignmentService {
 
         ProductionBatch batch = assignment.getBatch();
         Long designId = batch.getSuit().getDesign().getDesignId();
-        ProductionStage finalStage = stagePathService.getFinalStage(designId);
-        boolean isFinalStage = assignment.getModule().getStage().getStageId()
-                .equals(finalStage.getStageId());
+        ProductionStage returnedStage = assignment.getModule().getStage();
+        boolean updatesInventory = isInventoryReturnStage(returnedStage, designId);
 
-        if (isFinalStage) {
+        if (updatesInventory) {
             applyFinalStageInventory(assignment, batch);
-            batch.setTotalSuitProduced(sumFinalStageReturns(batch));
+            batch.setTotalSuitProduced(sumInventoryStageReturns(batch, designId));
         }
 
-        if (isFinalStage && batch.getTotalSuitProduced() >= batch.getTotalSuitPlanned()
+        if (updatesInventory && batch.getTotalSuitProduced() >= batch.getTotalSuitPlanned()
                 && !hasPendingPieces(batch)) {
             batch.setStatus("completed");
             batch.setEndDate(java.time.LocalDate.now());
@@ -244,7 +245,71 @@ public class ModuleAssignmentServiceImpl implements ModuleAssignmentService {
         }
 
         batchRepo.save(batch);
+
+        if (isCuttingStitchingStage(returnedStage)) {
+            autoForwardToPressAndPacking(assignment, batch, designId);
+        }
+
         return assignmentRepo.findByIdWithDetails(assignmentId).orElse(assignment);
+    }
+
+    private void autoForwardToPressAndPacking(ModuleAssignment cuttingAssignment,
+                                              ProductionBatch batch,
+                                              Long designId) {
+        ProductionStage nextStage = stagePathService.getNextStage(designId, cuttingAssignment.getModule().getStage().getStageId());
+        if (nextStage == null || !isPressAndPackingStage(nextStage)) {
+            return;
+        }
+
+        int returnedOk = cuttingAssignment.getQuantityReturnedOk() != null
+                ? cuttingAssignment.getQuantityReturnedOk() : 0;
+        if (returnedOk <= 0) {
+            return;
+        }
+
+        List<ProductionModule> modules = moduleRepo.findByStageAndStatusOrderByModuleIdAsc(nextStage, "active");
+        if (modules.isEmpty()) {
+            throw new RuntimeException("No active module found for stage: " + nextStage.getStageName());
+        }
+
+        Supervisor packingSupervisor = productionSettingsService.requirePackingSupervisor();
+        LocalDateTime dueDate = LocalDateTime.now().plusDays(7);
+        if (cuttingAssignment.getDueDate() != null
+                && cuttingAssignment.getDueDate().isAfter(LocalDateTime.now())) {
+            dueDate = cuttingAssignment.getDueDate();
+        }
+
+        ModuleAssignment forward = ModuleAssignment.builder()
+                .batch(batch)
+                .module(modules.get(0))
+                .supervisor(packingSupervisor)
+                .dueDate(dueDate)
+                .build();
+
+        if (cuttingAssignment.getSkuLines() != null && !cuttingAssignment.getSkuLines().isEmpty()) {
+            List<ModuleAssignmentSkuLine> skuLines = new ArrayList<>();
+            int lineTotal = 0;
+            for (ModuleAssignmentSkuLine line : cuttingAssignment.getSkuLines()) {
+                int ok = line.getQuantityReturnedOk() != null ? line.getQuantityReturnedOk() : 0;
+                if (ok <= 0) continue;
+                skuLines.add(ModuleAssignmentSkuLine.builder()
+                        .assignment(forward)
+                        .size(line.getSize())
+                        .color(line.getColor())
+                        .quantitySent(ok)
+                        .build());
+                lineTotal += ok;
+            }
+            if (skuLines.isEmpty()) {
+                return;
+            }
+            forward.setSkuLines(skuLines);
+            forward.setQuantitySent(lineTotal);
+        } else {
+            forward.setQuantitySent(returnedOk);
+        }
+
+        dispatchInternal(forward);
     }
 
     private void returnWithSkuLines(ModuleAssignment assignment, ReturnRequest request) {
@@ -286,11 +351,33 @@ public class ModuleAssignmentServiceImpl implements ModuleAssignmentService {
         assignment.setQuantityMissing(totalMissing);
     }
 
+    private boolean hasPressAndPackingInPath(Long designId) {
+        return stagePathService.getRequiredStagesForDesign(designId).stream()
+                .anyMatch(this::isPressAndPackingStage);
+    }
+
+    private ProductionStage resolveInventoryStage(Long designId) {
+        return stagePathService.getRequiredStagesForDesign(designId).stream()
+                .filter(this::isPressAndPackingStage)
+                .findFirst()
+                .orElseGet(() -> stagePathService.getFinalStage(designId));
+    }
+
+    /** Inventory updates only when the inventory stage is returned (Press and Packing when in path). */
+    private boolean isInventoryReturnStage(ProductionStage returnedStage, Long designId) {
+        if (hasPressAndPackingInPath(designId)) {
+            return isPressAndPackingStage(returnedStage);
+        }
+        ProductionStage finalStage = stagePathService.getFinalStage(designId);
+        return returnedStage.getStageId().equals(finalStage.getStageId());
+    }
+
     private void applyFinalStageInventory(ModuleAssignment assignment, ProductionBatch batch) {
         Design design = batch.getSuit().getDesign();
+        Long designId = design.getDesignId();
 
         if (assignment.getSkuLines() != null && !assignment.getSkuLines().isEmpty()) {
-            int producedAfterReturn = sumFinalStageReturns(batch);
+            int producedAfterReturn = sumInventoryStageReturns(batch, designId);
             if (producedAfterReturn > batch.getTotalSuitPlanned()) {
                 throw new RuntimeException(
                         "Final stage returns would exceed batch planned quantity "
@@ -303,7 +390,7 @@ public class ModuleAssignmentServiceImpl implements ModuleAssignmentService {
                 }
             }
         } else if (assignment.getQuantityReturnedOk() > 0) {
-            int producedAfterReturn = sumFinalStageReturns(batch);
+            int producedAfterReturn = sumInventoryStageReturns(batch, designId);
             if (producedAfterReturn > batch.getTotalSuitPlanned()) {
                 throw new RuntimeException(
                         "Cannot record " + assignment.getQuantityReturnedOk()
@@ -329,6 +416,22 @@ public class ModuleAssignmentServiceImpl implements ModuleAssignmentService {
 
     private boolean isFillingStage(ProductionStage stage) {
         return "Filling".equalsIgnoreCase(stage.getStageName());
+    }
+
+    private boolean isCuttingStitchingStage(ProductionStage stage) {
+        if (stage == null) return false;
+        String name = stage.getStageName();
+        return "Cutting & Stitching".equalsIgnoreCase(name)
+                || "Cutting".equalsIgnoreCase(name)
+                || "Stitching".equalsIgnoreCase(name);
+    }
+
+    private boolean isPressAndPackingStage(ProductionStage stage) {
+        return stage != null && "Press and Packing".equalsIgnoreCase(stage.getStageName());
+    }
+
+    private boolean requiresSkuBreakdown(ProductionStage stage) {
+        return isCuttingStitchingStage(stage);
     }
 
     private boolean hasPendingPieces(ProductionBatch batch) {
@@ -410,12 +513,11 @@ public class ModuleAssignmentServiceImpl implements ModuleAssignmentService {
                 .sum();
     }
 
-    private int sumFinalStageReturns(ProductionBatch batch) {
-        Long designId = batch.getSuit().getDesign().getDesignId();
-        ProductionStage finalStage = stagePathService.getFinalStage(designId);
-        Long finalStageId = finalStage.getStageId();
+    private int sumInventoryStageReturns(ProductionBatch batch, Long designId) {
+        ProductionStage inventoryStage = resolveInventoryStage(designId);
+        Long inventoryStageId = inventoryStage.getStageId();
         return assignmentRepo.findByBatch(batch).stream()
-                .filter(a -> a.getModule().getStage().getStageId().equals(finalStageId))
+                .filter(a -> a.getModule().getStage().getStageId().equals(inventoryStageId))
                 .filter(a -> "returned".equals(a.getStatus()))
                 .mapToInt(a -> {
                     if (a.getSkuLines() != null && !a.getSkuLines().isEmpty()) {

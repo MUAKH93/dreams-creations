@@ -265,6 +265,63 @@ function FillingTypesTab() {
   )
 }
 
+function ProductionSettingsTab() {
+  const [settings, setSettings] = useState(null)
+  const [supervisors, setSupervisors] = useState([])
+  const [loading, setLoading] = useState(true)
+  const [form] = Form.useForm()
+
+  const load = () => {
+    setLoading(true)
+    Promise.all([adminAPI.getProductionSettings(), adminAPI.getSupervisorAccounts()])
+      .then(([s, sup]) => {
+        setSettings(s.data)
+        setSupervisors(sup.data)
+        form.setFieldsValue({ packingSupervisorId: s.data.packingSupervisorId })
+      })
+      .catch(err => message.error(apiErrorMessage(err)))
+      .finally(() => setLoading(false))
+  }
+
+  useEffect(() => { load() }, [])
+
+  const onSave = async (values) => {
+    try {
+      const res = await adminAPI.updateProductionSettings(values)
+      setSettings(res.data)
+      message.success(`Packing supervisor set to ${res.data.packingSupervisorName}`)
+    } catch (err) {
+      message.error(err.response?.data?.message || 'Failed to save settings')
+    }
+  }
+
+  return (
+    <div>
+      <Alert type="info" showIcon style={{ marginBottom: 16 }}
+        message="Press and Packing supervisor"
+        description="When Cutting & Stitching is returned, pieces auto-forward to Press and Packing under this supervisor. Default is Asif — change here when needed." />
+      <Form form={form} layout="vertical" onFinish={onSave} style={{ maxWidth: 420 }}>
+        <Form.Item name="packingSupervisorId" label="Packing supervisor"
+          rules={[{ required: true, message: 'Select packing supervisor' }]}>
+          <Select placeholder="Select supervisor" loading={loading}>
+            {supervisors.filter(s => s.status === 'active').map(s => (
+              <Select.Option key={s.supervisorId} value={s.supervisorId}>
+                {s.firstName} {s.lastName || ''}
+              </Select.Option>
+            ))}
+          </Select>
+        </Form.Item>
+        {settings?.packingSupervisorName && (
+          <Text type="secondary" style={{ display: 'block', marginBottom: 16 }}>
+            Current: {settings.packingSupervisorName}
+          </Text>
+        )}
+        <Button type="primary" htmlType="submit">Save production settings</Button>
+      </Form>
+    </div>
+  )
+}
+
 function ModuleAssignmentsTab() {
   const [assignments, setAssignments] = useState([])
   const [supervisors, setSupervisors] = useState([])
@@ -371,6 +428,7 @@ export default function SetupPage() {
     { key: 'designing', label: 'Designing Types', children: <DesigningTypesTab /> },
     { key: 'filling', label: 'Filling Types', children: <FillingTypesTab /> },
     { key: 'payments', label: 'Payment Methods', children: <PaymentMethodsTab /> },
+    { key: 'production', label: 'Production Settings', children: <ProductionSettingsTab /> },
     { key: 'modules', label: 'Supervisor Modules', children: <ModuleAssignmentsTab /> },
   ]
 
@@ -378,7 +436,7 @@ export default function SetupPage() {
     <div>
       <Title level={4} className="page-title">Factory Setup</Title>
       <Text type="secondary" style={{ display: 'block', marginBottom: 16 }}>
-        Configure sizes, designing/filling types, payment options, and supervisor module assignments.
+        Configure sizes, designing/filling types, payment options, packing supervisor, and module assignments.
       </Text>
       <Tabs items={items} />
     </div>

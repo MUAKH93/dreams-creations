@@ -70,7 +70,7 @@ export default function DesignsCatalogPage() {
 
   const isMandatoryStage = (stage) =>
     stage.isMandatory === true
-    || ['Designing', 'Cutting & Stitching', 'Cutting'].includes(stage.stageName)
+    || ['Designing', 'Cutting & Stitching', 'Cutting', 'Press and Packing'].includes(stage.stageName)
 
   const togglePathStage = (stageId, checked) => {
     const stage = allStages.find(s => s.stageId === stageId)
@@ -117,7 +117,8 @@ export default function DesignsCatalogPage() {
       d.name?.toLowerCase().includes(search.toLowerCase()) ||
       d.designCode?.toLowerCase().includes(search.toLowerCase())
     const matchCat = !filterCat || d.category?.categoryId === filterCat
-    return matchSearch && matchCat
+    const matchActive = canManage || d.status !== 'inactive'
+    return matchSearch && matchCat && matchActive
   })
 
   const onAddDesign = async (values) => {
@@ -135,6 +136,7 @@ export default function DesignsCatalogPage() {
         category: { categoryId: values.categoryId },
         designType: { designTypeId: values.designTypeId },
         isFeatured: values.isFeatured || false,
+        status: values.status || 'active',
       })
       await productionAPI.uploadDesignImage(res.data.designId, pendingImage)
       message.success('Design and image saved')
@@ -178,6 +180,7 @@ export default function DesignsCatalogPage() {
       categoryId: detail.category?.categoryId,
       designTypeId: detail.designType?.designTypeId,
       isFeatured: detail.isFeatured || false,
+      status: detail.status || 'active',
     })
     setEditOpen(true)
   }
@@ -193,6 +196,7 @@ export default function DesignsCatalogPage() {
         category: { categoryId: values.categoryId },
         designType: { designTypeId: values.designTypeId },
         isFeatured: values.isFeatured || false,
+        status: values.status || 'active',
       })
       message.success('Design updated')
       setEditOpen(false)
@@ -347,6 +351,7 @@ export default function DesignsCatalogPage() {
                           <div style={{ marginTop: 8 }}>
                             <Tag color="blue">{design.category?.categoryName}</Tag>
                             <Tag>{design.designType?.typeName}</Tag>
+                            {design.status === 'inactive' && <Tag color="default">Inactive</Tag>}
                           </div>
                           {design.basePrice != null && (
                             <div style={{ marginTop: 8 }}>
@@ -439,6 +444,11 @@ export default function DesignsCatalogPage() {
                 <Descriptions.Item label="Embroidery">{detail.embroideryType.name}</Descriptions.Item>
               )}
               <Descriptions.Item label="Description">{detail.description || '—'}</Descriptions.Item>
+              <Descriptions.Item label="Status">
+                <Tag color={detail.status === 'inactive' ? 'default' : 'green'}>
+                  {(detail.status || 'active').toUpperCase()}
+                </Tag>
+              </Descriptions.Item>
               {detail.basePrice != null && (
                 <Descriptions.Item label="Selling Price">
                   Rs. {Number(detail.basePrice).toLocaleString()}
@@ -454,8 +464,8 @@ export default function DesignsCatalogPage() {
               <>
                 <Divider orientation="left" style={{ marginTop: 20 }}>Production path</Divider>
                 <Alert type="info" showIcon style={{ marginBottom: 12 }}
-                  message="Designing → (optional Filling) → Cutting & Stitching"
-                  description="Cutting and stitching are one combined stage. Enable Filling only when needed." />
+                  message="Designing → (optional Filling) → Cutting & Stitching → Press and Packing"
+                  description="Press and Packing is the final stage before inventory. Enable Filling only when needed." />
                 {pathLoading ? <Spin /> : allStages.length === 0 ? (
                   <Alert type="warning" message="No production stages in database. Run seed-production-flow.sql." />
                 ) : (
@@ -528,6 +538,12 @@ export default function DesignsCatalogPage() {
           <Form.Item name="isFeatured" valuePropName="checked">
             <Checkbox>Featured design</Checkbox>
           </Form.Item>
+          <Form.Item name="status" label="Design Status" initialValue="active">
+            <Select>
+              <Select.Option value="active">Active</Select.Option>
+              <Select.Option value="inactive">Inactive</Select.Option>
+            </Select>
+          </Form.Item>
           <Form.Item>
             <Space>
               <Button type="primary" htmlType="submit">Save changes</Button>
@@ -595,6 +611,12 @@ export default function DesignsCatalogPage() {
           <Form.Item name="productionCost" label="Production Cost (Rs.)"
             tooltip="Estimated cost per suit — used in Analytics profitability">
             <InputNumber min={0} style={{ width: '100%' }} placeholder="Optional" />
+          </Form.Item>
+          <Form.Item name="status" label="Design Status" initialValue="active">
+            <Select>
+              <Select.Option value="active">Active</Select.Option>
+              <Select.Option value="inactive">Inactive</Select.Option>
+            </Select>
           </Form.Item>
           <Form.Item label="Design Image" required>
             <Upload

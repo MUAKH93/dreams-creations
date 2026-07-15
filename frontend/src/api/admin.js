@@ -18,4 +18,8 @@ export const adminAPI = {
   createManagerAccount: (data) => client.post('/admin/manager-accounts', data),
   updateManagerAccount: (userId, data) => client.put(`/admin/manager-accounts/${userId}`, data),
   deleteManagerAccount: (userId) => client.delete(`/admin/manager-accounts/${userId}`),
+
+  getProductionSettings: () => client.get('/admin/production-settings'),
+  updateProductionSettings: (data) => client.put('/admin/production-settings', data),
+  resetStaffPassword: (userId, data) => client.post(`/admin/staff/${userId}/reset-password`, data),
 }

@@ -31,6 +31,12 @@ public class ProductionBatch {
     @Column(name = "batch_number", nullable = false, unique = true, length = 30)
     private String batchNumber;
 
+    @Column(name = "design_label", length = 100)
+    private String designLabel;
+
+    @Column(name = "article_batch_number", length = 50)
+    private String articleName;
+
     @Column(name = "start_date")
     private LocalDate startDate;
 

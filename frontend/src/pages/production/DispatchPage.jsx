@@ -10,7 +10,8 @@ import dayjs from 'dayjs'
 
 const { Title, Text } = Typography
 
-const FINAL_STAGE_NAMES = ['Cutting & Stitching', 'Cutting', 'Stitching']
+const SKU_BREAKDOWN_STAGE_NAMES = ['Cutting & Stitching', 'Cutting', 'Stitching']
+const FINAL_STAGE_NAMES = ['Press and Packing']
 
 export default function DispatchPage() {
   const [assignments, setAssignments] = useState([])
@@ -92,6 +93,11 @@ export default function DispatchPage() {
     }
   }
 
+  const isSkuBreakdownModule = (module) => {
+    if (!module) return false
+    return SKU_BREAKDOWN_STAGE_NAMES.includes(module.stage?.stageName)
+  }
+
   const isFinalStageModule = (module) => {
     if (!module) return false
     if (FINAL_STAGE_NAMES.includes(module.stage?.stageName)) return true
@@ -112,7 +118,7 @@ export default function DispatchPage() {
     const module = selectedModule(values.moduleId)
     const isDesigning = module?.stage?.stageName === 'Designing'
     const isFilling = module?.stage?.stageName === 'Filling'
-    const isFinal = isFinalStageModule(module)
+    const needsSkuBreakdown = isSkuBreakdownModule(module)
 
     const payload = {
       batchId: values.batchId,
@@ -124,7 +130,7 @@ export default function DispatchPage() {
     if (isDesigning) payload.designingWorkTypeId = values.designingWorkTypeId
     if (isFilling) payload.fillingWorkTypeId = values.fillingWorkTypeId
 
-    if (isFinal) {
+    if (needsSkuBreakdown) {
       if (!skuLines.every(l => l.sizeId && l.color?.trim() && l.quantity > 0)) {
         message.error('Each size/color line needs size, color, and quantity')
         return
@@ -179,6 +185,9 @@ export default function DispatchPage() {
     }
   }
 
+  const isPressAndPackingStage = (record) =>
+    record?.module?.stage?.stageName === 'Press and Packing'
+
   const openReturn = (record) => {
     setSelectedAssignment(record)
     returnForm.resetFields()
@@ -190,7 +199,68 @@ export default function DispatchPage() {
     returned: 'green', overdue: 'red',
   }[s] || 'default')
 
-  const columns = [
+  const sortAssignments = (list) =>
+    [...list].sort((a, b) => {
+      const aDone = a.status === 'returned'
+      const bDone = b.status === 'returned'
+      if (aDone !== bDone) return aDone ? 1 : -1
+      const aDue = a.dueDate ? dayjs(a.dueDate).valueOf() : 0
+      const bDue = b.dueDate ? dayjs(b.dueDate).valueOf() : 0
+      return aDue - bDue
+    })
+
+  const uniqueStages = [...new Map(
+    sortedModules
+      .filter(m => m.stage?.stageId)
+      .map(m => [m.stage.stageId, m.stage])
+  ).values()].sort((a, b) => (a.stageOrder || 0) - (b.stageOrder || 0))
+
+  const assignmentsForStage = (stageId) =>
+    sortAssignments(assignments.filter(a => a.module?.stage?.stageId === stageId))
+
+  const activeCount = (list) => list.filter(a => a.status !== 'returned').length
+
+  const stageColumns = [
+    { title: 'Dispatch #', dataIndex: 'assignmentId', key: 'id', width: 90 },
+    { title: 'Batch', key: 'batch',
+      render: (_, r) => (
+        <span>
+          {r.batch?.batchNumber || `#${r.batch?.batchId}`}
+          {r.batch?.designLabel && (
+            <Text type="secondary" style={{ display: 'block', fontSize: 12 }}>
+              {r.batch.designLabel}
+            </Text>
+          )}
+        </span>
+      ) },
+    { title: 'Work Type', key: 'workType',
+      render: (_, r) => r.designingWorkType?.typeName
+        || r.fillingWorkType?.typeName
+        || (r.skuLines?.length
+          ? `${r.skuLines.length} size/color line(s)`
+          : '—') },
+    { title: 'Module', key: 'module',
+      render: (_, r) => r.module?.moduleName || '-' },
+    { title: 'Supervisor', key: 'supervisor',
+      render: (_, r) => r.supervisor
+        ? `${r.supervisor.firstName} ${r.supervisor.lastName || ''}`
+        : '-' },
+    { title: 'Sent', dataIndex: 'quantitySent', key: 'sent', width: 70 },
+    { title: 'OK', dataIndex: 'quantityReturnedOk', key: 'ok', width: 70 },
+    { title: 'Due', dataIndex: 'dueDate', key: 'due', width: 110,
+      render: d => d ? dayjs(d).format('DD MMM YYYY') : '-' },
+    { title: 'Status', dataIndex: 'status', key: 'status', width: 100,
+      render: s => <Tag color={statusColor(s)}>{s?.toUpperCase()}</Tag> },
+    { title: 'Action', key: 'action', width: 140,
+      render: (_, r) => r.status !== 'returned' ? (
+        <Button icon={<RollbackOutlined />} size="small" type="primary"
+          onClick={() => openReturn(r)}>
+          Record Return
+        </Button>
+      ) : <Text type="secondary">Completed</Text> },
+  ]
+
+  const overdueColumns = [
     { title: 'Dispatch #', dataIndex: 'assignmentId', key: 'id', width: 90 },
     { title: 'Batch', key: 'batch',
       render: (_, r) => r.batch?.batchNumber || `#${r.batch?.batchId}` },
@@ -209,7 +279,6 @@ export default function DispatchPage() {
         ? `${r.supervisor.firstName} ${r.supervisor.lastName || ''}`
         : '-' },
     { title: 'Sent', dataIndex: 'quantitySent', key: 'sent' },
-    { title: 'OK', dataIndex: 'quantityReturnedOk', key: 'ok' },
     { title: 'Due', dataIndex: 'dueDate', key: 'due',
       render: d => d ? dayjs(d).format('DD MMM YYYY') : '-' },
     { title: 'Status', dataIndex: 'status', key: 'status',
@@ -223,26 +292,73 @@ export default function DispatchPage() {
       ) : <Text type="secondary">Completed</Text> },
   ]
 
+  const stageTabItems = uniqueStages.map(stage => {
+    const stageAssignments = assignmentsForStage(stage.stageId)
+    const pending = activeCount(stageAssignments)
+    return {
+      key: `stage-${stage.stageId}`,
+      label: (
+        <span>
+          {stage.stageName}
+          <Tag style={{ marginLeft: 8 }} color={pending > 0 ? 'blue' : 'default'}>
+            {pending > 0 ? `${pending} active` : stageAssignments.length}
+          </Tag>
+        </span>
+      ),
+      children: stageAssignments.length === 0 ? (
+        <Alert type="info" showIcon message={`No dispatches at ${stage.stageName} yet`} />
+      ) : (
+        <Table
+          dataSource={stageAssignments}
+          columns={stageColumns}
+          rowKey="assignmentId"
+          loading={loading}
+          scroll={{ x: 1100 }}
+          pagination={{ pageSize: 15, showSizeChanger: true }}
+        />
+      ),
+    }
+  })
+
+  const unmatchedAssignments = sortAssignments(
+    assignments.filter(a => !uniqueStages.some(s => s.stageId === a.module?.stage?.stageId))
+  )
+
   const tabItems = [
-    {
-      key: 'all',
-      label: `All Dispatches (${assignments.length})`,
+    ...stageTabItems,
+    ...(unmatchedAssignments.length > 0 ? [{
+      key: 'other',
+      label: `Other (${unmatchedAssignments.length})`,
       children: (
-        <Table dataSource={assignments} columns={columns}
+        <Table dataSource={unmatchedAssignments} columns={overdueColumns}
           rowKey="assignmentId" loading={loading} scroll={{ x: 1200 }} />
-      )
-    },
+      ),
+    }] : []),
     {
       key: 'overdue',
-      label: <span style={{ color: overdue.length > 0 ? '#cf1322' : undefined }}>
-        Overdue ({overdue.length})
-      </span>,
-      children: (
-        <Table dataSource={overdue} columns={columns}
+      label: (
+        <span style={{ color: overdue.length > 0 ? '#cf1322' : undefined }}>
+          Overdue
+          <Tag color={overdue.length > 0 ? 'error' : 'default'} style={{ marginLeft: 8 }}>
+            {overdue.length}
+          </Tag>
+        </span>
+      ),
+      children: overdue.length === 0 ? (
+        <Alert type="success" showIcon message="No overdue dispatches" />
+      ) : (
+        <Table dataSource={sortAssignments(overdue)} columns={overdueColumns}
           rowKey="assignmentId" loading={loading} scroll={{ x: 1200 }} />
-      )
+      ),
     },
   ]
+
+  const defaultTabKey = (() => {
+    const withActive = uniqueStages.find(s => activeCount(assignmentsForStage(s.stageId)) > 0)
+    if (withActive) return `stage-${withActive.stageId}`
+    if (uniqueStages.length > 0) return `stage-${uniqueStages[0].stageId}`
+    return 'overdue'
+  })()
 
   return (
     <div>
@@ -265,10 +381,14 @@ export default function DispatchPage() {
         showIcon
         style={{ marginBottom: 16 }}
         message="Stage-specific dispatch details"
-        description="Designing and Filling require a work type. Cutting & Stitching requires size/color quantity breakdown from pieces received at the previous stage."
+        description="Cutting & Stitching returns auto-forward OK pieces to Press and Packing (status: sent). The packing supervisor must record a return at Press and Packing — inventory updates only then, not on Cutting & Stitching return."
       />
 
-      <Tabs items={tabItems} />
+      <Tabs
+        items={tabItems}
+        defaultActiveKey={defaultTabKey}
+        type="card"
+      />
 
       <Modal title="Dispatch to Production Stage" open={dispatchModal}
         onCancel={() => setDispatchModal(false)} footer={null} width={640}>
@@ -298,7 +418,7 @@ export default function DispatchPage() {
               const module = selectedModule(getFieldValue('moduleId'))
               const isDesigning = module?.stage?.stageName === 'Designing'
               const isFilling = module?.stage?.stageName === 'Filling'
-              const isFinal = isFinalStageModule(module)
+              const needsSkuBreakdown = isSkuBreakdownModule(module)
               const batchId = getFieldValue('batchId')
 
               return (
@@ -329,7 +449,7 @@ export default function DispatchPage() {
                     </Form.Item>
                   )}
 
-                  {isFinal && (
+                  {needsSkuBreakdown && (
                     <>
                       <Alert type="warning" showIcon style={{ marginBottom: 12 }}
                         message="Assign size and color before Cutting & Stitching"
@@ -386,7 +506,7 @@ export default function DispatchPage() {
                     </>
                   )}
 
-                  {!isFinal && (
+                  {!needsSkuBreakdown && (
                     <Form.Item name="quantitySent" label="Quantity to Dispatch"
                       rules={[{ required: true, message: 'Enter quantity' }]}>
                       <InputNumber min={1} style={{ width: '100%' }} />
@@ -419,8 +539,13 @@ export default function DispatchPage() {
         </Form>
       </Modal>
 
-      <Modal title="Record Return from Module" open={returnModal}
-        onCancel={() => setReturnModal(false)} footer={null} width={560}>
+      <Modal title={`Record Return — Dispatch #${selectedAssignment?.assignmentId}`}
+        open={returnModal} onCancel={() => setReturnModal(false)} footer={null} width={560}>
+        {isPressAndPackingStage(selectedAssignment) && (
+          <Alert type="success" showIcon style={{ marginBottom: 16 }}
+            message="Press and Packing return updates inventory"
+            description="OK pieces from this return are added to finished-goods stock. Damaged and missing pieces are not stocked." />
+        )}
         {selectedAssignment?.skuLines?.length > 0 ? (
           <>
             <Alert type="info" showIcon style={{ marginBottom: 16 }}

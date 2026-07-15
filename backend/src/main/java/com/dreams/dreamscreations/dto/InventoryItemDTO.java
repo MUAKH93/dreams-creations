@@ -12,6 +12,7 @@ public class InventoryItemDTO {
     private Long suitId;
     private String designCode;
     private String designName;
+    private String designStatus;
     private String categoryName;
     private String sizeValue;
     private String color;

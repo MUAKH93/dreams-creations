@@ -48,6 +48,9 @@ public class DesignServiceImpl implements DesignService {
         if (design.getBasePrice() == null || design.getBasePrice().signum() <= 0) {
             throw new RuntimeException("Design price is required and must be greater than zero");
         }
+        if (design.getStatus() == null || design.getStatus().isBlank()) {
+            design.setStatus("active");
+        }
         return designRepository.save(design);
     }
 
@@ -79,6 +82,9 @@ public class DesignServiceImpl implements DesignService {
         existing.setDesignType(updated.getDesignType());
         existing.setEmbroideryType(updated.getEmbroideryType());
         existing.setIsFeatured(updated.getIsFeatured());
+        if (updated.getStatus() != null && !updated.getStatus().isBlank()) {
+            existing.setStatus(updated.getStatus());
+        }
         Design saved = designRepository.save(existing);
         activityLogService.log(currentUserService.getCurrentUser(), "DESIGN_UPDATED", "DESIGN", id,
                 "Updated design " + saved.getDesignCode() + " — " + saved.getName());

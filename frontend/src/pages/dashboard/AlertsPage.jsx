@@ -1,9 +1,9 @@
 import { useEffect, useState } from 'react'
 import { useNavigate } from 'react-router-dom'
 import {
-  Table, Button, Tag, Typography, message, Popconfirm, Alert, Space, Tooltip
+  Table, Button, Tag, Typography, message, Alert, Space, Modal, List
 } from 'antd'
-import { CheckOutlined, SendOutlined, AppstoreOutlined, QuestionCircleOutlined } from '@ant-design/icons'
+import { EyeOutlined, SendOutlined, AppstoreOutlined } from '@ant-design/icons'
 import { salesAPI } from '../../api/sales'
 import { apiErrorMessage } from '../../api/client'
 
@@ -16,7 +16,6 @@ const RESOLUTION_GUIDE = {
       'Open Dispatch Management and find the overdue assignment.',
       'Contact the assigned supervisor to complete the work.',
       'Record the return (OK + damaged + missing) on My Assignments or Dispatch.',
-      'Mark this alert resolved once the return is recorded or the issue is handled.',
     ],
     action: { label: 'Go to Dispatch', path: '/dispatch' },
   },
@@ -26,7 +25,6 @@ const RESOLUTION_GUIDE = {
       'Open Production Batches and locate the batch mentioned in the message.',
       'Check which module has stuck quantity in the flow.',
       'Create a new dispatch to forward those pieces to the next stage.',
-      'Mark resolved after pieces are forwarded or accounted for.',
     ],
     action: { label: 'Go to Batches', path: '/batches' },
   },
@@ -35,26 +33,34 @@ const RESOLUTION_GUIDE = {
     steps: [
       'Open Inventory and review the low-stock item.',
       'Complete production batches or adjust selling plans.',
-      'Restock via production returns at Cutting & Stitching.',
-      'Mark resolved once stock is replenished above the threshold.',
+      'Restock via production returns at Press and Packing.',
     ],
     action: { label: 'Go to Inventory', path: '/inventory' },
+  },
+  PAYMENT_OVERDUE: {
+    summary: 'Customer has overdue unpaid bills.',
+    steps: [
+      'Open Customers and review the customer account.',
+      'Follow up for payment or record payment received.',
+    ],
+    action: { label: 'Go to Customers', path: '/customers' },
   },
 }
 
 function resolutionFor(alertType) {
   return RESOLUTION_GUIDE[alertType] || {
     summary: 'Review the related production or sales record.',
-    steps: ['Investigate the issue described in the message.', 'Take corrective action.', 'Mark resolved when done.'],
+    steps: ['Investigate the issue described in the message.', 'Take corrective action.'],
     action: null,
   }
 }
 
 export default function AlertsPage() {
   const navigate = useNavigate()
-  const [alerts,  setAlerts]  = useState([])
+  const [alerts, setAlerts] = useState([])
   const [loading, setLoading] = useState(true)
   const [loadError, setLoadError] = useState(null)
+  const [viewingAlert, setViewingAlert] = useState(null)
 
   const load = () => {
     setLoading(true)
@@ -70,14 +76,19 @@ export default function AlertsPage() {
 
   useEffect(() => { load() }, [])
 
-  const resolve = async (id) => {
+  const dismissAlert = async (id) => {
     try {
       await salesAPI.resolveAlert(id)
-      message.success('Alert marked as resolved')
+      message.success('Alert dismissed')
+      setViewingAlert(null)
       load()
     } catch {
-      message.error('Failed to resolve alert')
+      message.error('Failed to dismiss alert')
     }
+  }
+
+  const viewAlert = (alert) => {
+    setViewingAlert(alert)
   }
 
   const openCount = alerts.filter(a => a.status === 'open').length
@@ -91,56 +102,22 @@ export default function AlertsPage() {
       )
     },
     { title: 'Message', dataIndex: 'message', key: 'message' },
-    { title: 'How to resolve', key: 'guide', width: 280,
-      render: (_, r) => {
-        const guide = resolutionFor(r.alertType)
-        return (
-          <Tooltip title={
-            <div>
-              <div><strong>{guide.summary}</strong></div>
-              <ol style={{ paddingLeft: 16, margin: '8px 0 0' }}>
-                {guide.steps.map((s, i) => <li key={i}>{s}</li>)}
-              </ol>
-            </div>
-          }>
-            <Text type="secondary" style={{ cursor: 'help' }}>
-              <QuestionCircleOutlined /> {guide.summary}
-            </Text>
-          </Tooltip>
-        )
-      }
-    },
     { title: 'Created', dataIndex: 'createdDate', key: 'created', width: 160,
       render: d => d ? new Date(d).toLocaleString() : '-' },
-    { title: 'Status', dataIndex: 'status', key: 'status', width: 100,
-      render: s => <Tag color={s === 'open' ? 'red' : 'green'}>{s?.toUpperCase()}</Tag> },
-    { title: 'Action', key: 'action', width: 220,
+    { title: 'Action', key: 'action', width: 200,
       render: (_, r) => {
         if (r.status !== 'open') return '—'
-        const guide = resolutionFor(r.alertType)
         return (
-          <Space wrap>
-            {guide.action && (
-              <Button size="small" icon={
-                r.alertType === 'OVERDUE' ? <SendOutlined /> : <AppstoreOutlined />
-              } onClick={() => navigate(guide.action.path)}>
-                {guide.action.label}
-              </Button>
-            )}
-            <Popconfirm
-              title="Mark as resolved?"
-              description="Only resolve after you've taken the steps listed above."
-              onConfirm={() => resolve(r.alertId)}
-            >
-              <Button icon={<CheckOutlined />} size="small" type="primary" ghost>
-                Resolve
-              </Button>
-            </Popconfirm>
-          </Space>
+          <Button size="small" type="primary" icon={<EyeOutlined />}
+            onClick={() => viewAlert(r)}>
+            View
+          </Button>
         )
       }
     },
   ]
+
+  const guide = viewingAlert ? resolutionFor(viewingAlert.alertType) : null
 
   return (
     <div>
@@ -150,11 +127,11 @@ export default function AlertsPage() {
         type="info"
         showIcon
         style={{ marginBottom: 16 }}
-        message="How alerts work"
+        message="View alerts to dismiss them"
         description={
           <Paragraph style={{ marginBottom: 0 }}>
-            Alerts are warnings — they do not fix themselves. Use the <strong>How to resolve</strong> column
-            (hover for full steps), go to the linked page, fix the underlying issue, then click <strong>Resolve</strong>.
+            Click <strong>View</strong> to read the alert details and resolution steps.
+            When you close the view, the alert is removed from the list.
             {openCount > 0 && ` You have ${openCount} open alert${openCount > 1 ? 's' : ''}.`}
           </Paragraph>
         }
@@ -169,9 +146,45 @@ export default function AlertsPage() {
         columns={columns}
         rowKey="alertId"
         loading={loading}
-        scroll={{ x: 1100 }}
+        scroll={{ x: 800 }}
         rowClassName={r => r.status === 'open' ? 'alert-row-open' : ''}
       />
+
+      <Modal
+        title={viewingAlert ? `Alert — ${viewingAlert.alertType}` : 'Alert'}
+        open={!!viewingAlert}
+        onCancel={() => viewingAlert && dismissAlert(viewingAlert.alertId)}
+        footer={
+          viewingAlert ? (
+            <Space>
+              {guide?.action && (
+                <Button icon={
+                  viewingAlert.alertType === 'OVERDUE' ? <SendOutlined /> : <AppstoreOutlined />
+                } onClick={() => navigate(guide.action.path)}>
+                  {guide.action.label}
+                </Button>
+              )}
+              <Button type="primary" onClick={() => dismissAlert(viewingAlert.alertId)}>
+                Done — Dismiss Alert
+              </Button>
+            </Space>
+          ) : null
+        }
+        width={560}
+      >
+        {viewingAlert && guide && (
+          <>
+            <Paragraph><Text strong>{guide.summary}</Text></Paragraph>
+            <Paragraph type="secondary">{viewingAlert.message}</Paragraph>
+            <Title level={5}>What to do</Title>
+            <List
+              size="small"
+              dataSource={guide.steps}
+              renderItem={(item, i) => <List.Item>{i + 1}. {item}</List.Item>}
+            />
+          </>
+        )}
+      </Modal>
     </div>
   )
 }

@@ -1,19 +1,13 @@
 import { useState } from 'react'
 import { Form, Input, Button, Card, Typography, Alert, message } from 'antd'
 import { MailOutlined, ArrowLeftOutlined } from '@ant-design/icons'
-import { Link, useSearchParams } from 'react-router-dom'
+import { Link } from 'react-router-dom'
 import { authAPI } from '../../api/auth'
-import { PORTALS } from '../../utils/roles'
 import AuthScreen from '../../components/AuthScreen'
 
 const { Title, Text } = Typography
 
 export default function ForgotPasswordPage() {
-  const [searchParams] = useSearchParams()
-  const portalKey = searchParams.get('portal') || 'management'
-  const portal = PORTALS[portalKey] || PORTALS.management
-  const loginPath = portal?.loginPath || '/login/management'
-
   const [loading, setLoading] = useState(false)
   const [submitted, setSubmitted] = useState(false)
   const [resetLink, setResetLink] = useState(null)
@@ -40,7 +34,7 @@ export default function ForgotPasswordPage() {
       <Card className="auth-card">
         <div style={{ textAlign: 'center', marginBottom: 24 }}>
           <Title level={3} style={{ color: '#1a237e', marginBottom: 4 }}>Forgot Password</Title>
-          <Text type="secondary">{portal.title}</Text>
+          <Text type="secondary">We will email you a reset link if the account exists</Text>
         </div>
 
         {submitted ? (
@@ -64,7 +58,7 @@ export default function ForgotPasswordPage() {
               />
             )}
             <div style={{ textAlign: 'center' }}>
-              <Link to={loginPath}><ArrowLeftOutlined /> Back to sign in</Link>
+              <Link to="/login"><ArrowLeftOutlined /> Back to sign in</Link>
             </div>
           </>
         ) : (
@@ -91,7 +85,7 @@ export default function ForgotPasswordPage() {
               </Button>
             </Form.Item>
             <div style={{ textAlign: 'center' }}>
-              <Link to={loginPath}><ArrowLeftOutlined /> Back to sign in</Link>
+              <Link to="/login"><ArrowLeftOutlined /> Back to sign in</Link>
             </div>
           </Form>
         )}

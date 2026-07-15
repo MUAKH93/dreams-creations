@@ -15,7 +15,7 @@ export const PORTALS = {
     subtitle: 'Admin & Manager — factory operations',
     roles: MANAGEMENT_ROLES,
     home: '/dashboard',
-    loginPath: '/login/management',
+    loginPath: '/login',
   },
   supervisor: {
     key: 'supervisor',
@@ -23,7 +23,7 @@ export const PORTALS = {
     subtitle: 'Production assignments & returns',
     roles: [ROLES.SUPERVISOR],
     home: '/dashboard',
-    loginPath: '/login/supervisor',
+    loginPath: '/login',
   },
   customer: {
     key: 'customer',
@@ -31,7 +31,7 @@ export const PORTALS = {
     subtitle: 'Browse designs & track your orders',
     roles: [ROLES.CUSTOMER],
     home: '/dashboard',
-    loginPath: '/login/customer',
+    loginPath: '/login',
   },
 }
 

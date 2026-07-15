@@ -16,4 +16,6 @@ public interface StaffAccountService {
     ManagerAccountDTO createManagerAccount(CreateManagerAccountRequest request);
     ManagerAccountDTO updateManagerAccount(Long userId, UpdateManagerAccountRequest request, Long actingAdminUserId);
     void deleteManagerAccount(Long userId, Long actingAdminUserId);
+
+    void resetStaffPassword(Long userId, String newPassword, Long actingAdminUserId);
 }

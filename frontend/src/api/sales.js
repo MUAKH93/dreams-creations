@@ -24,6 +24,7 @@ export const salesAPI = {
   // Payments
   getPayments:    ()       => client.get('/payments'),
   getByBill:      (billId) => client.get(`/payments/bill/${billId}`),
+  getByCustomer:  (customerId) => client.get(`/payments/customer/${customerId}`),
   recordPayment:  (data)   => client.post('/payments', data),
 
   // Products

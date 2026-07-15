@@ -15,7 +15,6 @@ import { MANAGEMENT_ROLES, ROLES, portalLabel, homeForRole } from './utils/roles
 
 // Pages
 import LoginPage          from './pages/auth/LoginPage'
-import PortalLoginPage    from './pages/auth/PortalLoginPage'
 import RegisterPage       from './pages/auth/RegisterPage'
 import ForgotPasswordPage from './pages/auth/ForgotPasswordPage'
 import ResetPasswordPage  from './pages/auth/ResetPasswordPage'
@@ -232,17 +231,11 @@ export default function App() {
     <>
       {auth && <SessionCheck />}
       <Routes>
-      {/* Public — separate login per portal; Manager shares Management with Admin */}
+      {/* Public auth */}
       <Route path="/login" element={auth ? <RoleHome /> : <LoginPage />} />
-      <Route path="/login/management" element={
-        auth ? <RoleHome /> : <PortalLoginPage portalKey="management" />
-      } />
-      <Route path="/login/supervisor" element={
-        auth ? <RoleHome /> : <PortalLoginPage portalKey="supervisor" />
-      } />
-      <Route path="/login/customer" element={
-        auth ? <RoleHome /> : <PortalLoginPage portalKey="customer" />
-      } />
+      <Route path="/login/management" element={<Navigate to="/login" replace />} />
+      <Route path="/login/supervisor" element={<Navigate to="/login" replace />} />
+      <Route path="/login/customer" element={<Navigate to="/login" replace />} />
       <Route path="/register" element={auth ? <RoleHome /> : <RegisterPage />} />
       <Route path="/verify-email" element={<VerifyEmailPage />} />
       <Route path="/forgot-password" element={auth ? <RoleHome /> : <ForgotPasswordPage />} />

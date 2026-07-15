@@ -52,7 +52,7 @@ export default function RegisterPage() {
                 style={{ marginTop: 16, textAlign: 'left' }}
               />
             )}
-            <Button type="primary" style={{ marginTop: 24 }} onClick={() => navigate('/login/customer')}>
+            <Button type="primary" style={{ marginTop: 24 }} onClick={() => navigate('/login')}>
               Go to sign in
             </Button>
           </div>
@@ -107,7 +107,7 @@ export default function RegisterPage() {
 
           <div style={{ textAlign: 'center' }}>
             <Text type="secondary">Already have an account? </Text>
-            <Link to="/login/customer">Customer sign in</Link>
+            <Link to="/login">Sign in</Link>
           </div>
         </Form>
       </Card>

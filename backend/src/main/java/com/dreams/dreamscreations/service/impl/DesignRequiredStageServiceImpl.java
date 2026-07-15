@@ -17,7 +17,7 @@ import java.util.List;
 public class DesignRequiredStageServiceImpl implements DesignRequiredStageService {
 
     private static final List<String> DEFAULT_STAGE_NAMES =
-            List.of("Designing", "Cutting & Stitching");
+            List.of("Designing", "Cutting & Stitching", "Press and Packing");
 
     /** Legacy DBs may still use "Cutting" only as the combined stage */
     private static final List<String> FINAL_STAGE_ALIASES =

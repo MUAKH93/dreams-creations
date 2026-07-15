@@ -25,9 +25,11 @@ export default function StaffPage() {
   const [loginEditOpen, setLoginEditOpen] = useState(false)
   const [createMgrOpen, setCreateMgrOpen] = useState(false)
   const [editMgrOpen, setEditMgrOpen] = useState(false)
+  const [resetPwdOpen, setResetPwdOpen] = useState(false)
 
   const [selectedSup, setSelectedSup] = useState(null)
   const [selectedMgr, setSelectedMgr] = useState(null)
+  const [resetTarget, setResetTarget] = useState(null)
 
   const [createSupForm] = Form.useForm()
   const [loginForm] = Form.useForm()
@@ -35,6 +37,7 @@ export default function StaffPage() {
   const [loginEditForm] = Form.useForm()
   const [createMgrForm] = Form.useForm()
   const [editMgrForm] = Form.useForm()
+  const [resetPwdForm] = Form.useForm()
 
   const loadSupervisors = () => {
     setLoadingSup(true)
@@ -65,7 +68,7 @@ export default function StaffPage() {
   const onCreateSupervisor = async (values) => {
     try {
       await adminAPI.createSupervisorAccount(values)
-      message.success('Supervisor created — they sign in at /login/supervisor')
+      message.success('Supervisor created — they can sign in at the login page')
       setCreateSupOpen(false)
       createSupForm.resetFields()
       loadSupervisors()
@@ -160,7 +163,7 @@ export default function StaffPage() {
   const onCreateManager = async (values) => {
     try {
       await adminAPI.createManagerAccount(values)
-      message.success('Manager account created — sign in at /login/management')
+      message.success('Manager account created — they can sign in at the login page')
       setCreateMgrOpen(false)
       createMgrForm.resetFields()
       loadManagers()
@@ -206,6 +209,32 @@ export default function StaffPage() {
     }
   }
 
+  const openResetPassword = (record, type) => {
+    setResetTarget({
+      userId: record.userId,
+      name: type === 'manager'
+        ? record.username
+        : `${record.firstName} ${record.lastName || ''}`.trim(),
+      type,
+    })
+    resetPwdForm.resetFields()
+    setResetPwdOpen(true)
+  }
+
+  const onResetPassword = async (values) => {
+    try {
+      await adminAPI.resetStaffPassword(resetTarget.userId, {
+        newPassword: values.newPassword,
+      })
+      message.success(`Password reset for ${resetTarget.name}`)
+      setResetPwdOpen(false)
+      setResetTarget(null)
+      resetPwdForm.resetFields()
+    } catch (err) {
+      message.error(err.response?.data?.message || 'Failed to reset password')
+    }
+  }
+
   const supervisorColumns = [
     { title: 'Name', key: 'name', render: (_, r) => `${r.firstName} ${r.lastName || ''}`.trim() },
     { title: 'Email', dataIndex: 'email', render: e => e || <Text type="secondary">Not set</Text> },
@@ -218,7 +247,7 @@ export default function StaffPage() {
         : <Tag color="orange">No login</Tag> },
     { title: 'Status', dataIndex: 'status',
       render: s => <Tag color={s === 'active' ? 'blue' : 'default'}>{s?.toUpperCase()}</Tag> },
-    { title: 'Actions', key: 'actions', width: 280,
+    { title: 'Actions', key: 'actions', width: 340,
       render: (_, r) => (
         <Space wrap>
           <Button size="small" icon={<EditOutlined />} onClick={() => openEditSupervisor(r)}>Edit</Button>
@@ -226,7 +255,10 @@ export default function StaffPage() {
             <Button size="small" icon={<KeyOutlined />} onClick={() => openLoginModal(r)}>Add login</Button>
           )}
           {r.hasLogin && (
-            <Button size="small" icon={<KeyOutlined />} onClick={() => openLoginEdit(r)}>Login</Button>
+            <>
+              <Button size="small" icon={<KeyOutlined />} onClick={() => openLoginEdit(r)}>Login</Button>
+              <Button size="small" onClick={() => openResetPassword(r, 'supervisor')}>Reset password</Button>
+            </>
           )}
           <Popconfirm
             title="Delete this supervisor?"
@@ -252,8 +284,9 @@ export default function StaffPage() {
       ) },
     { title: 'Actions', key: 'actions',
       render: (_, r) => (
-        <Space>
+        <Space wrap>
           <Button size="small" icon={<EditOutlined />} onClick={() => openEditManager(r)}>Edit</Button>
+          <Button size="small" onClick={() => openResetPassword(r, 'manager')}>Reset password</Button>
           <Popconfirm
             title="Delete this manager account?"
             onConfirm={() => deleteManager(r.userId)}
@@ -283,7 +316,7 @@ export default function StaffPage() {
         showIcon
         style={{ marginBottom: 16 }}
         message="Admin creates all logins"
-        description="Managers use /login/management. Supervisors use /login/supervisor. Supervisor login email must match their supervisor record."
+        description="All staff and customers use the same sign-in page. After login, each user is taken to the dashboard for their role. Admin can reset staff passwords (not customers)."
       />
 
       {loadError && <Alert type="error" message={loadError} style={{ marginBottom: 16 }} showIcon />}
@@ -442,6 +475,38 @@ export default function StaffPage() {
           </Form.Item>
           <Form.Item>
             <Button type="primary" htmlType="submit">Save</Button>
+          </Form.Item>
+        </Form>
+      </Modal>
+
+      <Modal title={`Reset password — ${resetTarget?.name || ''}`} open={resetPwdOpen}
+        onCancel={() => { setResetPwdOpen(false); setResetTarget(null) }} footer={null} width={420}>
+        <Alert type="warning" showIcon style={{ marginBottom: 16 }}
+          message="Sets a new password immediately"
+          description="Share the new password securely with the staff member. Customer passwords cannot be reset here." />
+        <Form form={resetPwdForm} layout="vertical" onFinish={onResetPassword}>
+          <Form.Item name="newPassword" label="New password"
+            rules={[{ required: true, message: 'Enter new password' }, { min: 6, message: 'Min 6 characters' }]}>
+            <Input.Password />
+          </Form.Item>
+          <Form.Item name="confirmPassword" label="Confirm password"
+            dependencies={['newPassword']}
+            rules={[
+              { required: true, message: 'Confirm password' },
+              ({ getFieldValue }) => ({
+                validator(_, value) {
+                  if (!value || getFieldValue('newPassword') === value) return Promise.resolve()
+                  return Promise.reject(new Error('Passwords do not match'))
+                },
+              }),
+            ]}>
+            <Input.Password />
+          </Form.Item>
+          <Form.Item>
+            <Space>
+              <Button type="primary" htmlType="submit" danger>Reset password</Button>
+              <Button onClick={() => { setResetPwdOpen(false); setResetTarget(null) }}>Cancel</Button>
+            </Space>
           </Form.Item>
         </Form>
       </Modal>

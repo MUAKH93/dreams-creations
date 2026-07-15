@@ -46,6 +46,9 @@ public class Design {
     @Column(name = "is_featured", nullable = false, columnDefinition = "BOOLEAN DEFAULT false")
     private Boolean isFeatured = false;
 
+    @Column(name = "status", nullable = false, columnDefinition = "VARCHAR(20) DEFAULT 'active'")
+    private String status = "active";
+
     @Column(name = "created_at", insertable = false, updatable = false)
     private LocalDateTime createdAt;
 

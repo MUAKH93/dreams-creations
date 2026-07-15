@@ -68,7 +68,7 @@ export default function InventoryPage() {
   const filteredStock = useMemo(() => {
     const q = search.trim().toLowerCase()
     return stock.filter(item => {
-      if (lowStockOnly && item.quantity > LOW_STOCK_THRESHOLD) return false
+      if (lowStockOnly && (item.quantity > LOW_STOCK_THRESHOLD || item.designStatus === 'inactive')) return false
       if (categoryFilter && item.categoryName !== categoryFilter) return false
       if (sizeFilter && item.sizeValue !== sizeFilter) return false
       if (!q) return true
@@ -80,7 +80,8 @@ export default function InventoryPage() {
     })
   }, [stock, search, categoryFilter, sizeFilter, lowStockOnly])
 
-  const lowStockItems = stock.filter(s => s.quantity <= LOW_STOCK_THRESHOLD)
+  const lowStockItems = stock.filter(s =>
+    s.quantity <= LOW_STOCK_THRESHOLD && s.designStatus !== 'inactive')
 
   const designByCode = (code) => designs.find(d => d.designCode === code)
 
@@ -171,9 +172,12 @@ export default function InventoryPage() {
     { title: 'Size', dataIndex: 'sizeValue', key: 'size' },
     { title: 'Color', dataIndex: 'color', key: 'color' },
     { title: 'Quantity', dataIndex: 'quantity', key: 'qty',
-      render: q => (
-        <Tag color={q <= LOW_STOCK_THRESHOLD ? (q === 0 ? 'red' : 'orange') : 'green'}>
-          {q}{q <= LOW_STOCK_THRESHOLD && q > 0 ? ' ⚠' : ''}
+      render: (q, r) => (
+        <Tag color={
+          r.designStatus === 'inactive' ? 'default'
+            : q <= LOW_STOCK_THRESHOLD ? (q === 0 ? 'red' : 'orange') : 'green'
+        }>
+          {q}{r.designStatus !== 'inactive' && q <= LOW_STOCK_THRESHOLD && q > 0 ? ' ⚠' : ''}
         </Tag>
       ) },
     { title: 'Selling Price (Rs.)', key: 'price',
@@ -297,8 +301,10 @@ export default function InventoryPage() {
           selectedRowKeys,
           onChange: setSelectedRowKeys,
         }}
-        rowClassName={(r) => r.quantity <= LOW_STOCK_THRESHOLD ? 'inventory-low-stock-row' : ''}
-        locale={{ emptyText: 'No stock yet — record a return at Cutting & Stitching (final stage) with OK pieces' }}
+        rowClassName={(r) =>
+          r.designStatus !== 'inactive' && r.quantity <= LOW_STOCK_THRESHOLD
+            ? 'inventory-low-stock-row' : ''}
+        locale={{ emptyText: 'No stock yet — record a return at Press and Packing (final stage) with OK pieces' }}
       />
 
       <InventoryLabelPrint items={labelItems} prices={priceMap} />
