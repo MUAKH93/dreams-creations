@@ -65,6 +65,7 @@ public class SecurityConfig {
                 // Public
                 .requestMatchers("/api/auth/**").permitAll()
                 .requestMatchers("/api/health", "/api/health/**").permitAll()
+                .requestMatchers(HttpMethod.GET, "/api/modules").permitAll()
                 .requestMatchers(HttpMethod.GET, "/api/designs", "/api/designs/**").permitAll()
                 .requestMatchers(HttpMethod.GET, "/api/categories", "/api/categories/**").permitAll()
                 .requestMatchers(HttpMethod.GET, "/api/sizes", "/api/sizes/**").permitAll()
@@ -153,6 +154,7 @@ public class SecurityConfig {
                 .requestMatchers(HttpMethod.POST, "/api/quotations/*/submit").hasAnyRole("CUSTOMER","ADMIN","MANAGER")
                 .requestMatchers(HttpMethod.PATCH, "/api/quotations/*/status").hasAnyRole("ADMIN","MANAGER")
                 .requestMatchers(HttpMethod.GET, "/api/activity-log", "/api/activity-log/**").hasAnyRole("ADMIN","MANAGER")
+                .requestMatchers("/api/finance", "/api/finance/**").hasAnyRole("ADMIN","MANAGER")
                 .requestMatchers(HttpMethod.GET, "/api/customers/payment-reminders").hasAnyRole("ADMIN","MANAGER")
                 .requestMatchers(HttpMethod.PUT, "/api/products", "/api/products/**").hasAnyRole("ADMIN","MANAGER")
                 .requestMatchers(HttpMethod.PUT, "/api/designs/*/required-stages").hasAnyRole("ADMIN","MANAGER")

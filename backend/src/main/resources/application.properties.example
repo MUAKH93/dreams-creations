@@ -28,6 +28,12 @@ app.email-verification.expose-link=true
 # Default packing supervisor (first name) — used until admin sets one in Factory Setup
 app.production.default-packing-supervisor-name=Asif
 
+# Optional modules — keep false on main/production until UAT merge
+modules.finance.enabled=false
+modules.finance.auto-post-ar=false
+modules.finance.auto-post-inventory=false
+modules.shop.enabled=false
+
 # Email — set app.mail.enabled=true and configure SMTP to send real emails
 app.mail.enabled=false
 app.mail.from=noreply@dreamscreations.local

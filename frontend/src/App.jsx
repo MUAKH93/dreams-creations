@@ -7,11 +7,12 @@ import {
   AppstoreOutlined, SendOutlined, FileTextOutlined,
   PictureOutlined, InboxOutlined, CheckSquareOutlined, SafetyCertificateOutlined,
   SettingOutlined,   BarChartOutlined, HistoryOutlined, SolutionOutlined, LineChartOutlined,
-  IdcardOutlined,
+  IdcardOutlined, AccountBookOutlined,
 } from '@ant-design/icons'
 import { useAuth } from './context/AuthContext'
 import ProtectedRoute from './routes/ProtectedRoute'
 import { MANAGEMENT_ROLES, ROLES, portalLabel, homeForRole } from './utils/roles'
+import { financeModuleEnabled } from './config/modules'
 
 // Pages
 import LoginPage          from './pages/auth/LoginPage'
@@ -37,6 +38,10 @@ import ReportsPage        from './pages/reports/ReportsPage'
 import AnalyticsPage      from './pages/analytics/AnalyticsPage'
 import ProfilePage        from './pages/profile/ProfilePage'
 import VerifyEmailPage    from './pages/auth/VerifyEmailPage'
+import FinanceHomePage    from './pages/finance/FinanceHomePage'
+import ChartOfAccountsPage from './pages/finance/ChartOfAccountsPage'
+import JournalEntriesPage from './pages/finance/JournalEntriesPage'
+import FinanceReportsPage from './pages/finance/FinanceReportsPage'
 import BackendStatus from './components/BackendStatus'
 import SessionCheck from './components/SessionCheck'
 import { profileAPI } from './api/profile'
@@ -109,9 +114,22 @@ const SUPERVISOR_MENU = [
   PROFILE_ITEM,
 ]
 
+const FINANCE_MENU_ITEM = {
+  key: '/finance',
+  icon: <AccountBookOutlined />,
+  label: 'Finance',
+}
+
+function withFinanceMenu(items) {
+  if (!financeModuleEnabled) return items
+  const billsIdx = items.findIndex(i => i.key === '/bills')
+  if (billsIdx === -1) return [...items, FINANCE_MENU_ITEM]
+  return [...items.slice(0, billsIdx + 1), FINANCE_MENU_ITEM, ...items.slice(billsIdx + 1)]
+}
+
 function getMenu(role) {
-  if (role === ROLES.ADMIN) return ADMIN_MENU
-  if (role === ROLES.MANAGER) return MANAGER_MENU
+  if (role === ROLES.ADMIN) return withFinanceMenu(ADMIN_MENU)
+  if (role === ROLES.MANAGER) return withFinanceMenu(MANAGER_MENU)
   if (role === ROLES.CUSTOMER) return CUSTOMER_MENU
   if (role === ROLES.SUPERVISOR) return SUPERVISOR_MENU
   return []
@@ -306,6 +324,31 @@ export default function App() {
           <AppLayout><AlertsPage /></AppLayout>
         </ProtectedRoute>
       } />
+
+      {financeModuleEnabled && (
+        <>
+          <Route path="/finance" element={
+            <ProtectedRoute roles={MANAGEMENT_ROLES}>
+              <AppLayout><FinanceHomePage /></AppLayout>
+            </ProtectedRoute>
+          } />
+          <Route path="/finance/accounts" element={
+            <ProtectedRoute roles={MANAGEMENT_ROLES}>
+              <AppLayout><ChartOfAccountsPage /></AppLayout>
+            </ProtectedRoute>
+          } />
+          <Route path="/finance/journals" element={
+            <ProtectedRoute roles={MANAGEMENT_ROLES}>
+              <AppLayout><JournalEntriesPage /></AppLayout>
+            </ProtectedRoute>
+          } />
+          <Route path="/finance/reports" element={
+            <ProtectedRoute roles={MANAGEMENT_ROLES}>
+              <AppLayout><FinanceReportsPage /></AppLayout>
+            </ProtectedRoute>
+          } />
+        </>
+      )}
 
       {/* Admin-only setup (Manager has no separate portal; these are Admin-only) */}
       <Route path="/staff" element={
