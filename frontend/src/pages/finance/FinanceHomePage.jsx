@@ -32,7 +32,7 @@ export default function FinanceHomePage() {
         showIcon
         style={{ marginBottom: 24 }}
         message="Development branch: feature/finance-v2"
-        description="This module is built separately from Operations v1.0. See docs/FINANCE_MODULE_SPEC.md for the full plan."
+        description="Phase F1 is active: chart of accounts, manual journals, trial balance, and general ledger."
       />
 
       {error && (

@@ -20,10 +20,9 @@ public class FinanceModuleServiceImpl implements FinanceModuleService {
     @Override
     public FinanceModuleStatusDTO getStatus() {
         FinanceModuleStatusDTO status = new FinanceModuleStatusDTO();
-        status.setCurrentPhase("F0");
-        status.setCompletedPhases(List.of("Scaffold"));
+        status.setCurrentPhase("F1");
+        status.setCompletedPhases(List.of("Scaffold", "F1 — Core ledger"));
         status.setUpcomingPhases(List.of(
-                "F1 — Core ledger",
                 "F2 — Accounts receivable",
                 "F3 — Inventory & COGS",
                 "F4 — Financial statements",
@@ -33,7 +32,7 @@ public class FinanceModuleServiceImpl implements FinanceModuleService {
         status.setAutoPostAr(moduleProperties.getFinance().isAutoPostAr());
         status.setAutoPostInventory(moduleProperties.getFinance().isAutoPostInventory());
         status.setMessage(
-                "Finance module scaffold is active. Run add-finance-module.sql on staging, then begin Phase F1."
+                "Phase F1 active: chart of accounts, manual journals, trial balance, and general ledger."
         );
         return status;
     }
