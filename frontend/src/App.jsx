@@ -45,6 +45,7 @@ import FinanceReportsPage from './pages/finance/FinanceReportsPage'
 import BackendStatus from './components/BackendStatus'
 import SessionCheck from './components/SessionCheck'
 import { profileAPI } from './api/profile'
+import { modulesAPI } from './api/modules'
 
 const { Sider, Content, Header } = Layout
 const { Text } = Typography
@@ -120,16 +121,16 @@ const FINANCE_MENU_ITEM = {
   label: 'Finance',
 }
 
-function withFinanceMenu(items) {
-  if (!financeModuleEnabled) return items
+function withFinanceMenu(items, showFinance = financeModuleEnabled) {
+  if (!showFinance) return items
   const billsIdx = items.findIndex(i => i.key === '/bills')
   if (billsIdx === -1) return [...items, FINANCE_MENU_ITEM]
   return [...items.slice(0, billsIdx + 1), FINANCE_MENU_ITEM, ...items.slice(billsIdx + 1)]
 }
 
-function getMenu(role) {
-  if (role === ROLES.ADMIN) return withFinanceMenu(ADMIN_MENU)
-  if (role === ROLES.MANAGER) return withFinanceMenu(MANAGER_MENU)
+function getMenu(role, showFinance = financeModuleEnabled) {
+  if (role === ROLES.ADMIN) return withFinanceMenu(ADMIN_MENU, showFinance)
+  if (role === ROLES.MANAGER) return withFinanceMenu(MANAGER_MENU, showFinance)
   if (role === ROLES.CUSTOMER) return CUSTOMER_MENU
   if (role === ROLES.SUPERVISOR) return SUPERVISOR_MENU
   return []
@@ -142,6 +143,15 @@ function AppLayout({ children }) {
   const screens           = useBreakpoint()
   const isMobile          = !screens.lg
   const [drawerOpen, setDrawerOpen] = useState(false)
+  const [showFinance, setShowFinance] = useState(financeModuleEnabled)
+
+  useEffect(() => {
+    modulesAPI.getFlags()
+      .then(r => {
+        if (r.data?.finance?.enabled) setShowFinance(true)
+      })
+      .catch(() => {})
+  }, [])
 
   useEffect(() => {
     if (!auth?.token || auth?.profilePhotoUrl) return
@@ -152,7 +162,7 @@ function AppLayout({ children }) {
       .catch(() => {})
   }, [auth?.token])
 
-  const menuItems = getMenu(auth?.role)
+  const menuItems = getMenu(auth?.role, showFinance)
 
   const userMenu = {
     items: [
@@ -244,6 +254,15 @@ function RoleHome() {
 
 export default function App() {
   const { auth } = useAuth()
+  const [showFinance, setShowFinance] = useState(financeModuleEnabled)
+
+  useEffect(() => {
+    modulesAPI.getFlags()
+      .then(r => {
+        if (r.data?.finance?.enabled) setShowFinance(true)
+      })
+      .catch(() => {})
+  }, [])
 
   return (
     <>
@@ -325,7 +344,7 @@ export default function App() {
         </ProtectedRoute>
       } />
 
-      {financeModuleEnabled && (
+      {showFinance && (
         <>
           <Route path="/finance" element={
             <ProtectedRoute roles={MANAGEMENT_ROLES}>
