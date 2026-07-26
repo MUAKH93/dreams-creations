@@ -14,8 +14,11 @@ export default function FinanceReportsPage() {
   const [accounts, setAccounts] = useState([])
   const [trialBalance, setTrialBalance] = useState(null)
   const [ledger, setLedger] = useState(null)
+  const [arAging, setArAging] = useState(null)
+  const [arRecon, setArRecon] = useState(null)
   const [loadingTb, setLoadingTb] = useState(false)
   const [loadingGl, setLoadingGl] = useState(false)
+  const [loadingAr, setLoadingAr] = useState(false)
   const [accountId, setAccountId] = useState(null)
   const [dateRange, setDateRange] = useState([dayjs().startOf('month'), dayjs()])
 
@@ -51,6 +54,19 @@ export default function FinanceReportsPage() {
 
   useEffect(() => { loadTrialBalance() }, [])
 
+  const loadArAging = () => {
+    setLoadingAr(true)
+    Promise.all([financeAPI.getArAging(), financeAPI.getArReconciliation()])
+      .then(([agingRes, reconRes]) => {
+        setArAging(agingRes.data)
+        setArRecon(reconRes.data)
+      })
+      .catch(err => message.error(apiErrorMessage(err)))
+      .finally(() => setLoadingAr(false))
+  }
+
+  useEffect(() => { loadArAging() }, [])
+
   const tbColumns = [
     { title: 'Code', dataIndex: 'accountCode', key: 'code', width: 80 },
     { title: 'Account', dataIndex: 'accountName', key: 'name' },
@@ -73,6 +89,17 @@ export default function FinanceReportsPage() {
       render: v => Number(v || 0).toLocaleString() },
     { title: 'Balance', dataIndex: 'runningBalance', width: 110,
       render: v => Number(v || 0).toLocaleString() },
+  ]
+
+  const arColumns = [
+    { title: 'Customer', dataIndex: 'customerName', key: 'name' },
+    { title: 'Phone', dataIndex: 'phone', key: 'phone', width: 120, render: v => v || '—' },
+    { title: 'Current (0–30d)', dataIndex: 'current', width: 120, render: v => Number(v || 0).toLocaleString() },
+    { title: '31–60d', dataIndex: 'days31to60', width: 100, render: v => Number(v || 0).toLocaleString() },
+    { title: '61–90d', dataIndex: 'days61to90', width: 100, render: v => Number(v || 0).toLocaleString() },
+    { title: '90+ days', dataIndex: 'over90', width: 100, render: v => Number(v || 0).toLocaleString() },
+    { title: 'Unpaid bills', dataIndex: 'totalOutstanding', width: 110, render: v => Number(v || 0).toLocaleString() },
+    { title: 'Ops balance', dataIndex: 'operationalBalance', width: 110, render: v => Number(v || 0).toLocaleString() },
   ]
 
   const tabItems = [
@@ -134,6 +161,37 @@ export default function FinanceReportsPage() {
                 rowKey={(_, i) => i} loading={loadingGl} pagination={{ pageSize: 25 }} />
             </>
           )}
+        </>
+      ),
+    },
+    {
+      key: 'ar-aging',
+      label: 'AR Aging',
+      children: (
+        <>
+          <Space style={{ marginBottom: 16 }}>
+            <Button onClick={loadArAging} loading={loadingAr}>Refresh</Button>
+            {arRecon && (
+              arRecon.reconciled
+                ? <Tag color="green">AR reconciled</Tag>
+                : <Tag color="orange">AR difference: {Number(arRecon.difference).toLocaleString()}</Tag>
+            )}
+          </Space>
+          {arRecon && (
+            <Alert type={arRecon.reconciled ? 'success' : 'warning'} showIcon style={{ marginBottom: 16 }}
+              message={`Ledger AR: ${Number(arRecon.ledgerArBalance).toLocaleString()} · Operational: ${Number(arRecon.operationalBalanceTotal).toLocaleString()}`}
+              description={arRecon.message} />
+          )}
+          {arAging && (
+            <Row gutter={16} style={{ marginBottom: 16 }}>
+              <Col span={6}><Card><Statistic title="Current" value={arAging.totalCurrent} precision={2} /></Card></Col>
+              <Col span={6}><Card><Statistic title="31–60 days" value={arAging.totalDays31to60} precision={2} /></Card></Col>
+              <Col span={6}><Card><Statistic title="61–90 days" value={arAging.totalDays61to90} precision={2} /></Card></Col>
+              <Col span={6}><Card><Statistic title="90+ days" value={arAging.totalOver90} precision={2} /></Card></Col>
+            </Row>
+          )}
+          <Table dataSource={arAging?.lines || []} columns={arColumns}
+            rowKey="customerId" loading={loadingAr} pagination={{ pageSize: 20 }} />
         </>
       ),
     },

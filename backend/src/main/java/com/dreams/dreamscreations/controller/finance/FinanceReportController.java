@@ -1,5 +1,7 @@
 package com.dreams.dreamscreations.controller.finance;
 
+import com.dreams.dreamscreations.dto.finance.ArAgingReportDTO;
+import com.dreams.dreamscreations.dto.finance.ArReconciliationDTO;
 import com.dreams.dreamscreations.dto.finance.GeneralLedgerReportDTO;
 import com.dreams.dreamscreations.dto.finance.TrialBalanceReportDTO;
 import com.dreams.dreamscreations.service.finance.FinanceReportService;
@@ -34,5 +36,15 @@ public class FinanceReportController {
             @RequestParam @DateTimeFormat(iso = DateTimeFormat.ISO.DATE) LocalDate fromDate,
             @RequestParam @DateTimeFormat(iso = DateTimeFormat.ISO.DATE) LocalDate toDate) {
         return ResponseEntity.ok(reportService.getGeneralLedger(accountId, fromDate, toDate));
+    }
+
+    @GetMapping("/ar-aging")
+    public ResponseEntity<ArAgingReportDTO> arAging() {
+        return ResponseEntity.ok(reportService.getArAging());
+    }
+
+    @GetMapping("/ar-reconciliation")
+    public ResponseEntity<ArReconciliationDTO> arReconciliation() {
+        return ResponseEntity.ok(reportService.getArReconciliation());
     }
 }

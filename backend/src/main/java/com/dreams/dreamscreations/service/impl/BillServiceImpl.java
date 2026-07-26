@@ -6,6 +6,7 @@ import com.dreams.dreamscreations.service.ActivityLogService;
 import com.dreams.dreamscreations.service.BillService;
 import com.dreams.dreamscreations.security.CurrentUserService;
 import com.dreams.dreamscreations.service.InventoryService;
+import com.dreams.dreamscreations.service.finance.FinanceArPostingBridge;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
@@ -24,6 +25,7 @@ public class BillServiceImpl implements BillService {
     private final InventoryService inventoryService;
     private final CurrentUserService currentUserService;
     private final ActivityLogService activityLogService;
+    private final FinanceArPostingBridge financeArPostingBridge;
 
     public BillServiceImpl(BillRepository billRepo,
                            BillItemRepository billItemRepo,
@@ -32,7 +34,8 @@ public class BillServiceImpl implements BillService {
                            ProductRepository productRepo,
                            InventoryService inventoryService,
                            CurrentUserService currentUserService,
-                           ActivityLogService activityLogService) {
+                           ActivityLogService activityLogService,
+                           FinanceArPostingBridge financeArPostingBridge) {
         this.billRepo = billRepo;
         this.billItemRepo = billItemRepo;
         this.customerRepo = customerRepo;
@@ -41,6 +44,7 @@ public class BillServiceImpl implements BillService {
         this.inventoryService = inventoryService;
         this.currentUserService = currentUserService;
         this.activityLogService = activityLogService;
+        this.financeArPostingBridge = financeArPostingBridge;
     }
 
     @Override
@@ -95,7 +99,9 @@ public class BillServiceImpl implements BillService {
 
         updateCustomerBalance(saved.getCustomer().getCustomerId());
 
-        return billRepo.findById(saved.getBillId()).orElse(saved);
+        Bill result = billRepo.findById(saved.getBillId()).orElse(saved);
+        financeArPostingBridge.onBillCreated(result);
+        return result;
     }
 
     @Override
@@ -152,7 +158,9 @@ public class BillServiceImpl implements BillService {
             updateCustomerBalance(saved.getCustomer().getCustomerId());
             activityLogService.log(currentUserService.getCurrentUser(), "BILL_CANCELLED", "BILL", id,
                     "Cancelled bill " + saved.getBillNumber());
-            return billRepo.findById(saved.getBillId()).orElse(saved);
+            Bill result = billRepo.findById(saved.getBillId()).orElse(saved);
+            financeArPostingBridge.onBillCancelled(result);
+            return result;
         }
 
         if ("cancelled".equalsIgnoreCase(previousStatus)) {

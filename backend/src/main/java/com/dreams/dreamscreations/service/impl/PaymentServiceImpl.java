@@ -3,6 +3,7 @@ package com.dreams.dreamscreations.service.impl;
 import com.dreams.dreamscreations.entity.*;
 import com.dreams.dreamscreations.repository.*;
 import com.dreams.dreamscreations.service.PaymentService;
+import com.dreams.dreamscreations.service.finance.FinanceArPostingBridge;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
@@ -16,15 +17,18 @@ public class PaymentServiceImpl implements PaymentService {
     private final BillRepository billRepo;
     private final CustomerBalanceRepository balanceRepo;
     private final CustomerRepository customerRepo;
+    private final FinanceArPostingBridge financeArPostingBridge;
 
     public PaymentServiceImpl(PaymentRepository paymentRepo,
                               BillRepository billRepo,
                               CustomerBalanceRepository balanceRepo,
-                              CustomerRepository customerRepo) {
+                              CustomerRepository customerRepo,
+                              FinanceArPostingBridge financeArPostingBridge) {
         this.paymentRepo = paymentRepo;
         this.billRepo = billRepo;
         this.balanceRepo = balanceRepo;
         this.customerRepo = customerRepo;
+        this.financeArPostingBridge = financeArPostingBridge;
     }
 
     /**
@@ -69,6 +73,7 @@ public class PaymentServiceImpl implements PaymentService {
         balance.setBalance(balance.getTotalSales().subtract(totalPaidByCustomer));
         balanceRepo.save(balance);
 
+        financeArPostingBridge.onPaymentRecorded(saved);
         return saved;
     }
 

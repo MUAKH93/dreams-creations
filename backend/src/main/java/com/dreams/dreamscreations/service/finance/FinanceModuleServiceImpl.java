@@ -20,10 +20,9 @@ public class FinanceModuleServiceImpl implements FinanceModuleService {
     @Override
     public FinanceModuleStatusDTO getStatus() {
         FinanceModuleStatusDTO status = new FinanceModuleStatusDTO();
-        status.setCurrentPhase("F1");
-        status.setCompletedPhases(List.of("Scaffold", "F1 — Core ledger"));
+        status.setCurrentPhase("F2");
+        status.setCompletedPhases(List.of("Scaffold", "F1 — Core ledger", "F2 — Accounts receivable"));
         status.setUpcomingPhases(List.of(
-                "F2 — Accounts receivable",
                 "F3 — Inventory & COGS",
                 "F4 — Financial statements",
                 "F5 — Payables (optional)",
@@ -32,7 +31,7 @@ public class FinanceModuleServiceImpl implements FinanceModuleService {
         status.setAutoPostAr(moduleProperties.getFinance().isAutoPostAr());
         status.setAutoPostInventory(moduleProperties.getFinance().isAutoPostInventory());
         status.setMessage(
-                "Phase F1 active: chart of accounts, manual journals, trial balance, and general ledger."
+                "Phase F2 active: AR auto-posting (when enabled), AR aging, and reconciliation vs customer balances."
         );
         return status;
     }

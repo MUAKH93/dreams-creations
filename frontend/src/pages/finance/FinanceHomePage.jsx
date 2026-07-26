@@ -32,7 +32,7 @@ export default function FinanceHomePage() {
         showIcon
         style={{ marginBottom: 24 }}
         message="Development branch: feature/finance-v2"
-        description="Phase F1 is active: chart of accounts, manual journals, trial balance, and general ledger."
+        description="Phase F2 is active: AR auto-posting (when enabled), AR aging, and reconciliation."
       />
 
       {error && (

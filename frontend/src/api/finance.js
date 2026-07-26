@@ -18,4 +18,6 @@ export const financeAPI = {
     client.get('/finance/reports/trial-balance', { params }),
   getGeneralLedger: (params) =>
     client.get('/finance/reports/general-ledger', { params }),
+  getArAging: () => client.get('/finance/reports/ar-aging'),
+  getArReconciliation: () => client.get('/finance/reports/ar-reconciliation'),
 }
