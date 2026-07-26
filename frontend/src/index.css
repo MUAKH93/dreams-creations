@@ -1,0 +1,223 @@
+* {
+  margin: 0;
+  padding: 0;
+  box-sizing: border-box;
+}
+
+body {
+  font-family: 'Segoe UI', sans-serif;
+  background: #f0f2f5;
+  overflow-x: hidden;
+}
+
+.page-title {
+  margin-bottom: 24px;
+  font-size: 22px;
+  font-weight: 600;
+  color: #1a237e;
+}
+
+/* Auth screens */
+.auth-screen {
+  min-height: 100vh;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background: linear-gradient(135deg, #1a237e 0%, #283593 100%);
+  padding: 16px;
+}
+
+.auth-screen__inner {
+  width: 100%;
+}
+
+.auth-brand-header {
+  text-align: center;
+  margin-bottom: 20px;
+}
+
+.auth-brand-header__subtitle {
+  margin: 12px 0 0;
+  color: rgba(255, 255, 255, 0.85);
+  font-size: 14px;
+}
+
+.brand-logo {
+  display: block;
+  object-fit: contain;
+}
+
+.brand-logo--sidebar {
+  margin: 0 auto;
+  border-radius: 50%;
+  background: #fff;
+  padding: 4px;
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.15);
+}
+
+.brand-logo--auth {
+  margin: 0 auto;
+  border-radius: 50%;
+  background: #fff;
+  padding: 6px;
+  box-shadow: 0 4px 20px rgba(0, 0, 0, 0.2);
+}
+
+.brand-logo--print,
+.brand-logo--label {
+  margin: 0 auto;
+}
+
+.auth-card {
+  width: 100%;
+  border-radius: 12px !important;
+  box-shadow: 0 8px 32px rgba(0, 0, 0, 0.2) !important;
+}
+
+.auth-portal-title {
+  color: #fff !important;
+  margin-bottom: 8px !important;
+}
+
+.auth-portal-subtitle {
+  color: rgba(255, 255, 255, 0.75) !important;
+}
+
+.auth-portal-card {
+  height: 100%;
+  border-radius: 12px !important;
+  text-align: center;
+}
+
+/* App shell */
+.app-layout {
+  min-height: 100vh;
+}
+
+.app-sider {
+  background: #1a237e !important;
+}
+
+.app-sider-brand {
+  padding: 16px 12px;
+  border-bottom: 1px solid rgba(255, 255, 255, 0.1);
+  margin-bottom: 8px;
+  text-align: center;
+}
+
+.app-header {
+  background: #fff;
+  padding: 0 12px;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  box-shadow: 0 1px 4px rgba(0, 0, 0, 0.08);
+  position: sticky;
+  top: 0;
+  z-index: 100;
+  height: 56px;
+  line-height: 56px;
+}
+
+.app-menu-trigger {
+  font-size: 18px;
+  margin-right: 8px;
+}
+
+.app-header-user {
+  margin-left: auto;
+}
+
+.app-header-user-trigger {
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  max-width: 100%;
+}
+
+.app-content {
+  margin: 12px;
+  min-width: 0;
+}
+
+@media (min-width: 768px) {
+  .app-content {
+    margin: 20px;
+  }
+}
+
+@media (min-width: 992px) {
+  .app-header {
+    padding: 0 24px;
+    justify-content: flex-end;
+  }
+
+  .app-content {
+    margin: 24px;
+  }
+}
+
+@media (max-width: 575px) {
+  .app-header-role {
+    display: none;
+  }
+
+  .page-title {
+    font-size: 18px;
+    margin-bottom: 16px;
+  }
+}
+
+/* Page utilities */
+.page-toolbar {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 12px;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 24px;
+}
+
+.page-toolbar .page-title {
+  margin-bottom: 0;
+}
+
+.table-responsive {
+  width: 100%;
+  overflow-x: auto;
+  -webkit-overflow-scrolling: touch;
+}
+
+.table-responsive .ant-table {
+  min-width: 560px;
+}
+
+/* Ant Design overrides for small screens */
+.ant-table-wrapper {
+  overflow-x: auto;
+  -webkit-overflow-scrolling: touch;
+}
+
+@media (max-width: 767px) {
+  .ant-modal {
+    max-width: calc(100vw - 16px) !important;
+    margin: 8px auto !important;
+  }
+
+  .ant-card-head-title {
+    white-space: normal;
+  }
+
+  .ant-statistic-title {
+    font-size: 12px;
+  }
+}
+
+.app-drawer .ant-drawer-header-title {
+  flex: 1;
+}
+
+.app-drawer .ant-drawer-close {
+  color: rgba(255, 255, 255, 0.85);
+}

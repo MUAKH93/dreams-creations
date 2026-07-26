@@ -1,0 +1,6 @@
+# Enable on feature/finance-v2 — copy relevant lines into application.properties
+# or: spring.config.import=optional:classpath:application-finance.properties
+
+modules.finance.enabled=true
+modules.finance.auto-post-ar=false
+modules.finance.auto-post-inventory=false

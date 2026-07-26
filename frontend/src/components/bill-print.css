@@ -1,0 +1,152 @@
+.bill-print-root {
+  display: none;
+}
+
+@media print {
+  @page {
+    size: A4 portrait;
+    margin: 12mm 14mm;
+  }
+
+  body * {
+    visibility: hidden;
+  }
+
+  #bill-print-root,
+  #bill-print-root * {
+    visibility: visible;
+  }
+
+  #bill-print-root {
+    display: flex !important;
+    flex-direction: column;
+    position: absolute;
+    left: 0;
+    top: 0;
+    width: 210mm;
+    min-height: 297mm;
+    padding: 0;
+    font-family: Arial, Helvetica, sans-serif;
+    font-size: 11px;
+    color: #000;
+    background: #fff;
+    box-sizing: border-box;
+  }
+
+  .bill-print-top {
+    display: grid;
+    grid-template-columns: 32mm 1fr 52mm;
+    gap: 8mm;
+    align-items: start;
+    border-bottom: 2px solid #1a237e;
+    padding-bottom: 8mm;
+    margin-bottom: 6mm;
+  }
+
+  .bill-print-logo-slot {
+    width: 32mm;
+    height: 28mm;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+  }
+
+  .bill-print-logo {
+    width: 28mm;
+    height: 28mm;
+    object-fit: contain;
+  }
+
+  .bill-print-company h1 {
+    margin: 0;
+    font-size: 20px;
+    color: #1a237e;
+  }
+
+  .bill-print-company p {
+    margin: 4px 0 0;
+    color: #555;
+    font-size: 11px;
+  }
+
+  .bill-print-meta {
+    text-align: right;
+    line-height: 1.7;
+    font-size: 11px;
+  }
+
+  .bill-print-customer {
+    margin-bottom: 6mm;
+    padding: 4mm 5mm;
+    background: #f5f5f5;
+    border-radius: 2px;
+    line-height: 1.6;
+  }
+
+  .bill-print-body {
+    flex: 1;
+    display: flex;
+    flex-direction: column;
+    min-height: 0;
+  }
+
+  .bill-print-table {
+    width: 100%;
+    border-collapse: collapse;
+  }
+
+  .bill-print-table th,
+  .bill-print-table td {
+    border: 1px solid #ccc;
+    padding: 4px 6px;
+    text-align: left;
+    font-size: 10px;
+  }
+
+  .bill-print-table th {
+    background: #1a237e;
+    color: #fff;
+  }
+
+  .bill-print-spacer {
+    flex: 1;
+    min-height: 20mm;
+  }
+
+  .bill-print-totals-wrap {
+    display: flex;
+    justify-content: flex-end;
+    margin-top: auto;
+    padding-top: 4mm;
+  }
+
+  .bill-print-totals {
+    width: 72mm;
+  }
+
+  .bill-print-totals > div {
+    display: flex;
+    justify-content: space-between;
+    padding: 3px 0;
+    border-bottom: 1px solid #eee;
+    font-size: 11px;
+  }
+
+  .bill-print-grand {
+    font-weight: bold;
+    font-size: 13px !important;
+    border-top: 2px solid #1a237e !important;
+    border-bottom: none !important;
+    padding-top: 6px !important;
+    margin-top: 4px;
+    color: #1a237e;
+  }
+
+  .bill-print-footer {
+    margin-top: 8mm;
+    text-align: center;
+    color: #666;
+    font-style: italic;
+    font-size: 10px;
+  }
+}

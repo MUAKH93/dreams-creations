@@ -1,0 +1,47 @@
+spring.application.name=dreams-creations
+
+spring.datasource.url=jdbc:mysql://localhost:3306/dreams_creations_db?useSSL=false&serverTimezone=UTC
+spring.datasource.username=root
+spring.datasource.password=YOUR_DB_PASSWORD
+spring.datasource.driver-class-name=com.mysql.cj.jdbc.Driver
+
+spring.jpa.hibernate.ddl-auto=validate
+spring.jpa.show-sql=false
+spring.jpa.properties.hibernate.format_sql=true
+spring.jpa.database-platform=org.hibernate.dialect.MySQLDialect
+
+spring.servlet.multipart.enabled=true
+spring.servlet.multipart.max-file-size=10MB
+spring.servlet.multipart.max-request-size=10MB
+
+# Design images — absolute folder (avoids Tomcat temp/work dir on Windows)
+app.upload.dir=${user.home}/dreams-creations/uploads
+
+# JWT — use a random secret at least 32 characters
+jwt.secret=CHANGE_ME_TO_A_LONG_RANDOM_SECRET_KEY
+jwt.expiration=86400000
+
+app.frontend.url=http://localhost:3000
+app.password-reset.expose-link=true
+app.email-verification.expose-link=true
+
+# Default packing supervisor (first name) — used until admin sets one in Factory Setup
+app.production.default-packing-supervisor-name=Asif
+
+# Optional modules — keep false on main/production until UAT merge
+modules.finance.enabled=false
+modules.finance.auto-post-ar=false
+modules.finance.auto-post-inventory=false
+modules.shop.enabled=false
+
+# Email — set app.mail.enabled=true and configure SMTP to send real emails
+app.mail.enabled=false
+app.mail.from=noreply@dreamscreations.local
+# spring.mail.host=smtp.gmail.com
+# spring.mail.port=587
+# spring.mail.username=your@gmail.com
+# spring.mail.password=your-app-password
+# spring.mail.properties.mail.smtp.auth=true
+# spring.mail.properties.mail.smtp.starttls.enable=true
+
+# Copy this file to application.properties and fill in real values.
