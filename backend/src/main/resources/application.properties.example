@@ -15,7 +15,7 @@ spring.servlet.multipart.max-file-size=10MB
 spring.servlet.multipart.max-request-size=10MB
 
 # Design images — absolute folder (avoids Tomcat temp/work dir on Windows)
-app.upload.dir=${user.home}/dreams-creations/uploads
+app.upload.dir=${user.home}/Projects/dreams-creations/backend/uploads
 
 # JWT — use a random secret at least 32 characters
 jwt.secret=CHANGE_ME_TO_A_LONG_RANDOM_SECRET_KEY
