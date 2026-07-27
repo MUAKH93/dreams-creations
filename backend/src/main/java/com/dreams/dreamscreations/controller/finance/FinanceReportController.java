@@ -2,8 +2,10 @@ package com.dreams.dreamscreations.controller.finance;
 
 import com.dreams.dreamscreations.dto.finance.ArAgingReportDTO;
 import com.dreams.dreamscreations.dto.finance.ArReconciliationDTO;
+import com.dreams.dreamscreations.dto.finance.BalanceSheetReportDTO;
 import com.dreams.dreamscreations.dto.finance.GeneralLedgerReportDTO;
 import com.dreams.dreamscreations.dto.finance.InventoryValuationReportDTO;
+import com.dreams.dreamscreations.dto.finance.ProfitLossReportDTO;
 import com.dreams.dreamscreations.dto.finance.TrialBalanceReportDTO;
 import com.dreams.dreamscreations.service.finance.FinanceReportService;
 import org.springframework.boot.autoconfigure.condition.ConditionalOnProperty;
@@ -52,5 +54,18 @@ public class FinanceReportController {
     @GetMapping("/inventory-valuation")
     public ResponseEntity<InventoryValuationReportDTO> inventoryValuation() {
         return ResponseEntity.ok(reportService.getInventoryValuation());
+    }
+
+    @GetMapping("/profit-loss")
+    public ResponseEntity<ProfitLossReportDTO> profitLoss(
+            @RequestParam @DateTimeFormat(iso = DateTimeFormat.ISO.DATE) LocalDate fromDate,
+            @RequestParam @DateTimeFormat(iso = DateTimeFormat.ISO.DATE) LocalDate toDate) {
+        return ResponseEntity.ok(reportService.getProfitLoss(fromDate, toDate));
+    }
+
+    @GetMapping("/balance-sheet")
+    public ResponseEntity<BalanceSheetReportDTO> balanceSheet(
+            @RequestParam @DateTimeFormat(iso = DateTimeFormat.ISO.DATE) LocalDate asOfDate) {
+        return ResponseEntity.ok(reportService.getBalanceSheet(asOfDate));
     }
 }

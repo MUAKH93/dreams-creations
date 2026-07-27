@@ -25,7 +25,7 @@ const QUICK_ACTIONS = [
   },
   {
     title: 'Reports',
-    description: 'Trial balance, ledger, AR aging & inventory valuation',
+    description: 'Trial balance, P&L, balance sheet & more',
     path: '/finance/reports',
     icon: <BarChartOutlined className="finance-action-card__icon" />,
   },

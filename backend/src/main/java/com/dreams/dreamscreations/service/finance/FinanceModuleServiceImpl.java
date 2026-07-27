@@ -20,18 +20,18 @@ public class FinanceModuleServiceImpl implements FinanceModuleService {
     @Override
     public FinanceModuleStatusDTO getStatus() {
         FinanceModuleStatusDTO status = new FinanceModuleStatusDTO();
-        status.setCurrentPhase("F3");
+        status.setCurrentPhase("F4");
         status.setCompletedPhases(List.of(
-                "Scaffold", "F1 — Core ledger", "F2 — Accounts receivable", "F3 — Inventory & COGS"));
+                "Scaffold", "F1 — Core ledger", "F2 — Accounts receivable",
+                "F3 — Inventory & COGS", "F4 — Financial statements"));
         status.setUpcomingPhases(List.of(
-                "F4 — Financial statements",
                 "F5 — Payables (optional)",
                 "F6 — Bank reconciliation & UAT"
         ));
         status.setAutoPostAr(moduleProperties.getFinance().isAutoPostAr());
         status.setAutoPostInventory(moduleProperties.getFinance().isAutoPostInventory());
         status.setMessage(
-                "Phase F3 active: COGS on bill sales, production receipts to inventory, and stock valuation report."
+                "Phase F4 active: profit & loss and balance sheet reports with date filters."
         );
         return status;
     }

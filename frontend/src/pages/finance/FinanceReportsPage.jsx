@@ -17,12 +17,18 @@ export default function FinanceReportsPage() {
   const [arAging, setArAging] = useState(null)
   const [arRecon, setArRecon] = useState(null)
   const [inventoryValuation, setInventoryValuation] = useState(null)
+  const [profitLoss, setProfitLoss] = useState(null)
+  const [balanceSheet, setBalanceSheet] = useState(null)
   const [loadingTb, setLoadingTb] = useState(false)
   const [loadingGl, setLoadingGl] = useState(false)
   const [loadingAr, setLoadingAr] = useState(false)
   const [loadingInv, setLoadingInv] = useState(false)
+  const [loadingPl, setLoadingPl] = useState(false)
+  const [loadingBs, setLoadingBs] = useState(false)
   const [accountId, setAccountId] = useState(null)
   const [dateRange, setDateRange] = useState([dayjs().startOf('month'), dayjs()])
+  const [plRange, setPlRange] = useState([dayjs().startOf('year'), dayjs()])
+  const [bsDate, setBsDate] = useState(dayjs())
 
   useEffect(() => {
     financeAPI.getAccounts(true)
@@ -79,6 +85,36 @@ export default function FinanceReportsPage() {
 
   useEffect(() => { loadInventoryValuation() }, [])
 
+  const loadProfitLoss = () => {
+    if (!plRange?.[0] || !plRange?.[1]) {
+      message.warning('Select a date range')
+      return
+    }
+    setLoadingPl(true)
+    financeAPI.getProfitLoss({
+      fromDate: plRange[0].format('YYYY-MM-DD'),
+      toDate: plRange[1].format('YYYY-MM-DD'),
+    })
+      .then(r => setProfitLoss(r.data))
+      .catch(err => message.error(apiErrorMessage(err)))
+      .finally(() => setLoadingPl(false))
+  }
+
+  const loadBalanceSheet = () => {
+    if (!bsDate) {
+      message.warning('Select an as-of date')
+      return
+    }
+    setLoadingBs(true)
+    financeAPI.getBalanceSheet({ asOfDate: bsDate.format('YYYY-MM-DD') })
+      .then(r => setBalanceSheet(r.data))
+      .catch(err => message.error(apiErrorMessage(err)))
+      .finally(() => setLoadingBs(false))
+  }
+
+  useEffect(() => { loadProfitLoss() }, [])
+  useEffect(() => { loadBalanceSheet() }, [])
+
   const tbColumns = [
     { title: 'Code', dataIndex: 'accountCode', key: 'code', width: 80 },
     { title: 'Account', dataIndex: 'accountName', key: 'name' },
@@ -122,6 +158,18 @@ export default function FinanceReportsPage() {
     { title: 'Qty', dataIndex: 'quantity', key: 'qty', width: 70 },
     { title: 'Unit cost', dataIndex: 'unitCost', width: 100, render: v => Number(v || 0).toLocaleString() },
     { title: 'Value', dataIndex: 'lineValue', width: 110, render: v => Number(v || 0).toLocaleString() },
+  ]
+
+  const plColumns = [
+    { title: 'Code', dataIndex: 'accountCode', width: 80 },
+    { title: 'Account', dataIndex: 'accountName' },
+    { title: 'Amount', dataIndex: 'amount', width: 120, render: v => Number(v || 0).toLocaleString() },
+  ]
+
+  const bsColumns = [
+    { title: 'Code', dataIndex: 'accountCode', width: 80 },
+    { title: 'Account', dataIndex: 'accountName' },
+    { title: 'Balance', dataIndex: 'balance', width: 120, render: v => Number(v || 0).toLocaleString() },
   ]
 
   const tabItems = [
@@ -247,12 +295,81 @@ export default function FinanceReportsPage() {
         </>
       ),
     },
+    {
+      key: 'profit-loss',
+      label: 'Profit & Loss',
+      children: (
+        <>
+          <Space wrap style={{ marginBottom: 16 }}>
+            <RangePicker value={plRange} onChange={setPlRange} />
+            <Button type="primary" onClick={loadProfitLoss} loading={loadingPl}>Run Report</Button>
+          </Space>
+          {profitLoss && (
+            <>
+              <Row gutter={16} style={{ marginBottom: 16 }}>
+                <Col span={8}><Card><Statistic title="Total income" value={profitLoss.totalIncome} precision={2} /></Card></Col>
+                <Col span={8}><Card><Statistic title="Total expenses" value={profitLoss.totalExpenses} precision={2} /></Card></Col>
+                <Col span={8}>
+                  <Card>
+                    <Statistic
+                      title="Net income"
+                      value={profitLoss.netIncome}
+                      precision={2}
+                      valueStyle={{ color: Number(profitLoss.netIncome) >= 0 ? '#0d9488' : '#dc2626' }}
+                    />
+                  </Card>
+                </Col>
+              </Row>
+              <Title level={5}>Income</Title>
+              <Table dataSource={profitLoss.incomeLines || []} columns={plColumns}
+                rowKey="accountId" loading={loadingPl} pagination={false} size="small" style={{ marginBottom: 24 }} />
+              <Title level={5}>Expenses</Title>
+              <Table dataSource={profitLoss.expenseLines || []} columns={plColumns}
+                rowKey={r => `exp-${r.accountId}`} loading={loadingPl} pagination={false} size="small" />
+            </>
+          )}
+        </>
+      ),
+    },
+    {
+      key: 'balance-sheet',
+      label: 'Balance Sheet',
+      children: (
+        <>
+          <Space wrap style={{ marginBottom: 16 }}>
+            <DatePicker value={bsDate} onChange={setBsDate} />
+            <Button type="primary" onClick={loadBalanceSheet} loading={loadingBs}>Run Report</Button>
+            {balanceSheet && (
+              balanceSheet.balanced
+                ? <Tag color="green">Balanced</Tag>
+                : <Tag color="orange">Difference: {Number(balanceSheet.difference).toLocaleString()}</Tag>
+            )}
+          </Space>
+          {balanceSheet && (
+            <>
+              <Alert type={balanceSheet.balanced ? 'success' : 'info'} showIcon style={{ marginBottom: 16 }}
+                message={`Assets: ${Number(balanceSheet.totalAssets).toLocaleString()} · Liabilities + Equity: ${Number(balanceSheet.totalLiabilities + balanceSheet.totalEquity).toLocaleString()}`}
+                description={balanceSheet.message} />
+              <Title level={5}>Assets</Title>
+              <Table dataSource={balanceSheet.assetLines || []} columns={bsColumns}
+                rowKey={r => `asset-${r.accountId}`} loading={loadingBs} pagination={false} size="small" style={{ marginBottom: 24 }} />
+              <Title level={5}>Liabilities</Title>
+              <Table dataSource={balanceSheet.liabilityLines || []} columns={bsColumns}
+                rowKey={r => `liab-${r.accountId}`} loading={loadingBs} pagination={false} size="small" style={{ marginBottom: 24 }} />
+              <Title level={5}>Equity</Title>
+              <Table dataSource={balanceSheet.equityLines || []} columns={bsColumns}
+                rowKey={r => `eq-${r.accountId}`} loading={loadingBs} pagination={false} size="small" />
+            </>
+          )}
+        </>
+      ),
+    },
   ]
 
   return (
     <div>
       <Title level={4} className="finance-page-title">Finance Reports</Title>
-      <Text className="finance-page-subtitle">Trial balance, general ledger, AR aging, and inventory valuation</Text>
+      <Text className="finance-page-subtitle">Trial balance, ledger, AR aging, inventory valuation, P&L, and balance sheet</Text>
       <Tabs items={tabItems} />
     </div>
   )

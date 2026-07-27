@@ -21,4 +21,6 @@ export const financeAPI = {
   getArAging: () => client.get('/finance/reports/ar-aging'),
   getArReconciliation: () => client.get('/finance/reports/ar-reconciliation'),
   getInventoryValuation: () => client.get('/finance/reports/inventory-valuation'),
+  getProfitLoss: (params) => client.get('/finance/reports/profit-loss', { params }),
+  getBalanceSheet: (params) => client.get('/finance/reports/balance-sheet', { params }),
 }

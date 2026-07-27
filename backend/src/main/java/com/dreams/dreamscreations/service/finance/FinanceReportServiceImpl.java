@@ -3,10 +3,14 @@ package com.dreams.dreamscreations.service.finance;
 import com.dreams.dreamscreations.dto.finance.ArAgingLineDTO;
 import com.dreams.dreamscreations.dto.finance.ArAgingReportDTO;
 import com.dreams.dreamscreations.dto.finance.ArReconciliationDTO;
+import com.dreams.dreamscreations.dto.finance.BalanceSheetLineDTO;
+import com.dreams.dreamscreations.dto.finance.BalanceSheetReportDTO;
 import com.dreams.dreamscreations.dto.finance.GeneralLedgerLineDTO;
 import com.dreams.dreamscreations.dto.finance.GeneralLedgerReportDTO;
 import com.dreams.dreamscreations.dto.finance.InventoryValuationLineDTO;
 import com.dreams.dreamscreations.dto.finance.InventoryValuationReportDTO;
+import com.dreams.dreamscreations.dto.finance.ProfitLossLineDTO;
+import com.dreams.dreamscreations.dto.finance.ProfitLossReportDTO;
 import com.dreams.dreamscreations.dto.finance.TrialBalanceLineDTO;
 import com.dreams.dreamscreations.dto.finance.TrialBalanceReportDTO;
 import com.dreams.dreamscreations.entity.Bill;
@@ -324,6 +328,140 @@ public class FinanceReportServiceImpl implements FinanceReportService {
                 .message(message)
                 .lines(lines)
                 .build();
+    }
+
+    @Override
+    @Transactional(readOnly = true)
+    public ProfitLossReportDTO getProfitLoss(LocalDate fromDate, LocalDate toDate) {
+        validateDateRange(fromDate, toDate);
+
+        List<ProfitLossLineDTO> incomeLines = new ArrayList<>();
+        List<ProfitLossLineDTO> expenseLines = new ArrayList<>();
+        BigDecimal totalIncome = BigDecimal.ZERO;
+        BigDecimal totalExpenses = BigDecimal.ZERO;
+
+        for (FinanceJournalLineRepository.TrialBalanceProjection row : lineRepo.profitLossActivity(fromDate, toDate)) {
+            BigDecimal debit = nz(row.getTotalDebit());
+            BigDecimal credit = nz(row.getTotalCredit());
+            BigDecimal amount = periodAmount(row.getAccountType(), debit, credit);
+            if (amount.compareTo(BigDecimal.ZERO) == 0) {
+                continue;
+            }
+
+            ProfitLossLineDTO line = ProfitLossLineDTO.builder()
+                    .accountId(row.getAccountId())
+                    .accountCode(row.getAccountCode())
+                    .accountName(row.getAccountName())
+                    .accountType(row.getAccountType())
+                    .amount(amount)
+                    .build();
+
+            if ("INCOME".equalsIgnoreCase(row.getAccountType())) {
+                incomeLines.add(line);
+                totalIncome = totalIncome.add(amount);
+            } else if ("EXPENSE".equalsIgnoreCase(row.getAccountType())) {
+                expenseLines.add(line);
+                totalExpenses = totalExpenses.add(amount);
+            }
+        }
+
+        return ProfitLossReportDTO.builder()
+                .fromDate(fromDate)
+                .toDate(toDate)
+                .incomeLines(incomeLines)
+                .expenseLines(expenseLines)
+                .totalIncome(totalIncome)
+                .totalExpenses(totalExpenses)
+                .netIncome(totalIncome.subtract(totalExpenses))
+                .build();
+    }
+
+    @Override
+    @Transactional(readOnly = true)
+    public BalanceSheetReportDTO getBalanceSheet(LocalDate asOfDate) {
+        if (asOfDate == null) {
+            throw new RuntimeException("As-of date is required");
+        }
+
+        List<BalanceSheetLineDTO> assetLines = new ArrayList<>();
+        List<BalanceSheetLineDTO> liabilityLines = new ArrayList<>();
+        List<BalanceSheetLineDTO> equityLines = new ArrayList<>();
+        BigDecimal totalAssets = BigDecimal.ZERO;
+        BigDecimal totalLiabilities = BigDecimal.ZERO;
+        BigDecimal totalEquity = BigDecimal.ZERO;
+
+        for (FinanceJournalLineRepository.TrialBalanceProjection row : lineRepo.balanceSheetAsOf(asOfDate)) {
+            BigDecimal debit = nz(row.getTotalDebit());
+            BigDecimal credit = nz(row.getTotalCredit());
+            BigDecimal balance = signedBalance(row.getAccountType(), debit, credit);
+            if (balance.compareTo(BigDecimal.ZERO) == 0) {
+                continue;
+            }
+
+            BalanceSheetLineDTO line = BalanceSheetLineDTO.builder()
+                    .accountId(row.getAccountId())
+                    .accountCode(row.getAccountCode())
+                    .accountName(row.getAccountName())
+                    .section(row.getAccountType())
+                    .balance(balance)
+                    .build();
+
+            switch (row.getAccountType().toUpperCase()) {
+                case "ASSET" -> {
+                    assetLines.add(line);
+                    totalAssets = totalAssets.add(balance);
+                }
+                case "LIABILITY" -> {
+                    liabilityLines.add(line);
+                    totalLiabilities = totalLiabilities.add(balance);
+                }
+                case "EQUITY" -> {
+                    equityLines.add(line);
+                    totalEquity = totalEquity.add(balance);
+                }
+                default -> { }
+            }
+        }
+
+        BigDecimal liabilitiesPlusEquity = totalLiabilities.add(totalEquity);
+        BigDecimal difference = totalAssets.subtract(liabilitiesPlusEquity);
+        boolean balanced = difference.abs().compareTo(new BigDecimal("0.01")) <= 0;
+
+        String message = balanced
+                ? "Balance sheet balances — assets equal liabilities plus equity."
+                : "Out of balance — current-period profit may not yet be closed to retained earnings.";
+
+        return BalanceSheetReportDTO.builder()
+                .asOfDate(asOfDate)
+                .assetLines(assetLines)
+                .liabilityLines(liabilityLines)
+                .equityLines(equityLines)
+                .totalAssets(totalAssets)
+                .totalLiabilities(totalLiabilities)
+                .totalEquity(totalEquity)
+                .difference(difference)
+                .balanced(balanced)
+                .message(message)
+                .build();
+    }
+
+    private void validateDateRange(LocalDate fromDate, LocalDate toDate) {
+        if (fromDate == null || toDate == null) {
+            throw new RuntimeException("From date and to date are required");
+        }
+        if (fromDate.isAfter(toDate)) {
+            throw new RuntimeException("From date cannot be after to date");
+        }
+    }
+
+    private BigDecimal periodAmount(String accountType, BigDecimal debit, BigDecimal credit) {
+        if ("INCOME".equalsIgnoreCase(accountType)) {
+            return credit.subtract(debit);
+        }
+        if ("EXPENSE".equalsIgnoreCase(accountType)) {
+            return debit.subtract(credit);
+        }
+        return signedBalance(accountType, debit, credit).abs();
     }
 
     private static final String CODE_INVENTORY = "1200";

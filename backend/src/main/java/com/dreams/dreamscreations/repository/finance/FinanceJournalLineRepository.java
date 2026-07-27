@@ -70,4 +70,47 @@ public interface FinanceJournalLineRepository extends JpaRepository<FinanceJourn
             @Param("accountId") Long accountId,
             @Param("fromDate") LocalDate fromDate,
             @Param("toDate") LocalDate toDate);
+
+    @Query(value = """
+            SELECT a.account_id AS accountId,
+                   a.account_code AS accountCode,
+                   a.account_name AS accountName,
+                   a.account_type AS accountType,
+                   COALESCE(SUM(l.debit_amount), 0) AS totalDebit,
+                   COALESCE(SUM(l.credit_amount), 0) AS totalCredit
+            FROM finance_account a
+            LEFT JOIN finance_journal_line l ON l.account_id = a.account_id
+            LEFT JOIN finance_journal_entry e ON e.entry_id = l.entry_id
+                AND e.status = 'posted'
+                AND e.entry_date >= :fromDate
+                AND e.entry_date <= :toDate
+            WHERE a.is_active = 1
+              AND a.account_type IN ('INCOME', 'EXPENSE')
+            GROUP BY a.account_id, a.account_code, a.account_name, a.account_type
+            HAVING COALESCE(SUM(l.debit_amount), 0) > 0 OR COALESCE(SUM(l.credit_amount), 0) > 0
+            ORDER BY a.account_code
+            """, nativeQuery = true)
+    List<TrialBalanceProjection> profitLossActivity(
+            @Param("fromDate") LocalDate fromDate,
+            @Param("toDate") LocalDate toDate);
+
+    @Query(value = """
+            SELECT a.account_id AS accountId,
+                   a.account_code AS accountCode,
+                   a.account_name AS accountName,
+                   a.account_type AS accountType,
+                   COALESCE(SUM(l.debit_amount), 0) AS totalDebit,
+                   COALESCE(SUM(l.credit_amount), 0) AS totalCredit
+            FROM finance_account a
+            LEFT JOIN finance_journal_line l ON l.account_id = a.account_id
+            LEFT JOIN finance_journal_entry e ON e.entry_id = l.entry_id
+                AND e.status = 'posted'
+                AND e.entry_date <= :asOfDate
+            WHERE a.is_active = 1
+              AND a.account_type IN ('ASSET', 'LIABILITY', 'EQUITY')
+            GROUP BY a.account_id, a.account_code, a.account_name, a.account_type
+            HAVING COALESCE(SUM(l.debit_amount), 0) > 0 OR COALESCE(SUM(l.credit_amount), 0) > 0
+            ORDER BY a.account_code
+            """, nativeQuery = true)
+    List<TrialBalanceProjection> balanceSheetAsOf(@Param("asOfDate") LocalDate asOfDate);
 }
