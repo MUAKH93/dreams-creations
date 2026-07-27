@@ -3,7 +3,7 @@ import { Typography, Card, Tag, Spin, Button, Row, Col, Space } from 'antd'
 import { useNavigate } from 'react-router-dom'
 import {
   UnorderedListOutlined, FileTextOutlined, BarChartOutlined,
-  QuestionCircleOutlined, CheckCircleOutlined,
+  QuestionCircleOutlined, CheckCircleOutlined, ShopOutlined,
 } from '@ant-design/icons'
 import { financeAPI } from '../../api/finance'
 import { apiErrorMessage } from '../../api/client'
@@ -22,6 +22,12 @@ const QUICK_ACTIONS = [
     description: 'Post manual or review auto entries',
     path: '/finance/journals',
     icon: <FileTextOutlined className="finance-action-card__icon" />,
+  },
+  {
+    title: 'Payables',
+    description: 'Vendor bills, payments & AP aging',
+    path: '/finance/payables',
+    icon: <ShopOutlined className="finance-action-card__icon" />,
   },
   {
     title: 'Reports',

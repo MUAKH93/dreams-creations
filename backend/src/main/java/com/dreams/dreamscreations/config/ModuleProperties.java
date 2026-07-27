@@ -28,6 +28,7 @@ public class ModuleProperties {
         private boolean enabled = false;
         private boolean autoPostAr = false;
         private boolean autoPostInventory = false;
+        private boolean autoPostAp = true;
 
         public boolean isEnabled() {
             return enabled;
@@ -51,6 +52,14 @@ public class ModuleProperties {
 
         public void setAutoPostInventory(boolean autoPostInventory) {
             this.autoPostInventory = autoPostInventory;
+        }
+
+        public boolean isAutoPostAp() {
+            return autoPostAp;
+        }
+
+        public void setAutoPostAp(boolean autoPostAp) {
+            this.autoPostAp = autoPostAp;
         }
     }
 

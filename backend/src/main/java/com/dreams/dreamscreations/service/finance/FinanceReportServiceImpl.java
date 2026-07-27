@@ -1,5 +1,7 @@
 package com.dreams.dreamscreations.service.finance;
 
+import com.dreams.dreamscreations.dto.finance.ApAgingLineDTO;
+import com.dreams.dreamscreations.dto.finance.ApAgingReportDTO;
 import com.dreams.dreamscreations.dto.finance.ArAgingLineDTO;
 import com.dreams.dreamscreations.dto.finance.ArAgingReportDTO;
 import com.dreams.dreamscreations.dto.finance.ArReconciliationDTO;
@@ -19,11 +21,14 @@ import com.dreams.dreamscreations.entity.CustomerBalance;
 import com.dreams.dreamscreations.entity.Inventory;
 import com.dreams.dreamscreations.entity.Suit;
 import com.dreams.dreamscreations.entity.finance.FinanceAccount;
+import com.dreams.dreamscreations.entity.finance.FinancePayable;
+import com.dreams.dreamscreations.entity.finance.FinanceVendor;
 import com.dreams.dreamscreations.repository.BillRepository;
 import com.dreams.dreamscreations.repository.CustomerBalanceRepository;
 import com.dreams.dreamscreations.repository.InventoryRepository;
 import com.dreams.dreamscreations.repository.finance.FinanceAccountRepository;
 import com.dreams.dreamscreations.repository.finance.FinanceJournalLineRepository;
+import com.dreams.dreamscreations.repository.finance.FinancePayableRepository;
 import org.springframework.boot.autoconfigure.condition.ConditionalOnProperty;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
@@ -45,17 +50,20 @@ public class FinanceReportServiceImpl implements FinanceReportService {
     private final BillRepository billRepo;
     private final CustomerBalanceRepository balanceRepo;
     private final InventoryRepository inventoryRepo;
+    private final FinancePayableRepository payableRepo;
 
     public FinanceReportServiceImpl(FinanceJournalLineRepository lineRepo,
                                     FinanceAccountRepository accountRepo,
                                     BillRepository billRepo,
                                     CustomerBalanceRepository balanceRepo,
-                                    InventoryRepository inventoryRepo) {
+                                    InventoryRepository inventoryRepo,
+                                    FinancePayableRepository payableRepo) {
         this.lineRepo = lineRepo;
         this.accountRepo = accountRepo;
         this.billRepo = billRepo;
         this.balanceRepo = balanceRepo;
         this.inventoryRepo = inventoryRepo;
+        this.payableRepo = payableRepo;
     }
 
     @Override
@@ -227,6 +235,101 @@ public class FinanceReportServiceImpl implements FinanceReportService {
                 .totalDays61to90(total61)
                 .totalOver90(totalOver90)
                 .grandTotal(totalCurrent.add(total31).add(total61).add(totalOver90))
+                .build();
+    }
+
+    @Override
+    @Transactional(readOnly = true)
+    public ApAgingReportDTO getApAging() {
+        LocalDate today = LocalDate.now();
+        Map<Long, MutableApAgingLine> byVendor = new LinkedHashMap<>();
+
+        for (FinancePayable payable : payableRepo.findOpenWithVendor()) {
+            FinanceVendor vendor = payable.getVendor();
+            if (vendor == null) {
+                continue;
+            }
+            Long vendorId = vendor.getVendorId();
+            MutableApAgingLine row = byVendor.computeIfAbsent(vendorId, id -> {
+                MutableApAgingLine line = new MutableApAgingLine();
+                line.vendorId = vendorId;
+                line.vendorName = vendor.getVendorName();
+                line.phone = vendor.getPhone();
+                return line;
+            });
+
+            BigDecimal balance = nz(payable.getAmount()).subtract(nz(payable.getAmountPaid()));
+            if (balance.compareTo(BigDecimal.ZERO) <= 0) {
+                continue;
+            }
+
+            long days = payable.getInvoiceDate() != null
+                    ? ChronoUnit.DAYS.between(payable.getInvoiceDate(), today)
+                    : 0;
+
+            if (days <= 30) {
+                row.current = row.current.add(balance);
+            } else if (days <= 60) {
+                row.days31to60 = row.days31to60.add(balance);
+            } else if (days <= 90) {
+                row.days61to90 = row.days61to90.add(balance);
+            } else {
+                row.over90 = row.over90.add(balance);
+            }
+        }
+
+        BigDecimal totalCurrent = BigDecimal.ZERO;
+        BigDecimal total31 = BigDecimal.ZERO;
+        BigDecimal total61 = BigDecimal.ZERO;
+        BigDecimal totalOver90 = BigDecimal.ZERO;
+        List<ApAgingLineDTO> lines = new ArrayList<>();
+
+        for (MutableApAgingLine row : byVendor.values()) {
+            BigDecimal total = row.current.add(row.days31to60).add(row.days61to90).add(row.over90);
+            if (total.compareTo(BigDecimal.ZERO) == 0) {
+                continue;
+            }
+            lines.add(ApAgingLineDTO.builder()
+                    .vendorId(row.vendorId)
+                    .vendorName(row.vendorName)
+                    .phone(row.phone)
+                    .current(row.current)
+                    .days31to60(row.days31to60)
+                    .days61to90(row.days61to90)
+                    .over90(row.over90)
+                    .totalOutstanding(total)
+                    .build());
+            totalCurrent = totalCurrent.add(row.current);
+            total31 = total31.add(row.days31to60);
+            total61 = total61.add(row.days61to90);
+            totalOver90 = totalOver90.add(row.over90);
+        }
+
+        BigDecimal grandTotal = totalCurrent.add(total31).add(total61).add(totalOver90);
+
+        TrialBalanceReportDTO trialBalance = getTrialBalance(true, false);
+        BigDecimal ledgerAp = trialBalance.getLines().stream()
+                .filter(line -> CODE_AP.equals(line.getAccountCode()))
+                .map(TrialBalanceLineDTO::getBalance)
+                .findFirst()
+                .orElse(BigDecimal.ZERO);
+
+        BigDecimal difference = ledgerAp.subtract(grandTotal);
+        boolean reconciled = difference.abs().compareTo(new BigDecimal("0.01")) <= 0;
+
+        return ApAgingReportDTO.builder()
+                .lines(lines)
+                .totalCurrent(totalCurrent)
+                .totalDays31to60(total31)
+                .totalDays61to90(total61)
+                .totalOver90(totalOver90)
+                .grandTotal(grandTotal)
+                .ledgerApBalance(ledgerAp)
+                .difference(difference)
+                .reconciled(reconciled)
+                .message(reconciled
+                        ? "AP ledger matches open payables."
+                        : "Difference detected — review payable journals or manual AP entries.")
                 .build();
     }
 
@@ -465,6 +568,7 @@ public class FinanceReportServiceImpl implements FinanceReportService {
     }
 
     private static final String CODE_INVENTORY = "1200";
+    private static final String CODE_AP = "2000";
 
     private String customerName(Customer customer) {
         String name = ((customer.getFirstName() != null ? customer.getFirstName() : "")
@@ -485,6 +589,16 @@ public class FinanceReportServiceImpl implements FinanceReportService {
         BigDecimal days61to90 = BigDecimal.ZERO;
         BigDecimal over90 = BigDecimal.ZERO;
         BigDecimal operationalBalance = BigDecimal.ZERO;
+    }
+
+    private static class MutableApAgingLine {
+        Long vendorId;
+        String vendorName;
+        String phone;
+        BigDecimal current = BigDecimal.ZERO;
+        BigDecimal days31to60 = BigDecimal.ZERO;
+        BigDecimal days61to90 = BigDecimal.ZERO;
+        BigDecimal over90 = BigDecimal.ZERO;
     }
 
     private BigDecimal computeBalanceBefore(FinanceAccount account, LocalDate fromDate) {

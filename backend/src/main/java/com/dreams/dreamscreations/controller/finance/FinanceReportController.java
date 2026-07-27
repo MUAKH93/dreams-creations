@@ -1,5 +1,6 @@
 package com.dreams.dreamscreations.controller.finance;
 
+import com.dreams.dreamscreations.dto.finance.ApAgingReportDTO;
 import com.dreams.dreamscreations.dto.finance.ArAgingReportDTO;
 import com.dreams.dreamscreations.dto.finance.ArReconciliationDTO;
 import com.dreams.dreamscreations.dto.finance.BalanceSheetReportDTO;
@@ -44,6 +45,11 @@ public class FinanceReportController {
     @GetMapping("/ar-aging")
     public ResponseEntity<ArAgingReportDTO> arAging() {
         return ResponseEntity.ok(reportService.getArAging());
+    }
+
+    @GetMapping("/ap-aging")
+    public ResponseEntity<ApAgingReportDTO> apAging() {
+        return ResponseEntity.ok(reportService.getApAging());
     }
 
     @GetMapping("/ar-reconciliation")

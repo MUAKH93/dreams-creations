@@ -23,4 +23,15 @@ export const financeAPI = {
   getInventoryValuation: () => client.get('/finance/reports/inventory-valuation'),
   getProfitLoss: (params) => client.get('/finance/reports/profit-loss', { params }),
   getBalanceSheet: (params) => client.get('/finance/reports/balance-sheet', { params }),
+  getApAging: () => client.get('/finance/reports/ap-aging'),
+
+  getVendors: (activeOnly = true) =>
+    client.get('/finance/vendors', { params: { activeOnly } }),
+  createVendor: (data) => client.post('/finance/vendors', data),
+  updateVendor: (id, data) => client.put(`/finance/vendors/${id}`, data),
+  deactivateVendor: (id) => client.delete(`/finance/vendors/${id}`),
+
+  getPayables: () => client.get('/finance/payables'),
+  createPayable: (data) => client.post('/finance/payables', data),
+  recordPayablePayment: (id, data) => client.post(`/finance/payables/${id}/payments`, data),
 }

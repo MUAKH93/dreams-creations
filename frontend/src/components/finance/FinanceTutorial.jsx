@@ -24,8 +24,13 @@ export const FINANCE_TUTORIAL_STEPS = [
     path: '/finance/journals',
   },
   {
+    title: 'Payables',
+    description: 'Add vendors, record supplier invoices, and apply payments. Journals post automatically (Dr expense / Cr AP; payment Dr AP / Cr cash).',
+    path: '/finance/payables',
+  },
+  {
     title: 'Reports',
-    description: 'Run Trial Balance, General Ledger, and AR Aging. When auto-post AR is enabled, bills and payments create journals automatically.',
+    description: 'Run Trial Balance, General Ledger, AR/AP Aging, P&L, and Balance Sheet.',
     path: '/finance/reports',
   },
   {

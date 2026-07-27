@@ -11,6 +11,7 @@ public class FinanceModuleStatusDTO {
     private List<String> upcomingPhases;
     private boolean autoPostAr;
     private boolean autoPostInventory;
+    private boolean autoPostAp;
     private String message;
 
     public String getVersion() {
@@ -67,6 +68,14 @@ public class FinanceModuleStatusDTO {
 
     public void setAutoPostInventory(boolean autoPostInventory) {
         this.autoPostInventory = autoPostInventory;
+    }
+
+    public boolean isAutoPostAp() {
+        return autoPostAp;
+    }
+
+    public void setAutoPostAp(boolean autoPostAp) {
+        this.autoPostAp = autoPostAp;
     }
 
     public String getMessage() {

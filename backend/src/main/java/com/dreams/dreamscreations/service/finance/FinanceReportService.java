@@ -1,5 +1,6 @@
 package com.dreams.dreamscreations.service.finance;
 
+import com.dreams.dreamscreations.dto.finance.ApAgingReportDTO;
 import com.dreams.dreamscreations.dto.finance.ArAgingReportDTO;
 import com.dreams.dreamscreations.dto.finance.ArReconciliationDTO;
 import com.dreams.dreamscreations.dto.finance.BalanceSheetReportDTO;
@@ -17,6 +18,8 @@ public interface FinanceReportService {
     GeneralLedgerReportDTO getGeneralLedger(Long accountId, LocalDate fromDate, LocalDate toDate);
 
     ArAgingReportDTO getArAging();
+
+    ApAgingReportDTO getApAging();
 
     ArReconciliationDTO getArReconciliation();
 
