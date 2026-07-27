@@ -21,3 +21,10 @@ frontend/*.log
 # OS
 .DS_Store
 Thumbs.db
+
+# Never nest other repos inside this ERP project
+Rovexa Technologies/
+rovexa-technologies/
+rovexa-website/
+/target/
+/uploads/

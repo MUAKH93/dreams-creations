@@ -7,11 +7,20 @@ Factory management and business platform — suit design, production, inventory,
 ## Structure
 
 ```
-dreams-creations-erp/
+dreams-creations/
 ├── backend/     Spring Boot API (Java 17, port 8080)
 ├── frontend/    React + Vite + Ant Design (port 3000)
 └── README.md
 ```
+
+This repo lives at `~\Projects\dreams-creations\` (or `~\dreams-creations\` until moved). **Do not nest other projects inside this folder.**
+
+Other Rovexa projects are siblings under `~\Projects\`:
+
+| Project | Path |
+|---------|------|
+| MM Kaitori | `~\Projects\mm-kaitori\` |
+| Rovexa website | `~\Projects\rovexa-technologies\` |
 
 ## Prerequisites
 
