@@ -9,6 +9,7 @@ import com.dreams.dreamscreations.service.DesignRequiredStageService;
 import com.dreams.dreamscreations.service.InventoryService;
 import com.dreams.dreamscreations.service.ModuleAssignmentService;
 import com.dreams.dreamscreations.service.ProductionSettingsService;
+import com.dreams.dreamscreations.service.finance.FinanceInventoryPostingBridge;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
@@ -33,6 +34,7 @@ public class ModuleAssignmentServiceImpl implements ModuleAssignmentService {
     private final InventoryService inventoryService;
     private final CurrentUserService currentUserService;
     private final ProductionSettingsService productionSettingsService;
+    private final FinanceInventoryPostingBridge financeInventoryPostingBridge;
 
     public ModuleAssignmentServiceImpl(ModuleAssignmentRepository assignmentRepo,
                                        ModuleAssignmentDependencyRepository dependencyRepo,
@@ -46,7 +48,8 @@ public class ModuleAssignmentServiceImpl implements ModuleAssignmentService {
                                        DesignRequiredStageService stagePathService,
                                        InventoryService inventoryService,
                                        CurrentUserService currentUserService,
-                                       ProductionSettingsService productionSettingsService) {
+                                       ProductionSettingsService productionSettingsService,
+                                       FinanceInventoryPostingBridge financeInventoryPostingBridge) {
         this.assignmentRepo = assignmentRepo;
         this.dependencyRepo = dependencyRepo;
         this.batchRepo = batchRepo;
@@ -60,6 +63,7 @@ public class ModuleAssignmentServiceImpl implements ModuleAssignmentService {
         this.inventoryService = inventoryService;
         this.currentUserService = currentUserService;
         this.productionSettingsService = productionSettingsService;
+        this.financeInventoryPostingBridge = financeInventoryPostingBridge;
     }
 
     @Override
@@ -233,6 +237,7 @@ public class ModuleAssignmentServiceImpl implements ModuleAssignmentService {
 
         if (updatesInventory) {
             applyFinalStageInventory(assignment, batch);
+            financeInventoryPostingBridge.onProductionReceipt(assignment);
             batch.setTotalSuitProduced(sumInventoryStageReturns(batch, designId));
         }
 

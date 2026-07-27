@@ -3,6 +3,7 @@ package com.dreams.dreamscreations.controller.finance;
 import com.dreams.dreamscreations.dto.finance.ArAgingReportDTO;
 import com.dreams.dreamscreations.dto.finance.ArReconciliationDTO;
 import com.dreams.dreamscreations.dto.finance.GeneralLedgerReportDTO;
+import com.dreams.dreamscreations.dto.finance.InventoryValuationReportDTO;
 import com.dreams.dreamscreations.dto.finance.TrialBalanceReportDTO;
 import com.dreams.dreamscreations.service.finance.FinanceReportService;
 import org.springframework.boot.autoconfigure.condition.ConditionalOnProperty;
@@ -46,5 +47,10 @@ public class FinanceReportController {
     @GetMapping("/ar-reconciliation")
     public ResponseEntity<ArReconciliationDTO> arReconciliation() {
         return ResponseEntity.ok(reportService.getArReconciliation());
+    }
+
+    @GetMapping("/inventory-valuation")
+    public ResponseEntity<InventoryValuationReportDTO> inventoryValuation() {
+        return ResponseEntity.ok(reportService.getInventoryValuation());
     }
 }

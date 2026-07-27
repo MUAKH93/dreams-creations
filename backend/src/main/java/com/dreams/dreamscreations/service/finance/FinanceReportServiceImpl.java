@@ -1,12 +1,23 @@
 package com.dreams.dreamscreations.service.finance;
 
-import com.dreams.dreamscreations.dto.finance.*;
+import com.dreams.dreamscreations.dto.finance.ArAgingLineDTO;
+import com.dreams.dreamscreations.dto.finance.ArAgingReportDTO;
+import com.dreams.dreamscreations.dto.finance.ArReconciliationDTO;
+import com.dreams.dreamscreations.dto.finance.GeneralLedgerLineDTO;
+import com.dreams.dreamscreations.dto.finance.GeneralLedgerReportDTO;
+import com.dreams.dreamscreations.dto.finance.InventoryValuationLineDTO;
+import com.dreams.dreamscreations.dto.finance.InventoryValuationReportDTO;
+import com.dreams.dreamscreations.dto.finance.TrialBalanceLineDTO;
+import com.dreams.dreamscreations.dto.finance.TrialBalanceReportDTO;
 import com.dreams.dreamscreations.entity.Bill;
 import com.dreams.dreamscreations.entity.Customer;
 import com.dreams.dreamscreations.entity.CustomerBalance;
+import com.dreams.dreamscreations.entity.Inventory;
+import com.dreams.dreamscreations.entity.Suit;
 import com.dreams.dreamscreations.entity.finance.FinanceAccount;
 import com.dreams.dreamscreations.repository.BillRepository;
 import com.dreams.dreamscreations.repository.CustomerBalanceRepository;
+import com.dreams.dreamscreations.repository.InventoryRepository;
 import com.dreams.dreamscreations.repository.finance.FinanceAccountRepository;
 import com.dreams.dreamscreations.repository.finance.FinanceJournalLineRepository;
 import org.springframework.boot.autoconfigure.condition.ConditionalOnProperty;
@@ -29,15 +40,18 @@ public class FinanceReportServiceImpl implements FinanceReportService {
     private final FinanceAccountRepository accountRepo;
     private final BillRepository billRepo;
     private final CustomerBalanceRepository balanceRepo;
+    private final InventoryRepository inventoryRepo;
 
     public FinanceReportServiceImpl(FinanceJournalLineRepository lineRepo,
                                     FinanceAccountRepository accountRepo,
                                     BillRepository billRepo,
-                                    CustomerBalanceRepository balanceRepo) {
+                                    CustomerBalanceRepository balanceRepo,
+                                    InventoryRepository inventoryRepo) {
         this.lineRepo = lineRepo;
         this.accountRepo = accountRepo;
         this.billRepo = billRepo;
         this.balanceRepo = balanceRepo;
+        this.inventoryRepo = inventoryRepo;
     }
 
     @Override
@@ -241,6 +255,78 @@ public class FinanceReportServiceImpl implements FinanceReportService {
                         : "Difference detected — review auto-posted journals or manual AR entries.")
                 .build();
     }
+
+    @Override
+    @Transactional(readOnly = true)
+    public InventoryValuationReportDTO getInventoryValuation() {
+        TrialBalanceReportDTO trialBalance = getTrialBalance(true, false);
+        BigDecimal ledgerInventory = trialBalance.getLines().stream()
+                .filter(line -> CODE_INVENTORY.equals(line.getAccountCode()))
+                .map(TrialBalanceLineDTO::getBalance)
+                .findFirst()
+                .orElse(BigDecimal.ZERO);
+
+        List<InventoryValuationLineDTO> lines = new ArrayList<>();
+        BigDecimal operationalValue = BigDecimal.ZERO;
+        int totalUnits = 0;
+        int linesMissingCost = 0;
+
+        for (Inventory inv : inventoryRepo.findAllWithDetails()) {
+            Suit suit = inv.getSuit();
+            if (suit == null || suit.getDesign() == null) {
+                continue;
+            }
+            int qty = inv.getQuantity() != null ? inv.getQuantity() : 0;
+            if (qty <= 0) {
+                continue;
+            }
+
+            BigDecimal unitCost = nz(suit.getDesign().getProductionCost());
+            BigDecimal lineValue = unitCost.multiply(BigDecimal.valueOf(qty));
+            if (unitCost.compareTo(BigDecimal.ZERO) <= 0) {
+                linesMissingCost++;
+            }
+
+            lines.add(InventoryValuationLineDTO.builder()
+                    .suitId(suit.getSuitId())
+                    .designCode(suit.getDesign().getDesignCode())
+                    .designName(suit.getDesign().getName())
+                    .sizeValue(suit.getSize() != null ? suit.getSize().getSizeValue() : "TBD")
+                    .color(suit.getColor())
+                    .quantity(qty)
+                    .unitCost(unitCost)
+                    .lineValue(lineValue)
+                    .build());
+
+            totalUnits += qty;
+            operationalValue = operationalValue.add(lineValue);
+        }
+
+        BigDecimal difference = ledgerInventory.subtract(operationalValue);
+        boolean reconciled = difference.abs().compareTo(new BigDecimal("0.01")) <= 0;
+
+        String message;
+        if (linesMissingCost > 0) {
+            message = linesMissingCost + " SKU line(s) have no production cost on the design — set production cost for accurate valuation.";
+        } else if (reconciled) {
+            message = "Inventory ledger matches operational stock at standard cost.";
+        } else {
+            message = "Difference detected — review auto-posted COGS/receipt journals or manual inventory entries.";
+        }
+
+        return InventoryValuationReportDTO.builder()
+                .ledgerInventoryBalance(ledgerInventory)
+                .operationalStockValue(operationalValue)
+                .difference(difference)
+                .reconciled(reconciled && linesMissingCost == 0)
+                .totalUnits(totalUnits)
+                .linesMissingCost(linesMissingCost)
+                .message(message)
+                .lines(lines)
+                .build();
+    }
+
+    private static final String CODE_INVENTORY = "1200";
 
     private String customerName(Customer customer) {
         String name = ((customer.getFirstName() != null ? customer.getFirstName() : "")

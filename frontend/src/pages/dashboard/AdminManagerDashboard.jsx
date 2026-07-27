@@ -1,10 +1,13 @@
+import { useEffect, useState } from 'react'
 import { useNavigate } from 'react-router-dom'
-import { Row, Col, Card, Statistic, Table, Tag, Alert, Typography, Badge } from 'antd'
+import { Row, Col, Card, Statistic, Table, Tag, Alert, Typography, Badge, Button } from 'antd'
 import {
   AlertOutlined, ShoppingOutlined, TeamOutlined, CheckCircleOutlined,
   WarningOutlined, FileExclamationOutlined, InboxOutlined, SafetyCertificateOutlined,
-  SolutionOutlined,
+  SolutionOutlined, AccountBookOutlined,
 } from '@ant-design/icons'
+import { financeModuleEnabled } from '../../config/modules'
+import { modulesAPI } from '../../api/modules'
 
 const { Text } = Typography
 
@@ -12,6 +15,16 @@ export default function AdminManagerDashboard({
   role, summary, alerts, batches, loading, fmtMoney,
 }) {
   const navigate = useNavigate()
+  const [showFinance, setShowFinance] = useState(financeModuleEnabled)
+
+  useEffect(() => {
+    modulesAPI.getFlags()
+      .then(r => {
+        if (r.data?.finance?.enabled) setShowFinance(true)
+      })
+      .catch(() => {})
+  }, [])
+
   const s = summary || {}
   const openAlerts = alerts.filter(a => a.status === 'open')
   const cardStyle = { cursor: 'pointer' }
@@ -39,6 +52,22 @@ export default function AdminManagerDashboard({
 
   return (
     <>
+      {showFinance && (
+        <Alert
+          type="success"
+          showIcon
+          icon={<AccountBookOutlined />}
+          style={{ marginBottom: 16 }}
+          message="Finance Portal is ready"
+          description="Accounting now lives in a separate workspace — white sidebar, guided tutorial, and finance-only menus."
+          action={
+            <Button type="primary" icon={<AccountBookOutlined />} onClick={() => navigate('/finance')}>
+              Open Finance Portal
+            </Button>
+          }
+        />
+      )}
+
       <Alert
         type="info"
         showIcon

@@ -3,4 +3,5 @@
 
 modules.finance.enabled=true
 modules.finance.auto-post-ar=false
+# When true: COGS on bill sales, inventory receipt on final-stage production returns
 modules.finance.auto-post-inventory=false

@@ -111,7 +111,7 @@ export default function ChartOfAccountsPage() {
   return (
     <div>
       <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: 16 }}>
-        <Title level={4} className="page-title" style={{ margin: 0 }}>Chart of Accounts</Title>
+        <Title level={4} className="finance-page-title" style={{ margin: 0 }}>Chart of Accounts</Title>
         <Button type="primary" icon={<PlusOutlined />} onClick={openAdd}>Add Account</Button>
       </div>
 

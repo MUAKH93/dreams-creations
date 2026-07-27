@@ -1,5 +1,5 @@
 import { useState, useEffect } from 'react'
-import { Routes, Route, Navigate, useNavigate, useLocation } from 'react-router-dom'
+import { Routes, Route, Navigate, useNavigate, useLocation, Outlet } from 'react-router-dom'
 import { Layout, Menu, Typography, Avatar, Dropdown, Drawer, Button, Grid } from 'antd'
 import {
   DashboardOutlined, ShoppingOutlined, TeamOutlined,
@@ -39,6 +39,7 @@ import AnalyticsPage      from './pages/analytics/AnalyticsPage'
 import ProfilePage        from './pages/profile/ProfilePage'
 import VerifyEmailPage    from './pages/auth/VerifyEmailPage'
 import FinanceHomePage    from './pages/finance/FinanceHomePage'
+import FinanceLayout      from './layouts/FinanceLayout'
 import ChartOfAccountsPage from './pages/finance/ChartOfAccountsPage'
 import JournalEntriesPage from './pages/finance/JournalEntriesPage'
 import FinanceReportsPage from './pages/finance/FinanceReportsPage'
@@ -115,25 +116,33 @@ const SUPERVISOR_MENU = [
   PROFILE_ITEM,
 ]
 
-const FINANCE_MENU_ITEM = {
-  key: '/finance',
-  icon: <AccountBookOutlined />,
-  label: 'Finance',
-}
-
-function withFinanceMenu(items, showFinance = financeModuleEnabled) {
-  if (!showFinance) return items
-  const billsIdx = items.findIndex(i => i.key === '/bills')
-  if (billsIdx === -1) return [...items, FINANCE_MENU_ITEM]
-  return [...items.slice(0, billsIdx + 1), FINANCE_MENU_ITEM, ...items.slice(billsIdx + 1)]
-}
-
-function getMenu(role, showFinance = financeModuleEnabled) {
-  if (role === ROLES.ADMIN) return withFinanceMenu(ADMIN_MENU, showFinance)
-  if (role === ROLES.MANAGER) return withFinanceMenu(MANAGER_MENU, showFinance)
+function getMenu(role) {
+  if (role === ROLES.ADMIN) return ADMIN_MENU
+  if (role === ROLES.MANAGER) return MANAGER_MENU
   if (role === ROLES.CUSTOMER) return CUSTOMER_MENU
   if (role === ROLES.SUPERVISOR) return SUPERVISOR_MENU
   return []
+}
+
+function FinancePortalButton({ showFinance }) {
+  const navigate = useNavigate()
+  if (!showFinance) return null
+  return (
+    <div className="ops-finance-portal-btn">
+      <Button
+        block
+        size="large"
+        icon={<AccountBookOutlined />}
+        className="ops-finance-portal-btn__inner"
+        onClick={() => navigate('/finance')}
+      >
+        Open Finance Portal
+      </Button>
+      <Text style={{ color: 'rgba(255,255,255,0.45)', fontSize: 10, display: 'block', textAlign: 'center', marginTop: 6 }}>
+        Separate accounting workspace
+      </Text>
+    </div>
+  )
 }
 
 function AppLayout({ children }) {
@@ -162,7 +171,7 @@ function AppLayout({ children }) {
       .catch(() => {})
   }, [auth?.token])
 
-  const menuItems = getMenu(auth?.role, showFinance)
+  const menuItems = getMenu(auth?.role)
 
   const userMenu = {
     items: [
@@ -186,12 +195,17 @@ function AppLayout({ children }) {
     <Layout className="app-layout">
       {!isMobile && (
         <Sider theme="dark" width={220} className="app-sider">
-          <SidebarBrand role={auth?.role} />
-          <NavMenu
-            items={menuItems}
-            selectedKey={location.pathname}
-            onNavigate={handleNavigate}
-          />
+          <div className="app-sider-inner">
+            <SidebarBrand role={auth?.role} />
+            <div className="app-sider-menu">
+              <NavMenu
+                items={menuItems}
+                selectedKey={location.pathname}
+                onNavigate={handleNavigate}
+              />
+            </div>
+            <FinancePortalButton showFinance={showFinance} />
+          </div>
         </Sider>
       )}
 
@@ -241,6 +255,7 @@ function AppLayout({ children }) {
           selectedKey={location.pathname}
           onNavigate={handleNavigate}
         />
+        <FinancePortalButton showFinance={showFinance} />
       </Drawer>
     </Layout>
   )
@@ -345,28 +360,16 @@ export default function App() {
       } />
 
       {showFinance && (
-        <>
-          <Route path="/finance" element={
-            <ProtectedRoute roles={MANAGEMENT_ROLES}>
-              <AppLayout><FinanceHomePage /></AppLayout>
-            </ProtectedRoute>
-          } />
-          <Route path="/finance/accounts" element={
-            <ProtectedRoute roles={MANAGEMENT_ROLES}>
-              <AppLayout><ChartOfAccountsPage /></AppLayout>
-            </ProtectedRoute>
-          } />
-          <Route path="/finance/journals" element={
-            <ProtectedRoute roles={MANAGEMENT_ROLES}>
-              <AppLayout><JournalEntriesPage /></AppLayout>
-            </ProtectedRoute>
-          } />
-          <Route path="/finance/reports" element={
-            <ProtectedRoute roles={MANAGEMENT_ROLES}>
-              <AppLayout><FinanceReportsPage /></AppLayout>
-            </ProtectedRoute>
-          } />
-        </>
+        <Route path="/finance" element={
+          <ProtectedRoute roles={MANAGEMENT_ROLES}>
+            <FinanceLayout />
+          </ProtectedRoute>
+        }>
+          <Route index element={<FinanceHomePage />} />
+          <Route path="accounts" element={<ChartOfAccountsPage />} />
+          <Route path="journals" element={<JournalEntriesPage />} />
+          <Route path="reports" element={<FinanceReportsPage />} />
+        </Route>
       )}
 
       {/* Admin-only setup (Manager has no separate portal; these are Admin-only) */}

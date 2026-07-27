@@ -98,6 +98,19 @@ body {
   background: #1a237e !important;
 }
 
+.app-sider-inner {
+  display: flex;
+  flex-direction: column;
+  height: 100vh;
+  overflow: hidden;
+}
+
+.app-sider-menu {
+  flex: 1;
+  overflow-y: auto;
+  min-height: 0;
+}
+
 .app-sider-brand {
   padding: 16px 12px;
   border-bottom: 1px solid rgba(255, 255, 255, 0.1);
@@ -220,4 +233,26 @@ body {
 
 .app-drawer .ant-drawer-close {
   color: rgba(255, 255, 255, 0.85);
+}
+
+/* Operations sidebar — finance portal entry (separate workspace) */
+.ops-finance-portal-btn {
+  flex-shrink: 0;
+  margin: 12px 12px 16px;
+  padding-top: 12px;
+  border-top: 1px solid rgba(255, 255, 255, 0.12);
+}
+
+.ops-finance-portal-btn__inner {
+  background: #0d9488 !important;
+  border-color: #0d9488 !important;
+  color: #fff !important;
+  font-weight: 600;
+  height: 44px;
+}
+
+.ops-finance-portal-btn__inner:hover {
+  background: #0f766e !important;
+  border-color: #0f766e !important;
+  color: #fff !important;
 }

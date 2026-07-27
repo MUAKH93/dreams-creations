@@ -7,7 +7,7 @@ import { financeAPI } from '../../api/finance'
 import { apiErrorMessage } from '../../api/client'
 import dayjs from 'dayjs'
 
-const { Title } = Typography
+const { Title, Text } = Typography
 const { RangePicker } = DatePicker
 
 export default function FinanceReportsPage() {
@@ -16,9 +16,11 @@ export default function FinanceReportsPage() {
   const [ledger, setLedger] = useState(null)
   const [arAging, setArAging] = useState(null)
   const [arRecon, setArRecon] = useState(null)
+  const [inventoryValuation, setInventoryValuation] = useState(null)
   const [loadingTb, setLoadingTb] = useState(false)
   const [loadingGl, setLoadingGl] = useState(false)
   const [loadingAr, setLoadingAr] = useState(false)
+  const [loadingInv, setLoadingInv] = useState(false)
   const [accountId, setAccountId] = useState(null)
   const [dateRange, setDateRange] = useState([dayjs().startOf('month'), dayjs()])
 
@@ -67,6 +69,16 @@ export default function FinanceReportsPage() {
 
   useEffect(() => { loadArAging() }, [])
 
+  const loadInventoryValuation = () => {
+    setLoadingInv(true)
+    financeAPI.getInventoryValuation()
+      .then(r => setInventoryValuation(r.data))
+      .catch(err => message.error(apiErrorMessage(err)))
+      .finally(() => setLoadingInv(false))
+  }
+
+  useEffect(() => { loadInventoryValuation() }, [])
+
   const tbColumns = [
     { title: 'Code', dataIndex: 'accountCode', key: 'code', width: 80 },
     { title: 'Account', dataIndex: 'accountName', key: 'name' },
@@ -100,6 +112,16 @@ export default function FinanceReportsPage() {
     { title: '90+ days', dataIndex: 'over90', width: 100, render: v => Number(v || 0).toLocaleString() },
     { title: 'Unpaid bills', dataIndex: 'totalOutstanding', width: 110, render: v => Number(v || 0).toLocaleString() },
     { title: 'Ops balance', dataIndex: 'operationalBalance', width: 110, render: v => Number(v || 0).toLocaleString() },
+  ]
+
+  const invColumns = [
+    { title: 'Design', dataIndex: 'designCode', key: 'code', width: 100 },
+    { title: 'Name', dataIndex: 'designName', key: 'name' },
+    { title: 'Size', dataIndex: 'sizeValue', key: 'size', width: 80 },
+    { title: 'Color', dataIndex: 'color', key: 'color', width: 90 },
+    { title: 'Qty', dataIndex: 'quantity', key: 'qty', width: 70 },
+    { title: 'Unit cost', dataIndex: 'unitCost', width: 100, render: v => Number(v || 0).toLocaleString() },
+    { title: 'Value', dataIndex: 'lineValue', width: 110, render: v => Number(v || 0).toLocaleString() },
   ]
 
   const tabItems = [
@@ -195,11 +217,42 @@ export default function FinanceReportsPage() {
         </>
       ),
     },
+    {
+      key: 'inventory-valuation',
+      label: 'Inventory Valuation',
+      children: (
+        <>
+          <Space style={{ marginBottom: 16 }}>
+            <Button onClick={loadInventoryValuation} loading={loadingInv}>Refresh</Button>
+            {inventoryValuation && (
+              inventoryValuation.reconciled
+                ? <Tag color="green">Inventory reconciled</Tag>
+                : <Tag color="orange">Difference: {Number(inventoryValuation.difference).toLocaleString()}</Tag>
+            )}
+          </Space>
+          {inventoryValuation && (
+            <>
+              <Alert type={inventoryValuation.reconciled ? 'success' : 'warning'} showIcon style={{ marginBottom: 16 }}
+                message={`Ledger inventory: ${Number(inventoryValuation.ledgerInventoryBalance).toLocaleString()} · Stock at cost: ${Number(inventoryValuation.operationalStockValue).toLocaleString()}`}
+                description={inventoryValuation.message} />
+              <Row gutter={16} style={{ marginBottom: 16 }}>
+                <Col span={8}><Card><Statistic title="Total units" value={inventoryValuation.totalUnits} /></Card></Col>
+                <Col span={8}><Card><Statistic title="Stock value" value={inventoryValuation.operationalStockValue} precision={2} /></Card></Col>
+                <Col span={8}><Card><Statistic title="Missing cost SKUs" value={inventoryValuation.linesMissingCost} /></Card></Col>
+              </Row>
+            </>
+          )}
+          <Table dataSource={inventoryValuation?.lines || []} columns={invColumns}
+            rowKey="suitId" loading={loadingInv} pagination={{ pageSize: 20 }} />
+        </>
+      ),
+    },
   ]
 
   return (
     <div>
-      <Title level={4} className="page-title">Finance Reports</Title>
+      <Title level={4} className="finance-page-title">Finance Reports</Title>
+      <Text className="finance-page-subtitle">Trial balance, general ledger, AR aging, and inventory valuation</Text>
       <Tabs items={tabItems} />
     </div>
   )

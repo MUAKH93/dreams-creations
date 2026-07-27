@@ -94,7 +94,7 @@ export default function JournalEntriesPage() {
   return (
     <div>
       <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: 16 }}>
-        <Title level={4} className="page-title" style={{ margin: 0 }}>Journal Entries</Title>
+        <Title level={4} className="finance-page-title" style={{ margin: 0 }}>Journal Entries</Title>
         <Button type="primary" icon={<PlusOutlined />} onClick={openCreate}>New Entry</Button>
       </div>
 

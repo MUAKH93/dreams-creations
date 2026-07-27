@@ -3,6 +3,7 @@ package com.dreams.dreamscreations.service.finance;
 import com.dreams.dreamscreations.dto.finance.ArAgingReportDTO;
 import com.dreams.dreamscreations.dto.finance.ArReconciliationDTO;
 import com.dreams.dreamscreations.dto.finance.GeneralLedgerReportDTO;
+import com.dreams.dreamscreations.dto.finance.InventoryValuationReportDTO;
 import com.dreams.dreamscreations.dto.finance.TrialBalanceReportDTO;
 
 import java.time.LocalDate;
@@ -16,4 +17,6 @@ public interface FinanceReportService {
     ArAgingReportDTO getArAging();
 
     ArReconciliationDTO getArReconciliation();
+
+    InventoryValuationReportDTO getInventoryValuation();
 }
