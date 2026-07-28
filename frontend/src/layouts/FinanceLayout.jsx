@@ -3,7 +3,7 @@ import { Layout, Menu, Typography, Avatar, Dropdown, Drawer, Button, Grid, Confi
 import {
   HomeOutlined, UnorderedListOutlined, FileTextOutlined, BarChartOutlined,
   ArrowLeftOutlined, UserOutlined, LogoutOutlined, MenuOutlined, IdcardOutlined,
-  ShopOutlined,
+  ShopOutlined, BankOutlined,
 } from '@ant-design/icons'
 import { useNavigate, useLocation, Outlet } from 'react-router-dom'
 import { useAuth } from '../context/AuthContext'
@@ -33,6 +33,7 @@ const NAV_ITEMS = [
   { key: '/finance/accounts', tour: 'finance-accounts', icon: <UnorderedListOutlined />, label: 'Chart of Accounts' },
   { key: '/finance/journals', tour: 'finance-journals', icon: <FileTextOutlined />, label: 'Journal Entries' },
   { key: '/finance/payables', tour: 'finance-payables', icon: <ShopOutlined />, label: 'Payables' },
+  { key: '/finance/bank', tour: 'finance-bank', icon: <BankOutlined />, label: 'Bank Reconciliation' },
   { key: '/finance/reports', tour: 'finance-reports', icon: <BarChartOutlined />, label: 'Reports' },
 ]
 
@@ -76,6 +77,11 @@ export default function FinanceLayout() {
       title: 'Payables',
       description: 'Record vendor bills and payments — AP journals post automatically.',
       target: () => document.querySelector('[data-tour="finance-payables"]'),
+    },
+    {
+      title: 'Bank Reconciliation',
+      description: 'Match bank statement lines to ledger cash entries.',
+      target: () => document.querySelector('[data-tour="finance-bank"]'),
     },
     {
       title: 'Reports',

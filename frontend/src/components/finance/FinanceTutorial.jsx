@@ -29,6 +29,11 @@ export const FINANCE_TUTORIAL_STEPS = [
     path: '/finance/payables',
   },
   {
+    title: 'Bank Reconciliation',
+    description: 'Set up bank accounts linked to GL cash, enter statement lines, and reconcile book vs bank balances.',
+    path: '/finance/bank',
+  },
+  {
     title: 'Reports',
     description: 'Run Trial Balance, General Ledger, AR/AP Aging, P&L, and Balance Sheet.',
     path: '/finance/reports',

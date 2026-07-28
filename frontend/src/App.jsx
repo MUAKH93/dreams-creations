@@ -44,6 +44,7 @@ import ChartOfAccountsPage from './pages/finance/ChartOfAccountsPage'
 import JournalEntriesPage from './pages/finance/JournalEntriesPage'
 import FinanceReportsPage from './pages/finance/FinanceReportsPage'
 import FinancePayablesPage from './pages/finance/FinancePayablesPage'
+import FinanceBankPage from './pages/finance/FinanceBankPage'
 import BackendStatus from './components/BackendStatus'
 import SessionCheck from './components/SessionCheck'
 import BrandLogo from './components/BrandLogo'
@@ -370,6 +371,7 @@ export default function App() {
           <Route path="accounts" element={<ChartOfAccountsPage />} />
           <Route path="journals" element={<JournalEntriesPage />} />
           <Route path="payables" element={<FinancePayablesPage />} />
+          <Route path="bank" element={<FinanceBankPage />} />
           <Route path="reports" element={<FinanceReportsPage />} />
         </Route>
       )}

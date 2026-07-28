@@ -34,4 +34,15 @@ export const financeAPI = {
   getPayables: () => client.get('/finance/payables'),
   createPayable: (data) => client.post('/finance/payables', data),
   recordPayablePayment: (id, data) => client.post(`/finance/payables/${id}/payments`, data),
+
+  getBankAccounts: (activeOnly = true) =>
+    client.get('/finance/bank/accounts', { params: { activeOnly } }),
+  createBankAccount: (data) => client.post('/finance/bank/accounts', data),
+  getBankTransactions: (bankAccountId) =>
+    client.get(`/finance/bank/accounts/${bankAccountId}/transactions`),
+  createBankTransaction: (data) => client.post('/finance/bank/transactions', data),
+  reconcileBankTransaction: (id, data) =>
+    client.post(`/finance/bank/transactions/${id}/reconcile`, data),
+  getBankReconciliation: (bankAccountId, params) =>
+    client.get(`/finance/bank/accounts/${bankAccountId}/reconciliation`, { params }),
 }

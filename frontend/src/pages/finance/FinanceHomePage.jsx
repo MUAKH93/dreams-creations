@@ -3,7 +3,7 @@ import { Typography, Card, Tag, Spin, Button, Row, Col, Space } from 'antd'
 import { useNavigate } from 'react-router-dom'
 import {
   UnorderedListOutlined, FileTextOutlined, BarChartOutlined,
-  QuestionCircleOutlined, CheckCircleOutlined, ShopOutlined,
+  QuestionCircleOutlined, CheckCircleOutlined, ShopOutlined, BankOutlined,
 } from '@ant-design/icons'
 import { financeAPI } from '../../api/finance'
 import { apiErrorMessage } from '../../api/client'
@@ -28,6 +28,12 @@ const QUICK_ACTIONS = [
     description: 'Vendor bills, payments & AP aging',
     path: '/finance/payables',
     icon: <ShopOutlined className="finance-action-card__icon" />,
+  },
+  {
+    title: 'Bank Reconciliation',
+    description: 'Statement lines vs ledger cash',
+    path: '/finance/bank',
+    icon: <BankOutlined className="finance-action-card__icon" />,
   },
   {
     title: 'Reports',

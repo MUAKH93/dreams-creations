@@ -20,18 +20,19 @@ public class FinanceModuleServiceImpl implements FinanceModuleService {
     @Override
     public FinanceModuleStatusDTO getStatus() {
         FinanceModuleStatusDTO status = new FinanceModuleStatusDTO();
-        status.setCurrentPhase("F5");
+        status.setCurrentPhase("F6");
         status.setCompletedPhases(List.of(
                 "Scaffold", "F1 — Core ledger", "F2 — Accounts receivable",
-                "F3 — Inventory & COGS", "F4 — Financial statements", "F5 — Payables"));
+                "F3 — Inventory & COGS", "F4 — Financial statements", "F5 — Payables",
+                "F6 — Bank reconciliation"));
         status.setUpcomingPhases(List.of(
-                "F6 — Bank reconciliation & UAT"
+                "UAT sign-off & merge to main"
         ));
         status.setAutoPostAr(moduleProperties.getFinance().isAutoPostAr());
         status.setAutoPostInventory(moduleProperties.getFinance().isAutoPostInventory());
         status.setAutoPostAp(moduleProperties.getFinance().isAutoPostAp());
         status.setMessage(
-                "Phase F5 active: vendor payables, AP posting, payments, and AP aging report."
+                "Phase F6 active: bank accounts, statement lines, and book-vs-bank reconciliation."
         );
         return status;
     }
