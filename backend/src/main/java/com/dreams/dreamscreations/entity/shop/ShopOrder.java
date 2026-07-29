@@ -77,6 +77,24 @@ public class ShopOrder {
     @Builder.Default
     private Boolean stockReserved = false;
 
+    @Column(name = "payment_method", length = 30)
+    private String paymentMethod;
+
+    @Column(name = "payment_status", nullable = false, length = 20)
+    @Builder.Default
+    private String paymentStatus = "unpaid";
+
+    @Column(name = "amount_paid", nullable = false, precision = 12, scale = 2)
+    @Builder.Default
+    private BigDecimal amountPaid = BigDecimal.ZERO;
+
+    @Column(name = "payment_reference", length = 100)
+    private String paymentReference;
+
+    @OneToMany(mappedBy = "order", cascade = CascadeType.ALL, orphanRemoval = true)
+    @Builder.Default
+    private List<ShopOrderPayment> payments = new ArrayList<>();
+
     @OneToMany(mappedBy = "order", cascade = CascadeType.ALL, orphanRemoval = true)
     @Builder.Default
     private List<ShopOrderItem> items = new ArrayList<>();

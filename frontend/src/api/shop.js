@@ -22,4 +22,8 @@ export const shopAPI = {
   updateOrderStatus: (orderId, status) => client.patch(`/shop/orders/${orderId}/status`, { status }),
   convertOrderToQuotation: (orderId) => client.post(`/shop/orders/${orderId}/convert-to-quotation`),
   convertOrderToBill: (orderId) => client.post(`/shop/orders/${orderId}/convert-to-bill`),
+  recordOrderPayment: (orderId, data) => client.post(`/shop/orders/${orderId}/payments`, data),
+  getOrderPayments: (orderId) => client.get(`/shop/orders/${orderId}/payments`),
+  getPaymentMethods: () => client.get('/shop/payment-methods'),
+  getAnalytics:    () => client.get('/shop/analytics'),
 }

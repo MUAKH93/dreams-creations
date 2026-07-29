@@ -76,6 +76,7 @@ public class SecurityConfig {
                 .requestMatchers(HttpMethod.GET, "/api/design-images/**").permitAll()
                 .requestMatchers(HttpMethod.GET, "/api/profile/photos/view/**").permitAll()
                 .requestMatchers(HttpMethod.GET, "/api/shop/status").permitAll()
+                .requestMatchers(HttpMethod.GET, "/api/shop/payment-methods").permitAll()
                 .requestMatchers(HttpMethod.GET, "/api/shop/settings/public").permitAll()
                 .requestMatchers(HttpMethod.GET, "/api/shop/catalog", "/api/shop/catalog/**").permitAll()
                 .requestMatchers("/api/shop/cart", "/api/shop/cart/**").hasRole("CUSTOMER")

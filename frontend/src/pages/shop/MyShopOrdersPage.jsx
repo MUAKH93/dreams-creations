@@ -72,6 +72,12 @@ export default function MyShopOrdersPage() {
       render: s => <Tag color={STATUS_COLORS[s] || 'default'}>{s?.toUpperCase()}</Tag>,
     },
     {
+      title: 'Payment',
+      dataIndex: 'paymentStatus',
+      key: 'paymentStatus',
+      render: s => <Tag>{s || 'unpaid'}</Tag>,
+    },
+    {
       title: '',
       key: 'view',
       render: (_, r) => <Button size="small" onClick={() => setDetail(r)}>View</Button>,

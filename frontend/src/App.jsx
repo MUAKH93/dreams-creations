@@ -54,6 +54,7 @@ import ShopDesignDetailPage from './pages/shop/ShopDesignDetailPage'
 import ShopCartPage from './pages/shop/ShopCartPage'
 import ShopCheckoutPage from './pages/shop/ShopCheckoutPage'
 import ShopOrdersPage from './pages/shop/ShopOrdersPage'
+import ShopAnalyticsPage from './pages/shop/ShopAnalyticsPage'
 import MyShopOrdersPage from './pages/shop/MyShopOrdersPage'
 import ShopLayout from './layouts/ShopLayout'
 import BackendStatus from './components/BackendStatus'
@@ -474,6 +475,7 @@ export default function App() {
           <Route path="settings" element={<ShopSettingsPage />} />
           <Route path="catalog" element={<ShopCatalogPage />} />
           <Route path="orders" element={<ShopOrdersPage />} />
+          <Route path="analytics" element={<ShopAnalyticsPage />} />
         </Route>
       )}
 

@@ -24,6 +24,12 @@ public class ShopOrderDTO {
     private LocalDateTime createdAt;
     private int itemCount;
     private boolean stockReserved;
+    private String paymentMethod;
+    private String paymentStatus;
+    private BigDecimal amountPaid;
+    private String paymentReference;
+    private BigDecimal balanceDue;
+    private List<ShopOrderPaymentDTO> payments = new ArrayList<>();
     private List<ShopOrderItemDTO> items = new ArrayList<>();
 
     public Long getOrderId() {
@@ -160,6 +166,54 @@ public class ShopOrderDTO {
 
     public void setStockReserved(boolean stockReserved) {
         this.stockReserved = stockReserved;
+    }
+
+    public String getPaymentMethod() {
+        return paymentMethod;
+    }
+
+    public void setPaymentMethod(String paymentMethod) {
+        this.paymentMethod = paymentMethod;
+    }
+
+    public String getPaymentStatus() {
+        return paymentStatus;
+    }
+
+    public void setPaymentStatus(String paymentStatus) {
+        this.paymentStatus = paymentStatus;
+    }
+
+    public BigDecimal getAmountPaid() {
+        return amountPaid;
+    }
+
+    public void setAmountPaid(BigDecimal amountPaid) {
+        this.amountPaid = amountPaid;
+    }
+
+    public String getPaymentReference() {
+        return paymentReference;
+    }
+
+    public void setPaymentReference(String paymentReference) {
+        this.paymentReference = paymentReference;
+    }
+
+    public BigDecimal getBalanceDue() {
+        return balanceDue;
+    }
+
+    public void setBalanceDue(BigDecimal balanceDue) {
+        this.balanceDue = balanceDue;
+    }
+
+    public List<ShopOrderPaymentDTO> getPayments() {
+        return payments;
+    }
+
+    public void setPayments(List<ShopOrderPaymentDTO> payments) {
+        this.payments = payments;
     }
 
     public List<ShopOrderItemDTO> getItems() {

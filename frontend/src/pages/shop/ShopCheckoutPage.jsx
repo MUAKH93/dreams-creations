@@ -1,7 +1,7 @@
 import { useEffect, useState } from 'react'
 import { Link, useNavigate } from 'react-router-dom'
 import {
-  Typography, Form, Input, Button, Card, Alert, Spin, Row, Col, Divider, message,
+  Typography, Form, Input, Button, Card, Alert, Spin, Row, Col, Divider, message, Radio,
 } from 'antd'
 import { CheckCircleOutlined, LoginOutlined } from '@ant-design/icons'
 import { shopAPI } from '../../api/shop'
@@ -26,6 +26,8 @@ export default function ShopCheckoutPage() {
   const [order, setOrder] = useState(null)
   const [error, setError] = useState(null)
   const [shopEnabled, setShopEnabled] = useState(shopModuleEnabled)
+  const [paymentMethods, setPaymentMethods] = useState([])
+  const [paymentMethod, setPaymentMethod] = useState('cod')
 
   const isCustomer = auth?.role === 'CUSTOMER' && auth?.token
 
@@ -41,6 +43,7 @@ export default function ShopCheckoutPage() {
       return
     }
     shopAPI.getPublicSettings().then(r => setSettings(r.data)).catch(() => {})
+    shopAPI.getPaymentMethods().then(r => setPaymentMethods(r.data || [])).catch(() => {})
   }, [shopEnabled])
 
   useEffect(() => {
@@ -67,6 +70,8 @@ export default function ShopCheckoutPage() {
       const res = await shopAPI.checkout({
         shippingNotes: values.shippingNotes,
         customerNotes: values.customerNotes,
+        paymentMethod: values.paymentMethod || paymentMethod,
+        paymentReference: values.paymentReference,
       })
       setOrder(res.data)
       message.success('Order placed successfully')
@@ -141,7 +146,30 @@ export default function ShopCheckoutPage() {
         ) : cart?.items?.length ? (
           <Row gutter={[32, 24]}>
             <Col xs={24} md={14}>
-              <Form form={form} layout="vertical" onFinish={onSubmit}>
+              <Form form={form} layout="vertical" onFinish={onSubmit} initialValues={{ paymentMethod: 'cod' }}>
+                <Form.Item name="paymentMethod" label="Payment method" rules={[{ required: true }]}>
+                  <Radio.Group onChange={e => setPaymentMethod(e.target.value)}>
+                    {paymentMethods.map(m => (
+                      <Radio key={m.code} value={m.code} style={{ display: 'block', marginBottom: 8 }}>
+                        <Text strong>{m.label}</Text>
+                        <br />
+                        <Text type="secondary" style={{ fontSize: 12 }}>{m.description}</Text>
+                      </Radio>
+                    ))}
+                    {!paymentMethods.length && (
+                      <>
+                        <Radio value="cod">Cash on delivery (COD)</Radio>
+                        <Radio value="bank_transfer">Bank transfer</Radio>
+                      </>
+                    )}
+                  </Radio.Group>
+                </Form.Item>
+                {(paymentMethod === 'bank_transfer') && (
+                  <Form.Item name="paymentReference" label="Bank transfer reference"
+                    rules={[{ required: true, message: 'Enter transfer reference' }]}>
+                    <Input placeholder="Transaction / reference number" maxLength={100} />
+                  </Form.Item>
+                )}
                 <Form.Item
                   name="shippingNotes"
                   label="Shipping / delivery notes"

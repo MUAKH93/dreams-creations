@@ -1,6 +1,6 @@
 import { useEffect, useState } from 'react'
 import {
-  Typography, Table, Tag, Button, Select, Space, message, Modal, Descriptions,
+  Typography, Table, Tag, Button, Select, Space, message, Modal, Descriptions, Form, InputNumber, Input,
 } from 'antd'
 import { shopAPI } from '../../api/shop'
 import { apiErrorMessage } from '../../api/client'
@@ -20,6 +20,8 @@ export default function ShopOrdersPage() {
   const [statusFilter, setStatusFilter] = useState('')
   const [detail, setDetail] = useState(null)
   const [actionLoading, setActionLoading] = useState(false)
+  const [payModalOpen, setPayModalOpen] = useState(false)
+  const [payForm] = Form.useForm()
 
   const load = () => {
     setLoading(true)
@@ -67,6 +69,12 @@ export default function ShopOrdersPage() {
       dataIndex: 'status',
       key: 'status',
       render: s => <Tag color={STATUS_COLORS[s] || 'default'}>{s}</Tag>,
+    },
+    {
+      title: 'Payment',
+      dataIndex: 'paymentStatus',
+      key: 'paymentStatus',
+      render: s => <Tag>{s || 'unpaid'}</Tag>,
     },
     {
       title: 'Actions',
@@ -125,6 +133,9 @@ export default function ShopOrdersPage() {
                 <Tag color={STATUS_COLORS[detail.status]}>{detail.status}</Tag>
               </Descriptions.Item>
               <Descriptions.Item label="Total">Rs. {Number(detail.totalAmount || 0).toLocaleString()}</Descriptions.Item>
+              <Descriptions.Item label="Payment">{detail.paymentMethod || '—'} / {detail.paymentStatus || 'unpaid'}</Descriptions.Item>
+              <Descriptions.Item label="Paid">Rs. {Number(detail.amountPaid || 0).toLocaleString()}</Descriptions.Item>
+              <Descriptions.Item label="Balance">Rs. {Number(detail.balanceDue || 0).toLocaleString()}</Descriptions.Item>
               <Descriptions.Item label="Items">{detail.itemCount}</Descriptions.Item>
               {detail.shippingNotes && (
                 <Descriptions.Item label="Shipping" span={2}>{detail.shippingNotes}</Descriptions.Item>
@@ -220,9 +231,60 @@ export default function ShopOrdersPage() {
                   </Button>
                 </>
               )}
+              {detail.status !== 'cancelled' && Number(detail.balanceDue) > 0 && (
+                <Button
+                  loading={actionLoading}
+                  onClick={() => {
+                    payForm.setFieldsValue({
+                      amount: detail.balanceDue,
+                      paymentMethod: detail.paymentMethod || 'cod',
+                    })
+                    setPayModalOpen(true)
+                  }}
+                >
+                  Record payment
+                </Button>
+              )}
             </Space>
           </>
         )}
+      </Modal>
+
+      <Modal
+        title="Record payment"
+        open={payModalOpen}
+        onCancel={() => setPayModalOpen(false)}
+        onOk={() => payForm.submit()}
+        confirmLoading={actionLoading}
+      >
+        <Form
+          form={payForm}
+          layout="vertical"
+          onFinish={async (values) => {
+            await runAction(
+              () => shopAPI.recordOrderPayment(detail.orderId, values),
+              'Payment recorded',
+            )
+            setPayModalOpen(false)
+          }}
+        >
+          <Form.Item name="amount" label="Amount" rules={[{ required: true }]}>
+            <InputNumber min={1} style={{ width: '100%' }} />
+          </Form.Item>
+          <Form.Item name="paymentMethod" label="Method">
+            <Select options={[
+              { value: 'cod', label: 'COD' },
+              { value: 'bank_transfer', label: 'Bank transfer' },
+              { value: 'online_gateway', label: 'Online gateway' },
+            ]} />
+          </Form.Item>
+          <Form.Item name="referenceNo" label="Reference">
+            <Input maxLength={100} />
+          </Form.Item>
+          <Form.Item name="notes" label="Notes">
+            <Input.TextArea rows={2} maxLength={500} />
+          </Form.Item>
+        </Form>
       </Modal>
     </div>
   )

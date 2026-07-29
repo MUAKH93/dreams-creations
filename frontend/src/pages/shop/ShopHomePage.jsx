@@ -17,6 +17,18 @@ const QUICK_ACTIONS = [
     icon: <SettingOutlined className="shop-action-card__icon" />,
   },
   {
+    title: 'Orders',
+    description: 'Review, confirm, and convert shop orders',
+    path: '/shop/orders',
+    icon: <ShoppingOutlined className="shop-action-card__icon" />,
+  },
+  {
+    title: 'Analytics',
+    description: 'Revenue, orders, and top designs',
+    path: '/shop/analytics',
+    icon: <ShoppingOutlined className="shop-action-card__icon" />,
+  },
+  {
     title: 'Catalog Preview',
     description: 'See what customers see on the storefront',
     path: '/shop/catalog',
@@ -68,8 +80,7 @@ export default function ShopHomePage() {
             Welcome to the Shop Portal
           </Title>
           <Paragraph style={{ marginBottom: 0, color: '#57534e' }}>
-            Phase S1: settings, public catalog API, and storefront shell.
-            Cart and checkout arrive in S3–S4.
+            Manage your online storefront, orders, payments, and analytics.
           </Paragraph>
           {status && (
             <Space wrap style={{ marginTop: 8 }}>

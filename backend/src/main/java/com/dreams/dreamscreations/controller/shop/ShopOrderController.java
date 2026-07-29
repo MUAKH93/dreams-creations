@@ -2,6 +2,8 @@ package com.dreams.dreamscreations.controller.shop;
 
 import com.dreams.dreamscreations.dto.shop.ShopCheckoutRequest;
 import com.dreams.dreamscreations.dto.shop.ShopOrderDTO;
+import com.dreams.dreamscreations.dto.shop.ShopOrderPaymentDTO;
+import com.dreams.dreamscreations.dto.shop.ShopRecordPaymentRequest;
 import com.dreams.dreamscreations.security.CurrentUserService;
 import com.dreams.dreamscreations.service.shop.ShopOrderService;
 import org.springframework.boot.autoconfigure.condition.ConditionalOnProperty;
@@ -73,5 +75,16 @@ public class ShopOrderController {
     @PostMapping("/{orderId}/convert-to-bill")
     public ResponseEntity<ShopOrderDTO> convertToBill(@PathVariable Long orderId) {
         return ResponseEntity.ok(orderService.convertToBill(orderId));
+    }
+
+    @PostMapping("/{orderId}/payments")
+    public ResponseEntity<ShopOrderDTO> recordPayment(@PathVariable Long orderId,
+                                                      @RequestBody ShopRecordPaymentRequest request) {
+        return ResponseEntity.ok(orderService.recordPayment(orderId, request));
+    }
+
+    @GetMapping("/{orderId}/payments")
+    public ResponseEntity<List<ShopOrderPaymentDTO>> getPayments(@PathVariable Long orderId) {
+        return ResponseEntity.ok(orderService.getOrderPayments(orderId));
     }
 }

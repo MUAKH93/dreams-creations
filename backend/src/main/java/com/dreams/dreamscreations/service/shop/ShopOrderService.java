@@ -2,8 +2,11 @@ package com.dreams.dreamscreations.service.shop;
 
 import com.dreams.dreamscreations.dto.shop.ShopCheckoutRequest;
 import com.dreams.dreamscreations.dto.shop.ShopOrderDTO;
+import com.dreams.dreamscreations.dto.shop.ShopOrderPaymentDTO;
+import com.dreams.dreamscreations.dto.shop.ShopRecordPaymentRequest;
 
 import java.util.List;
+import java.util.Map;
 
 public interface ShopOrderService {
 
@@ -24,6 +27,10 @@ public interface ShopOrderService {
     ShopOrderDTO convertToQuotation(Long orderId);
 
     ShopOrderDTO convertToBill(Long orderId);
+
+    ShopOrderDTO recordPayment(Long orderId, ShopRecordPaymentRequest request);
+
+    List<ShopOrderPaymentDTO> getOrderPayments(Long orderId);
 
     String generateNextOrderNumber();
 }

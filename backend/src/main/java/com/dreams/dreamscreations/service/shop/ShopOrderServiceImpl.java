@@ -11,11 +11,17 @@ import com.dreams.dreamscreations.entity.shop.ShopOrderItem;
 import com.dreams.dreamscreations.repository.CustomerRepository;
 import com.dreams.dreamscreations.repository.QuotationRepository;
 import com.dreams.dreamscreations.repository.shop.ShopCartRepository;
+import com.dreams.dreamscreations.dto.shop.ShopOrderPaymentDTO;
+import com.dreams.dreamscreations.dto.shop.ShopRecordPaymentRequest;
+import com.dreams.dreamscreations.entity.shop.ShopOrderPayment;
+import com.dreams.dreamscreations.repository.PaymentMethodRepository;
+import com.dreams.dreamscreations.repository.shop.ShopOrderPaymentRepository;
 import com.dreams.dreamscreations.repository.shop.ShopOrderRepository;
 import com.dreams.dreamscreations.security.CurrentUserService;
 import com.dreams.dreamscreations.service.ActivityLogService;
 import com.dreams.dreamscreations.service.BillService;
 import com.dreams.dreamscreations.service.InventoryService;
+import com.dreams.dreamscreations.service.PaymentService;
 import org.springframework.boot.autoconfigure.condition.ConditionalOnProperty;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
@@ -41,6 +47,9 @@ public class ShopOrderServiceImpl implements ShopOrderService {
     private final CurrentUserService currentUserService;
     private final ActivityLogService activityLogService;
     private final ShopOrderNotificationService notificationService;
+    private final ShopOrderPaymentRepository orderPaymentRepo;
+    private final PaymentService paymentService;
+    private final PaymentMethodRepository paymentMethodRepo;
 
     public ShopOrderServiceImpl(ShopOrderRepository orderRepo,
                                 ShopCartRepository cartRepo,
@@ -51,7 +60,10 @@ public class ShopOrderServiceImpl implements ShopOrderService {
                                 InventoryService inventoryService,
                                 CurrentUserService currentUserService,
                                 ActivityLogService activityLogService,
-                                ShopOrderNotificationService notificationService) {
+                                ShopOrderNotificationService notificationService,
+                                ShopOrderPaymentRepository orderPaymentRepo,
+                                PaymentService paymentService,
+                                PaymentMethodRepository paymentMethodRepo) {
         this.orderRepo = orderRepo;
         this.cartRepo = cartRepo;
         this.cartService = cartService;
@@ -62,6 +74,9 @@ public class ShopOrderServiceImpl implements ShopOrderService {
         this.currentUserService = currentUserService;
         this.activityLogService = activityLogService;
         this.notificationService = notificationService;
+        this.orderPaymentRepo = orderPaymentRepo;
+        this.paymentService = paymentService;
+        this.paymentMethodRepo = paymentMethodRepo;
     }
 
     @Override
@@ -106,6 +121,11 @@ public class ShopOrderServiceImpl implements ShopOrderService {
                 .divide(BigDecimal.valueOf(100), 2, RoundingMode.HALF_UP);
         BigDecimal total = subtotal.subtract(discountAmount).max(BigDecimal.ZERO);
 
+        String paymentMethod = normalizePaymentMethod(
+                request != null ? request.getPaymentMethod() : null);
+        String paymentReference = trimTo(request != null ? request.getPaymentReference() : null, 100);
+        String paymentStatus = initialPaymentStatus(paymentMethod);
+
         ShopOrder order = ShopOrder.builder()
                 .orderNumber(generateNextOrderNumber())
                 .customer(customer)
@@ -115,6 +135,10 @@ public class ShopOrderServiceImpl implements ShopOrderService {
                 .totalAmount(total)
                 .shippingNotes(trimTo(request != null ? request.getShippingNotes() : null, 500))
                 .customerNotes(trimTo(request != null ? request.getCustomerNotes() : null, 500))
+                .paymentMethod(paymentMethod)
+                .paymentReference(paymentReference)
+                .paymentStatus(paymentStatus)
+                .amountPaid(BigDecimal.ZERO)
                 .build();
 
         for (ShopOrderItem item : orderItems) {
@@ -338,6 +362,61 @@ public class ShopOrderServiceImpl implements ShopOrderService {
     }
 
     @Override
+    @Transactional
+    public ShopOrderDTO recordPayment(Long orderId, ShopRecordPaymentRequest request) {
+        ShopOrder order = orderRepo.findByIdWithDetails(orderId)
+                .orElseThrow(() -> new RuntimeException("Order not found"));
+        if ("cancelled".equalsIgnoreCase(order.getStatus())) {
+            throw new RuntimeException("Cannot record payment on a cancelled order");
+        }
+        if (request.getAmount() == null || request.getAmount().compareTo(BigDecimal.ZERO) <= 0) {
+            throw new RuntimeException("Payment amount must be greater than zero");
+        }
+
+        String method = normalizePaymentMethod(request.getPaymentMethod() != null
+                ? request.getPaymentMethod() : order.getPaymentMethod());
+
+        BigDecimal totalDue = order.getTotalAmount() != null ? order.getTotalAmount() : BigDecimal.ZERO;
+        BigDecimal alreadyPaid = order.getAmountPaid() != null ? order.getAmountPaid() : BigDecimal.ZERO;
+        BigDecimal remaining = totalDue.subtract(alreadyPaid);
+        if (request.getAmount().compareTo(remaining) > 0) {
+            throw new RuntimeException("Payment exceeds balance due (" + remaining + ")");
+        }
+
+        ShopOrderPayment payment = ShopOrderPayment.builder()
+                .order(order)
+                .amount(request.getAmount())
+                .paymentMethod(method)
+                .referenceNo(trimTo(request.getReferenceNo(), 100))
+                .notes(trimTo(request.getNotes(), 500))
+                .recordedBy(currentUserService.getCurrentUser())
+                .build();
+        orderPaymentRepo.save(payment);
+
+        BigDecimal newPaid = alreadyPaid.add(request.getAmount());
+        order.setAmountPaid(newPaid);
+        order.setPaymentStatus(newPaid.compareTo(totalDue) >= 0 ? "paid" : "partial");
+        orderRepo.save(order);
+
+        if (order.getBill() != null) {
+            postPaymentToBill(order, request.getAmount(), method, request.getReferenceNo(), request.getNotes());
+        }
+
+        activityLogService.log(currentUserService.getCurrentUser(), "SHOP_ORDER_PAYMENT", "SHOP_ORDER",
+                orderId, "Recorded payment Rs. " + request.getAmount() + " on " + order.getOrderNumber());
+
+        return getOrder(orderId);
+    }
+
+    @Override
+    @Transactional(readOnly = true)
+    public List<ShopOrderPaymentDTO> getOrderPayments(Long orderId) {
+        return orderPaymentRepo.findByOrder_OrderIdOrderByCreatedAtDesc(orderId).stream()
+                .map(this::toPaymentDto)
+                .toList();
+    }
+
+    @Override
     public String generateNextOrderNumber() {
         int year = LocalDate.now().getYear();
         String prefix = "SHOP-" + year + "-";
@@ -372,6 +451,13 @@ public class ShopOrderServiceImpl implements ShopOrderService {
         dto.setCustomerNotes(order.getCustomerNotes());
         dto.setCreatedAt(order.getCreatedAt());
         dto.setStockReserved(Boolean.TRUE.equals(order.getStockReserved()));
+        dto.setPaymentMethod(order.getPaymentMethod());
+        dto.setPaymentStatus(order.getPaymentStatus());
+        dto.setAmountPaid(order.getAmountPaid() != null ? order.getAmountPaid() : BigDecimal.ZERO);
+        dto.setPaymentReference(order.getPaymentReference());
+        BigDecimal total = order.getTotalAmount() != null ? order.getTotalAmount() : BigDecimal.ZERO;
+        BigDecimal paid = order.getAmountPaid() != null ? order.getAmountPaid() : BigDecimal.ZERO;
+        dto.setBalanceDue(total.subtract(paid).max(BigDecimal.ZERO));
 
         if (order.getCustomer() != null) {
             dto.setCustomerId(order.getCustomer().getCustomerId());
@@ -450,6 +536,65 @@ public class ShopOrderServiceImpl implements ShopOrderService {
             inventoryService.restoreStock(line.getProduct().getSuit(), line.getQuantity());
         }
         order.setStockReserved(false);
+    }
+
+    private ShopOrderPaymentDTO toPaymentDto(ShopOrderPayment payment) {
+        ShopOrderPaymentDTO dto = new ShopOrderPaymentDTO();
+        dto.setPaymentId(payment.getPaymentId());
+        dto.setOrderId(payment.getOrder().getOrderId());
+        dto.setAmount(payment.getAmount());
+        dto.setPaymentMethod(payment.getPaymentMethod());
+        dto.setReferenceNo(payment.getReferenceNo());
+        dto.setNotes(payment.getNotes());
+        dto.setCreatedAt(payment.getCreatedAt());
+        return dto;
+    }
+
+    private String normalizePaymentMethod(String method) {
+        if (method == null || method.isBlank()) {
+            return "cod";
+        }
+        String normalized = method.trim().toLowerCase();
+        if (!List.of("cod", "bank_transfer", "online_gateway").contains(normalized)) {
+            throw new RuntimeException("Invalid payment method: " + method);
+        }
+        return normalized;
+    }
+
+    private String initialPaymentStatus(String paymentMethod) {
+        if ("bank_transfer".equals(paymentMethod) || "online_gateway".equals(paymentMethod)) {
+            return "pending";
+        }
+        return "unpaid";
+    }
+
+    private void postPaymentToBill(ShopOrder order, BigDecimal amount, String shopMethod,
+                                   String referenceNo, String notes) {
+        PaymentMethod opsMethod = resolveOpsPaymentMethod(shopMethod);
+        if (opsMethod == null) {
+            return;
+        }
+        Payment billPayment = Payment.builder()
+                .bill(order.getBill())
+                .amount(amount)
+                .paymentMethod(opsMethod)
+                .referenceNo(referenceNo)
+                .notes(notes != null ? notes : "Shop order " + order.getOrderNumber())
+                .build();
+        paymentService.recordPayment(billPayment);
+    }
+
+    private PaymentMethod resolveOpsPaymentMethod(String shopMethod) {
+        List<PaymentMethod> methods = paymentMethodRepo.findByStatus("active");
+        if (methods.isEmpty()) {
+            return null;
+        }
+        String needle = "bank_transfer".equals(shopMethod) ? "bank" : "cash";
+        return methods.stream()
+                .filter(m -> m.getMethodName() != null
+                        && m.getMethodName().toLowerCase().contains(needle))
+                .findFirst()
+                .orElse(methods.get(0));
     }
 
     private String formatCustomerName(Customer customer) {

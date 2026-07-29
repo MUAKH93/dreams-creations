@@ -1,7 +1,7 @@
 # Shop module — roadmap
 
 **Branch:** `feature/shop-v1` (based on `feature/finance-v2`)  
-**Status:** S5 in progress  
+**Status:** S6 complete — shop module v1  
 **Go-live:** After operations module is live; finance merge is deferred until then.
 
 The shop module adds a **public online storefront** and a **Shop Portal** for Admin/Manager — separate from the internal operations ERP, following the same pattern as Finance (`modules.shop.enabled`).
@@ -68,7 +68,7 @@ The shop module adds a **public online storefront** and a **Shop Portal** for Ad
 
 ---
 
-### S5 — Fulfillment & operations integration (current)
+### S5 — Fulfillment & operations integration ✅
 
 - [x] Stock reservation on order confirm (deduct inventory; restore on cancel)
 - [x] Bill conversion skips duplicate stock deduction when already reserved
@@ -80,13 +80,13 @@ The shop module adds a **public online storefront** and a **Shop Portal** for Ad
 
 ---
 
-### S6 — Payments & polish
+### S6 — Payments & polish ✅
 
-- Payment methods: COD, bank transfer, optional gateway stub
-- Partial/full payment recording (reuse `PaymentService`)
-- Finance AR auto-post when finance module enabled
-- Shop analytics (orders, revenue, top designs)
-- UAT checklist + tutorial content
+- [x] Payment methods at checkout: COD, bank transfer, online gateway stub
+- [x] Partial/full payment recording on shop orders; sync to bill when linked
+- [x] Finance AR auto-post via existing `PaymentService` when bill exists
+- [x] Shop analytics (`/shop/analytics`) — orders, revenue, top designs
+- [x] UAT checklist (`docs/shop-uat-checklist.md`)
 
 **Deliverable:** Production-ready shop with sign-off checklist.
 
@@ -134,6 +134,7 @@ SOURCE backend/src/main/resources/db/add-shop-module.sql;
 SOURCE backend/src/main/resources/db/add-shop-cart.sql;
 SOURCE backend/src/main/resources/db/add-shop-orders.sql;
 SOURCE backend/src/main/resources/db/add-shop-fulfillment.sql;
+SOURCE backend/src/main/resources/db/add-shop-payments.sql;
 ```
 
 Shop Portal: http://localhost:3000/shop  
