@@ -7,7 +7,7 @@ import {
   AppstoreOutlined, SendOutlined, FileTextOutlined,
   PictureOutlined, InboxOutlined, CheckSquareOutlined, SafetyCertificateOutlined,
   SettingOutlined,   BarChartOutlined, HistoryOutlined, SolutionOutlined, LineChartOutlined,
-  IdcardOutlined, AccountBookOutlined,
+  IdcardOutlined, AccountBookOutlined, BookOutlined,
 } from '@ant-design/icons'
 import { useAuth } from './context/AuthContext'
 import ProtectedRoute from './routes/ProtectedRoute'
@@ -50,6 +50,15 @@ import SessionCheck from './components/SessionCheck'
 import BrandLogo from './components/BrandLogo'
 import { profileAPI } from './api/profile'
 import { modulesAPI } from './api/modules'
+import TutorialGuidePage from './pages/TutorialGuidePage'
+import {
+  useOperationsTutorial,
+  OperationsTutorialWelcome,
+  OperationsTutorialHelp,
+  OperationsHelpButton,
+  OperationsNavTour,
+  buildOperationsTourSteps,
+} from './components/tutorial/OperationsTutorial'
 
 const { Sider, Content, Header } = Layout
 const { Text } = Typography
@@ -66,6 +75,10 @@ function SidebarBrand({ role }) {
   )
 }
 
+function tourIdForPath(path) {
+  return `ops-${(path || '').replace(/^\//, '').replace(/\//g, '-') || 'home'}`
+}
+
 function NavMenu({ items, selectedKey, onNavigate }) {
   return (
     <Menu
@@ -73,7 +86,10 @@ function NavMenu({ items, selectedKey, onNavigate }) {
       mode="inline"
       selectedKeys={[selectedKey]}
       style={{ background: '#1a237e', borderRight: 0 }}
-      items={items}
+      items={items.map(item => ({
+        ...item,
+        label: <span data-tour={tourIdForPath(item.key)}>{item.label}</span>,
+      }))}
       onClick={({ key }) => onNavigate(key)}
     />
   )
@@ -130,7 +146,7 @@ function FinancePortalButton({ showFinance }) {
   const navigate = useNavigate()
   if (!showFinance) return null
   return (
-    <div className="ops-finance-portal-btn">
+    <div className="ops-finance-portal-btn" data-tour="ops-finance-portal">
       <Button
         block
         size="large"
@@ -155,6 +171,7 @@ function AppLayout({ children }) {
   const isMobile          = !screens.lg
   const [drawerOpen, setDrawerOpen] = useState(false)
   const [showFinance, setShowFinance] = useState(financeModuleEnabled)
+  const opsTutorial = useOperationsTutorial()
 
   useEffect(() => {
     modulesAPI.getFlags()
@@ -178,6 +195,10 @@ function AppLayout({ children }) {
   const userMenu = {
     items: [
       {
+        key: 'guide', icon: <BookOutlined />, label: 'Tutorials & guide',
+        onClick: () => navigate('/guide?tab=operations'),
+      },
+      {
         key: 'profile', icon: <IdcardOutlined />, label: 'My Profile',
         onClick: () => navigate('/profile'),
       },
@@ -192,6 +213,8 @@ function AppLayout({ children }) {
     navigate(key)
     setDrawerOpen(false)
   }
+
+  const opsTourSteps = buildOperationsTourSteps(opsTutorial.config, showFinance)
 
   return (
     <Layout className="app-layout">
@@ -223,6 +246,9 @@ function AppLayout({ children }) {
             />
           )}
           <div className="app-header-user">
+            <span data-tour="ops-help" className="app-header-help">
+              <OperationsHelpButton onClick={opsTutorial.openHelp} />
+            </span>
             <Dropdown menu={userMenu} placement="bottomRight">
               <div className="app-header-user-trigger">
                 <Avatar
@@ -259,6 +285,26 @@ function AppLayout({ children }) {
         />
         <FinancePortalButton showFinance={showFinance} />
       </Drawer>
+
+      <OperationsTutorialWelcome
+        open={opsTutorial.welcomeOpen}
+        config={opsTutorial.config}
+        onStartTour={() => { opsTutorial.startTour(); opsTutorial.markDone() }}
+        onSkip={opsTutorial.markDone}
+      />
+      <OperationsTutorialHelp
+        open={opsTutorial.helpOpen}
+        config={opsTutorial.config}
+        onClose={opsTutorial.closeHelp}
+        onNavigate={handleNavigate}
+        onRestart={opsTutorial.resetTutorial}
+        onWatchTour={opsTutorial.watchTourAgain}
+      />
+      <OperationsNavTour
+        open={opsTutorial.tourOpen}
+        onClose={() => { opsTutorial.setTourOpen(false); opsTutorial.markDone() }}
+        steps={opsTourSteps}
+      />
     </Layout>
   )
 }
@@ -294,6 +340,13 @@ export default function App() {
       <Route path="/verify-email" element={<VerifyEmailPage />} />
       <Route path="/forgot-password" element={auth ? <RoleHome /> : <ForgotPasswordPage />} />
       <Route path="/reset-password" element={auth ? <RoleHome /> : <ResetPasswordPage />} />
+
+      {/* In-app written tutorials — all authenticated roles */}
+      <Route path="/guide" element={
+        <ProtectedRoute roles={[ROLES.ADMIN, ROLES.MANAGER, ROLES.SUPERVISOR, ROLES.CUSTOMER]}>
+          <AppLayout><TutorialGuidePage /></AppLayout>
+        </ProtectedRoute>
+      } />
 
       {/* Profile — all authenticated roles */}
       <Route path="/profile" element={

@@ -118,9 +118,14 @@ export default function FinanceHomePage() {
         <Paragraph type="secondary" style={{ marginBottom: 12 }}>
           {status?.message || 'Open Help from the top bar for a short tutorial on accounts, journals, and reports.'}
         </Paragraph>
-        <Button type="primary" onClick={() => navigate('/finance/accounts')}>
-          Start with Chart of Accounts
-        </Button>
+        <Space wrap>
+          <Button onClick={() => navigate('/guide?tab=finance')}>
+            Open full guide
+          </Button>
+          <Button type="primary" onClick={() => navigate('/finance/accounts')}>
+            Start with Chart of Accounts
+          </Button>
+        </Space>
       </Card>
     </div>
   )

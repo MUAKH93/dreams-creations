@@ -139,6 +139,9 @@ body {
 
 .app-header-user {
   margin-left: auto;
+  display: flex;
+  align-items: center;
+  gap: 4px;
 }
 
 .app-header-user-trigger {
@@ -255,4 +258,67 @@ body {
   background: #0f766e !important;
   border-color: #0f766e !important;
   color: #fff !important;
+}
+
+.app-header-help .ant-btn {
+  color: #1a237e;
+}
+
+.portal-tutorial-step-num {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 22px;
+  height: 22px;
+  border-radius: 50%;
+  color: #fff;
+  font-size: 11px;
+  font-weight: 700;
+  margin-right: 8px;
+  vertical-align: middle;
+}
+
+.portal-tutorial-list {
+  margin: 0 0 12px 0;
+  padding-left: 20px;
+  color: #475569;
+  font-size: 13px;
+  line-height: 1.55;
+}
+
+.portal-tutorial-list--tips {
+  color: #64748b;
+  font-style: italic;
+}
+
+.portal-tutorial-collapse .ant-collapse-header {
+  padding: 10px 0 !important;
+}
+
+.portal-tutorial-section-body {
+  padding-bottom: 4px;
+}
+
+.tutorial-guide-page {
+  max-width: 960px;
+  margin: 0 auto;
+}
+
+.tutorial-guide-panel {
+  padding-bottom: 48px;
+}
+
+.tutorial-guide-intro {
+  margin-bottom: 24px;
+  border-radius: 12px;
+}
+
+.tutorial-guide-section {
+  margin-bottom: 32px;
+  padding-bottom: 24px;
+  border-bottom: 1px solid #eef2f6;
+}
+
+.tutorial-guide-section:last-child {
+  border-bottom: none;
 }

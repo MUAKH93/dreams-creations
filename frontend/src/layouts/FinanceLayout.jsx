@@ -3,7 +3,7 @@ import { Layout, Menu, Typography, Avatar, Dropdown, Drawer, Button, Grid, Confi
 import {
   HomeOutlined, UnorderedListOutlined, FileTextOutlined, BarChartOutlined,
   ArrowLeftOutlined, UserOutlined, LogoutOutlined, MenuOutlined, IdcardOutlined,
-  ShopOutlined, BankOutlined,
+  ShopOutlined, BankOutlined, BookOutlined,
 } from '@ant-design/icons'
 import { useNavigate, useLocation, Outlet } from 'react-router-dom'
 import { useAuth } from '../context/AuthContext'
@@ -89,6 +89,11 @@ export default function FinanceLayout() {
       target: () => document.querySelector('[data-tour="finance-reports"]'),
     },
     {
+      title: 'Help & replay tutorial',
+      description: 'Open Help anytime for the full guide, written docs, or watch this tour again.',
+      target: () => document.querySelector('[data-tour="finance-help"]'),
+    },
+    {
       title: 'Return to operations',
       description: 'Switch back to production, sales, and inventory anytime.',
       target: () => document.querySelector('[data-tour="finance-back-ops"]'),
@@ -97,6 +102,7 @@ export default function FinanceLayout() {
 
   const userMenu = {
     items: [
+      { key: 'guide', icon: <BookOutlined />, label: 'Tutorials & guide', onClick: () => navigate('/guide?tab=finance') },
       { key: 'profile', icon: <IdcardOutlined />, label: 'My Profile', onClick: () => navigate('/profile') },
       { key: 'logout', icon: <LogoutOutlined />, label: 'Logout', onClick: () => { logout(); navigate('/login') } },
     ],
@@ -163,7 +169,9 @@ export default function FinanceLayout() {
               </Text>
             </div>
             <div className="finance-header__right">
-              <FinanceHelpButton onClick={tutorial.openHelp} />
+              <span data-tour="finance-help">
+                <FinanceHelpButton onClick={tutorial.openHelp} />
+              </span>
               <Dropdown menu={userMenu} placement="bottomRight">
                 <div style={{ cursor: 'pointer', display: 'flex', alignItems: 'center', gap: 8 }}>
                   <Avatar src={auth?.profilePhotoUrl || undefined} icon={<UserOutlined />} style={{ background: '#0d9488' }} />
@@ -199,7 +207,8 @@ export default function FinanceLayout() {
           open={tutorial.helpOpen}
           onClose={tutorial.closeHelp}
           onNavigate={handleNav}
-          onRestart={() => { tutorial.resetTutorial(); tutorial.closeHelp() }}
+          onRestart={tutorial.resetTutorial}
+          onWatchTour={tutorial.watchTourAgain}
         />
         <FinanceNavTour
           open={tutorial.tourOpen}
