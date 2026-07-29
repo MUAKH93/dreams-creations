@@ -113,7 +113,17 @@ export default function CustomersPage() {
         notes: values.notes,
         referenceNo: values.referenceNo,
       })
-      message.success('Payment recorded — bill closed')
+      const bill = customerBills.find(b => b.billId === values.billId)
+      const alreadyPaid = payments
+        .filter(p => p.bill?.billId === values.billId)
+        .reduce((sum, p) => sum + Number(p.amount || 0), 0)
+      const newPaid = alreadyPaid + Number(values.amount)
+      const billTotal = Number(bill?.finalAmount || 0)
+      if (newPaid >= billTotal) {
+        message.success('Payment recorded — bill is now fully paid.')
+      } else {
+        message.success('Partial payment recorded — bill remains open with a balance due.')
+      }
       setPayOpen(false)
       payForm.resetFields()
       if (selectedCustomer) openCustomerAccount(selectedCustomer)
@@ -166,7 +176,7 @@ export default function CustomersPage() {
     }
   }
 
-  const unpaidBills = customerBills.filter(b => b.status === 'unpaid')
+  const openBills = customerBills.filter(b => b.status === 'unpaid' || b.status === 'partial')
 
   const columns = [
     { title: 'Name', key: 'name',
@@ -334,9 +344,9 @@ export default function CustomersPage() {
               </Col>
             </Row>
 
-            <Divider orientation="left">Open Bills (unpaid)</Divider>
+            <Divider orientation="left">Open Bills (unpaid / partial)</Divider>
             <Table
-              dataSource={unpaidBills}
+              dataSource={openBills}
               rowKey="billId"
               size="small"
               pagination={false}
@@ -345,8 +355,8 @@ export default function CustomersPage() {
                 { title: 'Bill #', dataIndex: 'billNumber' },
                 { title: 'Bill Total', dataIndex: 'finalAmount',
                   render: v => `Rs. ${Number(v).toLocaleString()}` },
-                { title: 'Grand Total', key: 'grand',
-                  render: (_, r) => `Rs. ${Number(r.grandTotal || r.finalAmount).toLocaleString()}` },
+                { title: 'Status', dataIndex: 'status',
+                  render: s => <Tag color={s === 'partial' ? 'orange' : 'red'}>{s?.toUpperCase()}</Tag> },
                 { title: '', key: 'act',
                   render: (_, r) => (
                     <Button size="small" type="primary" icon={<DollarOutlined />}
@@ -382,14 +392,14 @@ export default function CustomersPage() {
 
       <Modal title="Receive Payment" open={payOpen} onCancel={() => setPayOpen(false)} footer={null} width={480}>
         <Alert type="info" showIcon style={{ marginBottom: 16 }}
-          message="Partial payment is allowed"
-          description="Bill closes on any payment. Remaining due stays on customer balance." />
+          message="Partial payments are supported"
+          description="Pay any amount up to the bill balance due. The bill stays open until fully paid." />
         <Form form={payForm} onFinish={onRecordPayment} layout="vertical">
           <Form.Item name="billId" label="Bill" rules={[{ required: true }]}>
             <Select placeholder="Select open bill">
-              {unpaidBills.map(b => (
+              {openBills.map(b => (
                 <Select.Option key={b.billId} value={b.billId}>
-                  {b.billNumber} — Grand Rs. {Number(b.grandTotal || b.finalAmount).toLocaleString()}
+                  {b.billNumber} — Rs. {Number(b.finalAmount).toLocaleString()} ({b.status})
                 </Select.Option>
               ))}
             </Select>

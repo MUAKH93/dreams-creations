@@ -25,6 +25,7 @@ import com.dreams.dreamscreations.entity.finance.FinancePayable;
 import com.dreams.dreamscreations.entity.finance.FinanceVendor;
 import com.dreams.dreamscreations.repository.BillRepository;
 import com.dreams.dreamscreations.repository.CustomerBalanceRepository;
+import com.dreams.dreamscreations.repository.PaymentRepository;
 import com.dreams.dreamscreations.repository.InventoryRepository;
 import com.dreams.dreamscreations.repository.finance.FinanceAccountRepository;
 import com.dreams.dreamscreations.repository.finance.FinanceJournalLineRepository;
@@ -49,6 +50,7 @@ public class FinanceReportServiceImpl implements FinanceReportService {
     private final FinanceAccountRepository accountRepo;
     private final BillRepository billRepo;
     private final CustomerBalanceRepository balanceRepo;
+    private final PaymentRepository paymentRepo;
     private final InventoryRepository inventoryRepo;
     private final FinancePayableRepository payableRepo;
 
@@ -56,12 +58,14 @@ public class FinanceReportServiceImpl implements FinanceReportService {
                                     FinanceAccountRepository accountRepo,
                                     BillRepository billRepo,
                                     CustomerBalanceRepository balanceRepo,
+                                    PaymentRepository paymentRepo,
                                     InventoryRepository inventoryRepo,
                                     FinancePayableRepository payableRepo) {
         this.lineRepo = lineRepo;
         this.accountRepo = accountRepo;
         this.billRepo = billRepo;
         this.balanceRepo = balanceRepo;
+        this.paymentRepo = paymentRepo;
         this.inventoryRepo = inventoryRepo;
         this.payableRepo = payableRepo;
     }
@@ -169,18 +173,23 @@ public class FinanceReportServiceImpl implements FinanceReportService {
             });
 
             BigDecimal amount = nz(bill.getFinalAmount());
+            BigDecimal paidOnBill = nz(paymentRepo.sumAmountByBill(bill.getBillId()));
+            BigDecimal balanceDue = amount.subtract(paidOnBill);
+            if (balanceDue.compareTo(BigDecimal.ZERO) <= 0) {
+                continue;
+            }
             long days = bill.getBillDate() != null
                     ? ChronoUnit.DAYS.between(bill.getBillDate().toLocalDate(), today)
                     : 0;
 
             if (days <= 30) {
-                row.current = row.current.add(amount);
+                row.current = row.current.add(balanceDue);
             } else if (days <= 60) {
-                row.days31to60 = row.days31to60.add(amount);
+                row.days31to60 = row.days31to60.add(balanceDue);
             } else if (days <= 90) {
-                row.days61to90 = row.days61to90.add(amount);
+                row.days61to90 = row.days61to90.add(balanceDue);
             } else {
-                row.over90 = row.over90.add(amount);
+                row.over90 = row.over90.add(balanceDue);
             }
         }
 

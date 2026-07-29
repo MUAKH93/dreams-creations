@@ -33,7 +33,7 @@ public class PaymentServiceImpl implements PaymentService {
 
     /**
      * Records a payment against a bill.
-     * Any payment (including partial) closes the bill as "paid".
+     * Partial payments set status to "partial"; full settlement sets "paid".
      * Remaining customer balance is tracked on CustomerBalance.
      */
     @Override
@@ -47,16 +47,28 @@ public class PaymentServiceImpl implements PaymentService {
             throw new RuntimeException("Cannot record payment on a cancelled bill");
         }
         if ("paid".equalsIgnoreCase(bill.getStatus())) {
-            throw new RuntimeException("This bill is already closed — record further payments from Customer Records");
+            throw new RuntimeException("This bill is already fully paid");
         }
         if (payment.getAmount() == null || payment.getAmount().compareTo(BigDecimal.ZERO) <= 0) {
             throw new RuntimeException("Payment amount must be greater than zero");
         }
 
+        BigDecimal billDue = bill.getFinalAmount() != null ? bill.getFinalAmount() : BigDecimal.ZERO;
+        BigDecimal alreadyPaid = paymentRepo.sumAmountByBill(bill.getBillId());
+        BigDecimal remaining = billDue.subtract(alreadyPaid);
+        if (payment.getAmount().compareTo(remaining) > 0) {
+            throw new RuntimeException("Payment exceeds bill balance due (" + remaining + ")");
+        }
+
         Payment saved = paymentRepo.save(payment);
         saved = paymentRepo.findById(saved.getPaymentId()).orElse(saved);
 
-        bill.setStatus("paid");
+        BigDecimal totalPaidOnBill = alreadyPaid.add(payment.getAmount());
+        if (totalPaidOnBill.compareTo(billDue) >= 0) {
+            bill.setStatus("paid");
+        } else {
+            bill.setStatus("partial");
+        }
         billRepo.save(bill);
 
         Long customerId = bill.getCustomer().getCustomerId();

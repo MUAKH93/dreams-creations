@@ -154,8 +154,8 @@ public class BillServiceImpl implements BillService {
             if ("cancelled".equalsIgnoreCase(previousStatus)) {
                 throw new RuntimeException("Bill is already cancelled");
             }
-            if ("paid".equalsIgnoreCase(previousStatus)) {
-                throw new RuntimeException("Cannot cancel a paid bill");
+            if ("paid".equalsIgnoreCase(previousStatus) || "partial".equalsIgnoreCase(previousStatus)) {
+                throw new RuntimeException("Cannot cancel a bill that has payments recorded");
             }
             bill.setStatus("cancelled");
             Bill saved = billRepo.save(bill);

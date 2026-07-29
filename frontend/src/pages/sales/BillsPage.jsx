@@ -31,6 +31,7 @@ export default function BillsPage() {
   const [payModal,       setPayModal]       = useState(false)
   const [detailModal,    setDetailModal]    = useState(false)
   const [selectedBill,   setSelectedBill]   = useState(null)
+  const [billPaySummary, setBillPaySummary] = useState({ paid: 0, balanceDue: 0 })
   const [customerPrevBalance, setCustomerPrevBalance] = useState(0)
   const [billForm]       = Form.useForm()
   const [payForm]        = Form.useForm()
@@ -169,9 +170,23 @@ export default function BillsPage() {
     }
   }
 
-  const openPayModal = (bill) => {
+  const openPayModal = async (bill) => {
     setSelectedBill(bill)
     setPayModal(true)
+    payForm.resetFields()
+    try {
+      const res = await salesAPI.getByBill(bill.billId)
+      const paid = (res.data || []).reduce((sum, p) => sum + Number(p.amount || 0), 0)
+      const balanceDue = Math.max(0, Number(bill.finalAmount) - paid)
+      setBillPaySummary({ paid, balanceDue })
+      if (balanceDue > 0) {
+        payForm.setFieldsValue({ amount: balanceDue })
+      }
+    } catch {
+      const balanceDue = Number(bill.finalAmount)
+      setBillPaySummary({ paid: 0, balanceDue })
+      payForm.setFieldsValue({ amount: balanceDue })
+    }
   }
 
   const addItem = () => setItems([...items, emptyLine()])
@@ -251,7 +266,13 @@ export default function BillsPage() {
         notes:          values.notes,
         referenceNo:    values.referenceNo,
       })
-      message.success('Payment recorded — bill closed. Remaining balance is on customer account.')
+      const newPaid = billPaySummary.paid + Number(values.amount)
+      const billTotal = Number(selectedBill.finalAmount)
+      if (newPaid >= billTotal) {
+        message.success('Payment recorded — bill is now fully paid.')
+      } else {
+        message.success('Partial payment recorded — bill remains open with a balance due.')
+      }
       setPayModal(false)
       payForm.resetFields()
       load()
@@ -278,7 +299,7 @@ export default function BillsPage() {
     ({ paid: 'green', partial: 'orange', unpaid: 'red', cancelled: 'default' }[s] || 'default')
 
   const canCancelBill = (bill) =>
-    bill.status !== 'cancelled' && bill.status !== 'paid'
+    bill.status !== 'cancelled' && bill.status !== 'paid' && bill.status !== 'partial'
 
   const columns = [
     { title: 'Bill #',    dataIndex: 'billNumber', key: 'bill' },
@@ -534,16 +555,20 @@ export default function BillsPage() {
         {selectedBill && (
           <>
             <Alert type="info" showIcon style={{ marginBottom: 16 }}
-              message="Partial payment closes this bill"
-              description="Any amount received closes the bill. Remaining due stays on the customer account. Full payment history is in Customer Records." />
+              message="Partial payments are supported"
+              description="Pay any amount up to the bill balance due. The bill stays open until fully paid. Full payment history is in Customer Records." />
             <Row gutter={16} style={{ marginBottom: 16 }}>
-              <Col span={12}>
+              <Col span={8}>
                 <Statistic title="Bill Total" prefix="Rs."
                   value={Number(selectedBill.finalAmount).toLocaleString()} />
               </Col>
-              <Col span={12}>
-                <Statistic title="Grand Total Due" prefix="Rs."
-                  value={Number(selectedBill.grandTotal || selectedBill.finalAmount).toLocaleString()} />
+              <Col span={8}>
+                <Statistic title="Already Paid" prefix="Rs."
+                  value={Number(billPaySummary.paid).toLocaleString()} />
+              </Col>
+              <Col span={8}>
+                <Statistic title="Balance Due" prefix="Rs."
+                  value={Number(billPaySummary.balanceDue).toLocaleString()} />
               </Col>
             </Row>
           </>
@@ -560,7 +585,7 @@ export default function BillsPage() {
           </Form.Item>
           <Form.Item name="amount" label="Amount Received (Rs.)" rules={[{ required: true }]}>
             <InputNumber min={1} style={{ width: '100%' }}
-              max={selectedBill ? Number(selectedBill.grandTotal || selectedBill.finalAmount) : undefined} />
+              max={billPaySummary.balanceDue > 0 ? billPaySummary.balanceDue : undefined} />
           </Form.Item>
           <Form.Item name="referenceNo" label="Reference / Transaction No.">
             <Input placeholder="Cheque no., bank ref, etc." />

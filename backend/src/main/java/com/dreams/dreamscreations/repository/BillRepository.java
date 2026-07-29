@@ -42,7 +42,7 @@ public interface BillRepository extends JpaRepository<Bill, Long> {
     @Query("SELECT b FROM Bill b WHERE b.status <> 'cancelled' AND b.billDate >= :since")
     List<Bill> findActiveBillsSince(@Param("since") LocalDateTime since);
 
-    @Query("SELECT b FROM Bill b JOIN FETCH b.customer WHERE b.status = 'unpaid' ORDER BY b.billDate")
+    @Query("SELECT b FROM Bill b JOIN FETCH b.customer WHERE b.status IN ('unpaid', 'partial') ORDER BY b.billDate")
     List<Bill> findUnpaidWithCustomer();
 
     @Query("SELECT COUNT(DISTINCT b.customer.customerId) FROM Bill b " +
