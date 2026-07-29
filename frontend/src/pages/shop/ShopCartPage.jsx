@@ -10,6 +10,7 @@ import { shopModuleEnabled } from '../../config/modules'
 import { modulesAPI } from '../../api/modules'
 import { useShopCart } from '../../hooks/useShopCart'
 import { useAuth } from '../../context/AuthContext'
+import { ROLES } from '../../utils/roles'
 import ShopStorefrontHeader from '../../components/shop/ShopStorefrontHeader'
 import '../../styles/shop-portal.css'
 
@@ -144,7 +145,7 @@ export default function ShopCartPage() {
                 {
                   title: 'Line total',
                   dataIndex: 'lineTotal',
-                  render: (v, r) => `Rs. ${Number(v ?? (r.unitPrice * r.quantity) || 0).toLocaleString()}`,
+                  render: (v, r) => `Rs. ${Number(v ?? ((r.unitPrice * r.quantity) || 0)).toLocaleString()}`,
                 },
                 {
                   title: '',
@@ -175,7 +176,7 @@ export default function ShopCartPage() {
                   )}
                   <Row justify="space-between" style={{ marginTop: 12 }}>
                     <Title level={4} style={{ margin: 0 }}>Total</Title>
-                    <Title level={4} style={{ margin: 0 }}>Rs. {Number(cart.total ?? cart.subtotal || 0).toLocaleString()}</Title>
+                    <Title level={4} style={{ margin: 0 }}>Rs. {Number(cart.total ?? (cart.subtotal || 0)).toLocaleString()}</Title>
                   </Row>
                 </Card>
                 <Button
@@ -194,9 +195,9 @@ export default function ShopCartPage() {
                 >
                   {isGuest ? 'Login to checkout' : 'Proceed to checkout'}
                 </Button>
-                {!auth && (
+                {!isGuest && auth?.role !== ROLES.CUSTOMER && (
                   <Link to="/login" style={{ display: 'block', marginTop: 8, textAlign: 'center' }}>
-                    Login to save cart & checkout later
+                    Login as customer to checkout
                   </Link>
                 )}
               </Col>

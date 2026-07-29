@@ -11,6 +11,7 @@ import com.dreams.dreamscreations.entity.Suit;
 import com.dreams.dreamscreations.entity.shop.ShopCart;
 import com.dreams.dreamscreations.entity.shop.ShopCartItem;
 import com.dreams.dreamscreations.repository.CustomerRepository;
+import com.dreams.dreamscreations.repository.DesignImageRepository;
 import com.dreams.dreamscreations.repository.ProductRepository;
 import com.dreams.dreamscreations.repository.shop.ShopCartRepository;
 import com.dreams.dreamscreations.service.InventoryService;
@@ -22,7 +23,12 @@ import java.math.BigDecimal;
 import java.math.RoundingMode;
 import java.nio.charset.StandardCharsets;
 import java.util.Comparator;
+import java.util.HashMap;
 import java.util.List;
+import java.util.Map;
+import java.util.Objects;
+import java.util.Set;
+import java.util.stream.Collectors;
 
 @Service
 @ConditionalOnProperty(name = "modules.shop.enabled", havingValue = "true")
@@ -31,15 +37,18 @@ public class ShopCartServiceImpl implements ShopCartService {
     private final ShopCartRepository cartRepo;
     private final CustomerRepository customerRepo;
     private final ProductRepository productRepo;
+    private final DesignImageRepository designImageRepo;
     private final InventoryService inventoryService;
 
     public ShopCartServiceImpl(ShopCartRepository cartRepo,
                                  CustomerRepository customerRepo,
                                  ProductRepository productRepo,
+                                 DesignImageRepository designImageRepo,
                                  InventoryService inventoryService) {
         this.cartRepo = cartRepo;
         this.customerRepo = customerRepo;
         this.productRepo = productRepo;
+        this.designImageRepo = designImageRepo;
         this.inventoryService = inventoryService;
     }
 
@@ -216,6 +225,15 @@ public class ShopCartServiceImpl implements ShopCartService {
                 .sorted(Comparator.comparing(i -> i.getProduct().getProductId()))
                 .toList();
 
+        Set<Long> designIds = sorted.stream()
+                .map(i -> i.getProduct().getSuit())
+                .filter(Objects::nonNull)
+                .map(Suit::getDesign)
+                .filter(Objects::nonNull)
+                .map(Design::getDesignId)
+                .collect(Collectors.toSet());
+        Map<Long, String> primaryImageUrls = loadPrimaryImageUrls(designIds);
+
         for (ShopCartItem item : sorted) {
             Product product = item.getProduct();
             Suit suit = product.getSuit();
@@ -230,7 +248,7 @@ public class ShopCartServiceImpl implements ShopCartService {
                 line.setDesignId(design.getDesignId());
                 line.setDesignCode(design.getDesignCode());
                 line.setDesignName(design.getName());
-                line.setPrimaryImageUrl(resolvePrimaryImage(design));
+                line.setPrimaryImageUrl(primaryImageUrls.get(design.getDesignId()));
             }
             if (suit != null) {
                 line.setSizeValue(suit.getSize() != null ? suit.getSize().getSizeValue() : null);
@@ -256,18 +274,28 @@ public class ShopCartServiceImpl implements ShopCartService {
         return dto;
     }
 
-    private String resolvePrimaryImage(Design design) {
-        if (design.getImages() == null || design.getImages().isEmpty()) {
+    private Map<Long, String> loadPrimaryImageUrls(Set<Long> designIds) {
+        if (designIds == null || designIds.isEmpty()) {
+            return Map.of();
+        }
+        List<DesignImage> images = designImageRepo.findByDesign_DesignIdIn(designIds);
+        Map<Long, String> urls = new HashMap<>();
+        images.stream()
+                .sorted(Comparator
+                        .comparing((DesignImage img) -> !Boolean.TRUE.equals(img.getIsPrimary()))
+                        .thenComparing(img -> img.getDisplayOrder() != null ? img.getDisplayOrder() : 0))
+                .forEach(img -> {
+                    Long designId = img.getDesign().getDesignId();
+                    urls.putIfAbsent(designId, buildImageUrl(img.getImageName()));
+                });
+        return urls;
+    }
+
+    private String buildImageUrl(String imageName) {
+        if (imageName == null) {
             return null;
         }
-        DesignImage primary = design.getImages().stream()
-                .filter(img -> Boolean.TRUE.equals(img.getIsPrimary()))
-                .findFirst()
-                .orElse(design.getImages().get(0));
-        if (primary == null || primary.getImageName() == null) {
-            return null;
-        }
-        String encoded = java.net.URLEncoder.encode(primary.getImageName(), StandardCharsets.UTF_8)
+        String encoded = java.net.URLEncoder.encode(imageName, StandardCharsets.UTF_8)
                 .replace("+", "%20");
         return "/api/design-images/view/" + encoded;
     }

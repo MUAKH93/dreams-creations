@@ -1,11 +1,15 @@
-import { Link } from 'react-router-dom'
+import { Link, useNavigate } from 'react-router-dom'
 import { Typography, Button, Badge } from 'antd'
-import { LoginOutlined, ArrowLeftOutlined, ShoppingCartOutlined } from '@ant-design/icons'
+import { LoginOutlined, ArrowLeftOutlined, ShoppingCartOutlined, UserOutlined } from '@ant-design/icons'
 import { useShopCart } from '../../hooks/useShopCart'
+import { useAuth } from '../../context/AuthContext'
+import { homeForRole, MANAGEMENT_ROLES, ROLES } from '../../utils/roles'
 
 const { Title } = Typography
 
 export default function ShopStorefrontHeader({ settings, showBack, backTo = '/store' }) {
+  const navigate = useNavigate()
+  const { auth } = useAuth()
   const { itemCount } = useShopCart()
 
   return (
@@ -27,9 +31,26 @@ export default function ShopStorefrontHeader({ settings, showBack, backTo = '/st
             <Button type="default" icon={<ShoppingCartOutlined />}>Cart</Button>
           </Badge>
         </Link>
-        <Link to="/login">
-          <Button type="default" icon={<LoginOutlined />}>Login to order</Button>
-        </Link>
+        {auth ? (
+          <>
+            {MANAGEMENT_ROLES.includes(auth.role) && (
+              <Button type="default" onClick={() => navigate('/shop')}>
+                Shop Portal
+              </Button>
+            )}
+            <Button
+              type="default"
+              icon={<UserOutlined />}
+              onClick={() => navigate(homeForRole(auth.role))}
+            >
+              {auth.role === ROLES.CUSTOMER ? 'My account' : auth.username}
+            </Button>
+          </>
+        ) : (
+          <Link to="/login">
+            <Button type="default" icon={<LoginOutlined />}>Login to order</Button>
+          </Link>
+        )}
       </div>
     </header>
   )

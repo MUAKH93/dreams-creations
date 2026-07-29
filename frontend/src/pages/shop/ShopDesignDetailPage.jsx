@@ -10,6 +10,8 @@ import { shopModuleEnabled } from '../../config/modules'
 import { modulesAPI } from '../../api/modules'
 import ShopStorefrontHeader from '../../components/shop/ShopStorefrontHeader'
 import { useShopCart } from '../../hooks/useShopCart'
+import { useAuth } from '../../context/AuthContext'
+import { ROLES } from '../../utils/roles'
 import '../../styles/shop-portal.css'
 
 const { Title, Text, Paragraph } = Typography
@@ -23,6 +25,7 @@ function variantLabel(v) {
 export default function ShopDesignDetailPage() {
   const { designId } = useParams()
   const navigate = useNavigate()
+  const { auth } = useAuth()
   const { addItem } = useShopCart()
   const [settings, setSettings] = useState(null)
   const [design, setDesign] = useState(null)
@@ -269,11 +272,18 @@ export default function ShopDesignDetailPage() {
               <Button size="large" onClick={() => navigate('/store/cart')}>
                 View cart
               </Button>
-              <Link to="/login">
-                <Button size="large" icon={<LoginOutlined />}>
-                  Login to save cart
+              {!auth && (
+                <Link to="/login">
+                  <Button size="large" icon={<LoginOutlined />}>
+                    Login to save cart
+                  </Button>
+                </Link>
+              )}
+              {auth?.role === ROLES.CUSTOMER && (
+                <Button size="large" onClick={() => navigate('/store/checkout')}>
+                  Checkout
                 </Button>
-              </Link>
+              )}
             </Space>
           </Col>
         </Row>

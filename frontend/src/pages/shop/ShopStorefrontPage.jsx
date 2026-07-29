@@ -9,6 +9,8 @@ import { apiErrorMessage } from '../../api/client'
 import { shopModuleEnabled } from '../../config/modules'
 import { modulesAPI } from '../../api/modules'
 import ShopStorefrontHeader from '../../components/shop/ShopStorefrontHeader'
+import { useAuth } from '../../context/AuthContext'
+import { ROLES } from '../../utils/roles'
 import '../../styles/shop-portal.css'
 
 const { Title, Text } = Typography
@@ -16,6 +18,7 @@ const { Search } = Input
 
 export default function ShopStorefrontPage() {
   const navigate = useNavigate()
+  const { auth } = useAuth()
   const [settings, setSettings] = useState(null)
   const [catalog, setCatalog] = useState([])
   const [categories, setCategories] = useState([])
@@ -63,11 +66,14 @@ export default function ShopStorefrontPage() {
   }, [shopEnabled, featuredOnly, category, search])
 
   const browseMessage = useMemo(() => {
-    if (settings?.allowGuestBrowse) {
-      return 'Browse freely as a guest. Login to order — cart & checkout arrive in Phase S3.'
+    if (auth?.role === ROLES.CUSTOMER) {
+      return 'You are signed in — add items to your cart and checkout when ready.'
     }
-    return 'Login will be required to place orders when checkout launches.'
-  }, [settings])
+    if (settings?.allowGuestBrowse) {
+      return 'Browse freely as a guest. Log in as a customer to save your cart and checkout.'
+    }
+    return 'Log in as a customer to place orders.'
+  }, [settings, auth])
 
   if (!shopEnabled) {
     return (
