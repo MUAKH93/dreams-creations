@@ -40,6 +40,7 @@ public class ShopOrderServiceImpl implements ShopOrderService {
     private final InventoryService inventoryService;
     private final CurrentUserService currentUserService;
     private final ActivityLogService activityLogService;
+    private final ShopOrderNotificationService notificationService;
 
     public ShopOrderServiceImpl(ShopOrderRepository orderRepo,
                                 ShopCartRepository cartRepo,
@@ -49,7 +50,8 @@ public class ShopOrderServiceImpl implements ShopOrderService {
                                 BillService billService,
                                 InventoryService inventoryService,
                                 CurrentUserService currentUserService,
-                                ActivityLogService activityLogService) {
+                                ActivityLogService activityLogService,
+                                ShopOrderNotificationService notificationService) {
         this.orderRepo = orderRepo;
         this.cartRepo = cartRepo;
         this.cartService = cartService;
@@ -59,6 +61,7 @@ public class ShopOrderServiceImpl implements ShopOrderService {
         this.inventoryService = inventoryService;
         this.currentUserService = currentUserService;
         this.activityLogService = activityLogService;
+        this.notificationService = notificationService;
     }
 
     @Override
@@ -125,9 +128,10 @@ public class ShopOrderServiceImpl implements ShopOrderService {
         activityLogService.log(currentUserService.getCurrentUser(), "SHOP_ORDER_CREATED", "SHOP_ORDER",
                 saved.getOrderId(), "Placed shop order " + saved.getOrderNumber());
 
-        return orderRepo.findByIdWithDetails(saved.getOrderId())
-                .map(this::toDto)
+        ShopOrder result = orderRepo.findByIdWithDetails(saved.getOrderId())
                 .orElseThrow(() -> new RuntimeException("Order not found after checkout"));
+        notificationService.notifyOrderPlaced(result);
+        return toDto(result);
     }
 
     @Override
@@ -158,6 +162,7 @@ public class ShopOrderServiceImpl implements ShopOrderService {
         ShopOrder saved = orderRepo.save(order);
         activityLogService.log(currentUserService.getCurrentUser(), "SHOP_ORDER_CANCELLED", "SHOP_ORDER",
                 orderId, "Customer cancelled order " + saved.getOrderNumber());
+        notificationService.notifyOrderCancelled(saved);
         return toDto(saved);
     }
 
@@ -194,6 +199,7 @@ public class ShopOrderServiceImpl implements ShopOrderService {
             if (!"pending".equals(current)) {
                 throw new RuntimeException("Only pending orders can be confirmed");
             }
+            reserveStockForOrder(order);
             order.setConfirmedBy(currentUserService.getCurrentUser());
         } else if ("fulfilled".equals(next)) {
             if (!"confirmed".equals(current)) {
@@ -203,6 +209,7 @@ public class ShopOrderServiceImpl implements ShopOrderService {
             if (List.of("fulfilled", "cancelled").contains(current)) {
                 throw new RuntimeException("Order cannot be cancelled in status: " + current);
             }
+            releaseStockForOrder(order);
         } else {
             throw new RuntimeException("Invalid status: " + status);
         }
@@ -212,6 +219,15 @@ public class ShopOrderServiceImpl implements ShopOrderService {
         activityLogService.log(currentUserService.getCurrentUser(),
                 "SHOP_ORDER_" + next.toUpperCase(), "SHOP_ORDER", orderId,
                 "Updated shop order " + saved.getOrderNumber() + " to " + next);
+
+        if ("confirmed".equals(next)) {
+            notificationService.notifyOrderConfirmed(saved);
+        } else if ("fulfilled".equals(next)) {
+            notificationService.notifyOrderFulfilled(saved);
+        } else if ("cancelled".equals(next)) {
+            notificationService.notifyOrderCancelled(saved);
+        }
+
         return toDto(saved);
     }
 
@@ -303,7 +319,7 @@ public class ShopOrderServiceImpl implements ShopOrderService {
                 .items(billItems)
                 .build();
 
-        Bill savedBill = billService.createBill(bill);
+        Bill savedBill = billService.createBill(bill, Boolean.TRUE.equals(order.getStockReserved()));
 
         order.setBill(savedBill);
         order.setStatus("fulfilled");
@@ -315,6 +331,8 @@ public class ShopOrderServiceImpl implements ShopOrderService {
         activityLogService.log(currentUserService.getCurrentUser(), "SHOP_ORDER_TO_BILL", "SHOP_ORDER",
                 orderId, "Converted shop order " + order.getOrderNumber()
                         + " to bill " + savedBill.getBillNumber());
+
+        notificationService.notifyOrderFulfilled(order);
 
         return getOrder(orderId);
     }
@@ -353,6 +371,7 @@ public class ShopOrderServiceImpl implements ShopOrderService {
         dto.setShippingNotes(order.getShippingNotes());
         dto.setCustomerNotes(order.getCustomerNotes());
         dto.setCreatedAt(order.getCreatedAt());
+        dto.setStockReserved(Boolean.TRUE.equals(order.getStockReserved()));
 
         if (order.getCustomer() != null) {
             dto.setCustomerId(order.getCustomer().getCustomerId());
@@ -400,6 +419,37 @@ public class ShopOrderServiceImpl implements ShopOrderService {
         }
         dto.setItemCount(count);
         return dto;
+    }
+
+    private void reserveStockForOrder(ShopOrder order) {
+        if (order.getItems() == null || order.getItems().isEmpty()) {
+            throw new RuntimeException("Order has no line items");
+        }
+        if (Boolean.TRUE.equals(order.getStockReserved())) {
+            return;
+        }
+        for (ShopOrderItem line : order.getItems()) {
+            Suit suit = line.getProduct().getSuit();
+            int available = inventoryService.getQuantity(suit);
+            if (available < line.getQuantity()) {
+                throw new RuntimeException("Insufficient stock to confirm order "
+                        + order.getOrderNumber());
+            }
+        }
+        for (ShopOrderItem line : order.getItems()) {
+            inventoryService.removeStock(line.getProduct().getSuit(), line.getQuantity());
+        }
+        order.setStockReserved(true);
+    }
+
+    private void releaseStockForOrder(ShopOrder order) {
+        if (!Boolean.TRUE.equals(order.getStockReserved()) || order.getItems() == null) {
+            return;
+        }
+        for (ShopOrderItem line : order.getItems()) {
+            inventoryService.restoreStock(line.getProduct().getSuit(), line.getQuantity());
+        }
+        order.setStockReserved(false);
     }
 
     private String formatCustomerName(Customer customer) {

@@ -1,7 +1,7 @@
 # Shop module — roadmap
 
 **Branch:** `feature/shop-v1` (based on `feature/finance-v2`)  
-**Status:** S4 in progress  
+**Status:** S5 in progress  
 **Go-live:** After operations module is live; finance merge is deferred until then.
 
 The shop module adds a **public online storefront** and a **Shop Portal** for Admin/Manager — separate from the internal operations ERP, following the same pattern as Finance (`modules.shop.enabled`).
@@ -56,7 +56,7 @@ The shop module adds a **public online storefront** and a **Shop Portal** for Ad
 
 ---
 
-### S4 — Checkout & shop orders (current)
+### S4 — Checkout & shop orders ✅
 
 - [x] Checkout form at `/store/checkout` (shipping/contact notes)
 - [x] Create **shop order** linked to customer account
@@ -68,13 +68,13 @@ The shop module adds a **public online storefront** and a **Shop Portal** for Ad
 
 ---
 
-### S5 — Fulfillment & operations integration
+### S5 — Fulfillment & operations integration (current)
 
-- Stock reservation on order confirm
-- Deduct inventory when order fulfilled (reuse bill stock logic)
-- Production trigger for made-to-order lines (optional flag per design)
-- Customer “My shop orders” page (alongside existing quotes/bills)
-- Email notifications (order placed, confirmed, shipped)
+- [x] Stock reservation on order confirm (deduct inventory; restore on cancel)
+- [x] Bill conversion skips duplicate stock deduction when already reserved
+- [x] Customer **My Shop Orders** page at `/my-shop-orders`
+- [x] Email notifications on placed, confirmed, fulfilled, cancelled (when mail configured)
+- [ ] Production trigger for made-to-order lines (deferred — optional design flag)
 
 **Deliverable:** Shop orders flow into factory inventory and production.
 
@@ -133,6 +133,7 @@ VITE_SHOP_MODULE_ENABLED=true
 SOURCE backend/src/main/resources/db/add-shop-module.sql;
 SOURCE backend/src/main/resources/db/add-shop-cart.sql;
 SOURCE backend/src/main/resources/db/add-shop-orders.sql;
+SOURCE backend/src/main/resources/db/add-shop-fulfillment.sql;
 ```
 
 Shop Portal: http://localhost:3000/shop  

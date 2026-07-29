@@ -73,6 +73,10 @@ public class ShopOrder {
     @Column(name = "updated_at", insertable = false, updatable = false)
     private LocalDateTime updatedAt;
 
+    @Column(name = "stock_reserved", nullable = false)
+    @Builder.Default
+    private Boolean stockReserved = false;
+
     @OneToMany(mappedBy = "order", cascade = CascadeType.ALL, orphanRemoval = true)
     @Builder.Default
     private List<ShopOrderItem> items = new ArrayList<>();

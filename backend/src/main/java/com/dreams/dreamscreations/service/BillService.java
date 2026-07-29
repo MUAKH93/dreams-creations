@@ -5,6 +5,7 @@ import java.util.List;
 
 public interface BillService {
     Bill createBill(Bill bill);
+    Bill createBill(Bill bill, boolean skipStockDeduction);
     List<Bill> getAll();
     Bill getById(Long id);
     List<Bill> getByCustomerId(Long customerId);

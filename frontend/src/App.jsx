@@ -6,7 +6,8 @@ import {
   AlertOutlined, UserOutlined, LogoutOutlined, MenuOutlined,
   AppstoreOutlined, SendOutlined, FileTextOutlined,
   PictureOutlined, InboxOutlined, CheckSquareOutlined, SafetyCertificateOutlined,
-  SettingOutlined,   BarChartOutlined, HistoryOutlined, SolutionOutlined, LineChartOutlined,
+  SettingOutlined, ShopOutlined,
+  BarChartOutlined, HistoryOutlined, SolutionOutlined, LineChartOutlined,
   IdcardOutlined, AccountBookOutlined, BookOutlined,
 } from '@ant-design/icons'
 import { useAuth } from './context/AuthContext'
@@ -53,6 +54,7 @@ import ShopDesignDetailPage from './pages/shop/ShopDesignDetailPage'
 import ShopCartPage from './pages/shop/ShopCartPage'
 import ShopCheckoutPage from './pages/shop/ShopCheckoutPage'
 import ShopOrdersPage from './pages/shop/ShopOrdersPage'
+import MyShopOrdersPage from './pages/shop/MyShopOrdersPage'
 import ShopLayout from './layouts/ShopLayout'
 import BackendStatus from './components/BackendStatus'
 import SessionCheck from './components/SessionCheck'
@@ -127,6 +129,7 @@ const ADMIN_MENU = [
   { key: '/setup', icon: <SettingOutlined />, label: 'Factory Setup' },
 ]
 
+const CUSTOMER_SHOP_ORDERS_ITEM = { key: '/my-shop-orders', icon: <ShopOutlined />, label: 'My Shop Orders' }
 const CUSTOMER_SHOP_ITEM = { key: '/store', icon: <ShoppingOutlined />, label: 'Online Shop' }
 
 const CUSTOMER_MENU_BASE = [
@@ -150,7 +153,7 @@ function getMenu(role, showShop = false) {
   if (role === ROLES.MANAGER) return MANAGER_MENU
   if (role === ROLES.CUSTOMER) {
     if (!showShop) return CUSTOMER_MENU
-    return [...CUSTOMER_MENU_BASE, CUSTOMER_SHOP_ITEM, PROFILE_ITEM]
+    return [...CUSTOMER_MENU_BASE, CUSTOMER_SHOP_ORDERS_ITEM, CUSTOMER_SHOP_ITEM, PROFILE_ITEM]
   }
   if (role === ROLES.SUPERVISOR) return SUPERVISOR_MENU
   return []
@@ -504,6 +507,11 @@ export default function App() {
       <Route path="/my-orders" element={
         <ProtectedRoute roles={[ROLES.CUSTOMER]}>
           <AppLayout><MyOrdersPage /></AppLayout>
+        </ProtectedRoute>
+      } />
+      <Route path="/my-shop-orders" element={
+        <ProtectedRoute roles={[ROLES.CUSTOMER]}>
+          <AppLayout><MyShopOrdersPage /></AppLayout>
         </ProtectedRoute>
       } />
       <Route path="/my-quotes" element={

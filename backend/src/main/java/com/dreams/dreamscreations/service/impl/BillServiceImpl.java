@@ -54,6 +54,12 @@ public class BillServiceImpl implements BillService {
     @Override
     @Transactional
     public Bill createBill(Bill bill) {
+        return createBill(bill, false);
+    }
+
+    @Override
+    @Transactional
+    public Bill createBill(Bill bill, boolean skipStockDeduction) {
 
         if (bill.getBillNumber() == null || bill.getBillNumber().isBlank()) {
             bill.setBillNumber(generateNextBillNumber());
@@ -70,7 +76,9 @@ public class BillServiceImpl implements BillService {
                 item.setTotalPrice(lineTotal);
                 item.setBill(bill);
             });
-            validateStockAvailability(bill.getItems());
+            if (!skipStockDeduction) {
+                validateStockAvailability(bill.getItems());
+            }
         }
 
         BigDecimal total = bill.getItems() == null ? BigDecimal.ZERO :
@@ -99,7 +107,9 @@ public class BillServiceImpl implements BillService {
         Bill saved = billRepo.save(bill);
         billRepo.flush();
 
-        deductStockForBill(saved);
+        if (!skipStockDeduction) {
+            deductStockForBill(saved);
+        }
 
         updateCustomerBalance(saved.getCustomer().getCustomerId());
 

@@ -23,6 +23,7 @@ public class ShopOrderDTO {
     private String billNumber;
     private LocalDateTime createdAt;
     private int itemCount;
+    private boolean stockReserved;
     private List<ShopOrderItemDTO> items = new ArrayList<>();
 
     public Long getOrderId() {
@@ -151,6 +152,14 @@ public class ShopOrderDTO {
 
     public void setItemCount(int itemCount) {
         this.itemCount = itemCount;
+    }
+
+    public boolean isStockReserved() {
+        return stockReserved;
+    }
+
+    public void setStockReserved(boolean stockReserved) {
+        this.stockReserved = stockReserved;
     }
 
     public List<ShopOrderItemDTO> getItems() {

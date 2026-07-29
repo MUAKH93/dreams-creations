@@ -135,6 +135,9 @@ export default function ShopOrdersPage() {
               {detail.quotationNumber && (
                 <Descriptions.Item label="Quotation" span={2}>{detail.quotationNumber}</Descriptions.Item>
               )}
+              {detail.stockReserved && (
+                <Descriptions.Item label="Stock">Reserved</Descriptions.Item>
+              )}
               {detail.billNumber && (
                 <Descriptions.Item label="Bill" span={2}>{detail.billNumber}</Descriptions.Item>
               )}

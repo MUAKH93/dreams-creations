@@ -21,17 +21,17 @@ public class ShopModuleServiceImpl implements ShopModuleService {
     public ShopModuleStatusDTO getStatus() {
         ShopSettingsDTO settings = settingsService.getSettings();
         ShopModuleStatusDTO status = new ShopModuleStatusDTO();
-        status.setCurrentPhase("S4");
+        status.setCurrentPhase("S5");
         status.setCompletedPhases(List.of(
                 "Scaffold", "S1 — Foundation", "S2 — Product detail & discovery",
-                "S3 — Shopping cart", "S4 — Checkout & shop orders"));
+                "S3 — Shopping cart", "S4 — Checkout & shop orders",
+                "S5 — Fulfillment & operations integration"));
         status.setUpcomingPhases(List.of(
-                "S5 — Fulfillment & operations integration",
                 "S6 — Payments & polish"));
         status.setStorefrontEnabled(settings.isStorefrontEnabled());
         status.setAllowGuestBrowse(settings.isAllowGuestBrowse());
         status.setMessage(
-                "Phase S4 active: customers can checkout at /store/checkout; review orders in Shop Portal.");
+                "Phase S5 active: stock reserved on confirm, customer My Shop Orders, email notifications.");
         return status;
     }
 }
