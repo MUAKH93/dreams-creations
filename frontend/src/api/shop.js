@@ -13,4 +13,13 @@ export const shopAPI = {
   removeCartItem:  (itemId) => client.delete(`/shop/cart/items/${itemId}`),
   clearCart:       () => client.delete('/shop/cart'),
   mergeGuestCart:  (items) => client.post('/shop/cart/merge-guest', items),
+  checkout:        (data) => client.post('/shop/orders/checkout', data),
+  getMyOrders:     () => client.get('/shop/orders/my'),
+  getMyOrder:      (orderId) => client.get(`/shop/orders/my/${orderId}`),
+  cancelMyOrder:   (orderId) => client.post(`/shop/orders/my/${orderId}/cancel`),
+  getOrders:       (params) => client.get('/shop/orders', { params }),
+  getOrder:        (orderId) => client.get(`/shop/orders/${orderId}`),
+  updateOrderStatus: (orderId, status) => client.patch(`/shop/orders/${orderId}/status`, { status }),
+  convertOrderToQuotation: (orderId) => client.post(`/shop/orders/${orderId}/convert-to-quotation`),
+  convertOrderToBill: (orderId) => client.post(`/shop/orders/${orderId}/convert-to-bill`),
 }

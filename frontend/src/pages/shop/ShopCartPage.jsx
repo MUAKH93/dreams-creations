@@ -178,8 +178,21 @@ export default function ShopCartPage() {
                     <Title level={4} style={{ margin: 0 }}>Rs. {Number(cart.total ?? cart.subtotal || 0).toLocaleString()}</Title>
                   </Row>
                 </Card>
-                <Button type="primary" size="large" block style={{ marginTop: 16 }} disabled>
-                  Proceed to checkout (Phase S4)
+                <Button
+                  type="primary"
+                  size="large"
+                  block
+                  style={{ marginTop: 16 }}
+                  disabled={!rows.length || isGuest}
+                  onClick={() => {
+                    if (isGuest) {
+                      navigate('/login')
+                      return
+                    }
+                    navigate('/store/checkout')
+                  }}
+                >
+                  {isGuest ? 'Login to checkout' : 'Proceed to checkout'}
                 </Button>
                 {!auth && (
                   <Link to="/login" style={{ display: 'block', marginTop: 8, textAlign: 'center' }}>

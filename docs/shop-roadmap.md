@@ -1,7 +1,7 @@
 # Shop module — roadmap
 
 **Branch:** `feature/shop-v1` (based on `feature/finance-v2`)  
-**Status:** S3 in progress  
+**Status:** S4 in progress  
 **Go-live:** After operations module is live; finance merge is deferred until then.
 
 The shop module adds a **public online storefront** and a **Shop Portal** for Admin/Manager — separate from the internal operations ERP, following the same pattern as Finance (`modules.shop.enabled`).
@@ -44,7 +44,7 @@ The shop module adds a **public online storefront** and a **Shop Portal** for Ad
 
 ---
 
-### S3 — Shopping cart (current)
+### S3 — Shopping cart ✅
 
 - [x] Cart entity (logged-in customer) + guest cart in localStorage
 - [x] Add/update/remove lines with stock validation
@@ -56,13 +56,13 @@ The shop module adds a **public online storefront** and a **Shop Portal** for Ad
 
 ---
 
-### S4 — Checkout & shop orders
+### S4 — Checkout & shop orders (current)
 
-- Checkout form (shipping/contact notes)
-- Create **shop order** linked to customer account
-- Order statuses: `pending`, `confirmed`, `fulfilled`, `cancelled`
-- Admin queue in Shop Portal — review and confirm orders
-- Convert confirmed shop order → **Quotation** or **Bill** in operations (bridge)
+- [x] Checkout form at `/store/checkout` (shipping/contact notes)
+- [x] Create **shop order** linked to customer account
+- [x] Order statuses: `pending`, `confirmed`, `fulfilled`, `cancelled`
+- [x] Admin queue in Shop Portal (`/shop/orders`) — review and confirm orders
+- [x] Convert confirmed shop order → **Quotation** or **Bill** in operations (bridge)
 
 **Deliverable:** End-to-end order placement without staff manually creating bills.
 
@@ -132,6 +132,7 @@ VITE_SHOP_MODULE_ENABLED=true
 # MySQL
 SOURCE backend/src/main/resources/db/add-shop-module.sql;
 SOURCE backend/src/main/resources/db/add-shop-cart.sql;
+SOURCE backend/src/main/resources/db/add-shop-orders.sql;
 ```
 
 Shop Portal: http://localhost:3000/shop  

@@ -3,7 +3,7 @@ import { Layout, Menu, Typography, Avatar, Dropdown, Drawer, Button, Grid, Confi
 import {
   HomeOutlined, SettingOutlined, ShoppingOutlined, ShopOutlined,
   ArrowLeftOutlined, UserOutlined, LogoutOutlined, MenuOutlined, IdcardOutlined,
-  GlobalOutlined,
+  GlobalOutlined, UnorderedListOutlined,
 } from '@ant-design/icons'
 import { useNavigate, useLocation, Outlet } from 'react-router-dom'
 import { useAuth } from '../context/AuthContext'
@@ -25,6 +25,7 @@ const NAV_ITEMS = [
   { key: '/shop', icon: <HomeOutlined />, label: 'Overview' },
   { key: '/shop/settings', icon: <SettingOutlined />, label: 'Shop Settings' },
   { key: '/shop/catalog', icon: <ShoppingOutlined />, label: 'Catalog Preview' },
+  { key: '/shop/orders', icon: <UnorderedListOutlined />, label: 'Orders' },
 ]
 
 function ShopSidebarBrand() {
