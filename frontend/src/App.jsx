@@ -12,7 +12,7 @@ import {
 import { useAuth } from './context/AuthContext'
 import ProtectedRoute from './routes/ProtectedRoute'
 import { MANAGEMENT_ROLES, ROLES, portalLabel, homeForRole } from './utils/roles'
-import { financeModuleEnabled, shopModuleEnabled } from './config/modules'
+import { useModuleFlags } from './hooks/useModuleFlags'
 
 // Pages
 import LoginPage          from './pages/auth/LoginPage'
@@ -54,7 +54,6 @@ import BackendStatus from './components/BackendStatus'
 import SessionCheck from './components/SessionCheck'
 import BrandLogo from './components/BrandLogo'
 import { profileAPI } from './api/profile'
-import { modulesAPI } from './api/modules'
 import TutorialGuidePage from './pages/TutorialGuidePage'
 import {
   useOperationsTutorial,
@@ -124,13 +123,16 @@ const ADMIN_MENU = [
   { key: '/setup', icon: <SettingOutlined />, label: 'Factory Setup' },
 ]
 
-const CUSTOMER_MENU = [
+const CUSTOMER_SHOP_ITEM = { key: '/store', icon: <ShoppingOutlined />, label: 'Online Shop' }
+
+const CUSTOMER_MENU_BASE = [
   { key: '/dashboard',  icon: <DashboardOutlined />,  label: 'Dashboard' },
   { key: '/designs',    icon: <PictureOutlined />,    label: 'Designs Catalog' },
   { key: '/my-quotes',  icon: <SolutionOutlined />,   label: 'My Quotes' },
   { key: '/my-orders',  icon: <FileTextOutlined />,   label: 'My Bills' },
-  PROFILE_ITEM,
 ]
+
+const CUSTOMER_MENU = [...CUSTOMER_MENU_BASE, PROFILE_ITEM]
 
 const SUPERVISOR_MENU = [
   { key: '/dashboard',   icon: <DashboardOutlined />,   label: 'Dashboard' },
@@ -139,10 +141,13 @@ const SUPERVISOR_MENU = [
   PROFILE_ITEM,
 ]
 
-function getMenu(role) {
+function getMenu(role, showShop = false) {
   if (role === ROLES.ADMIN) return ADMIN_MENU
   if (role === ROLES.MANAGER) return MANAGER_MENU
-  if (role === ROLES.CUSTOMER) return CUSTOMER_MENU
+  if (role === ROLES.CUSTOMER) {
+    if (!showShop) return CUSTOMER_MENU
+    return [...CUSTOMER_MENU_BASE, CUSTOMER_SHOP_ITEM, PROFILE_ITEM]
+  }
   if (role === ROLES.SUPERVISOR) return SUPERVISOR_MENU
   return []
 }
@@ -197,18 +202,11 @@ function AppLayout({ children }) {
   const screens           = useBreakpoint()
   const isMobile          = !screens.lg
   const [drawerOpen, setDrawerOpen] = useState(false)
-  const [showFinance, setShowFinance] = useState(financeModuleEnabled)
-  const [showShop, setShowShop] = useState(shopModuleEnabled)
+  const { showFinance, showShop } = useModuleFlags()
   const opsTutorial = useOperationsTutorial()
-
-  useEffect(() => {
-    modulesAPI.getFlags()
-      .then(r => {
-        if (r.data?.finance?.enabled) setShowFinance(true)
-        if (r.data?.shop?.enabled) setShowShop(true)
-      })
-      .catch(() => {})
-  }, [])
+  const isManagement = MANAGEMENT_ROLES.includes(auth?.role)
+  const showFinancePortal = showFinance && isManagement
+  const showShopPortal = showShop && isManagement
 
   useEffect(() => {
     if (!auth?.token || auth?.profilePhotoUrl) return
@@ -219,7 +217,7 @@ function AppLayout({ children }) {
       .catch(() => {})
   }, [auth?.token])
 
-  const menuItems = getMenu(auth?.role)
+  const menuItems = getMenu(auth?.role, showShop)
 
   const userMenu = {
     items: [
@@ -243,7 +241,7 @@ function AppLayout({ children }) {
     setDrawerOpen(false)
   }
 
-  const opsTourSteps = buildOperationsTourSteps(opsTutorial.config, showFinance)
+  const opsTourSteps = buildOperationsTourSteps(opsTutorial.config, showFinancePortal)
 
   return (
     <Layout className="app-layout">
@@ -258,8 +256,8 @@ function AppLayout({ children }) {
                 onNavigate={handleNavigate}
               />
             </div>
-            <FinancePortalButton showFinance={showFinance} />
-            <ShopPortalButton showShop={showShop} />
+            <FinancePortalButton showFinance={showFinancePortal} />
+            <ShopPortalButton showShop={showShopPortal} />
           </div>
         </Sider>
       )}
@@ -313,8 +311,8 @@ function AppLayout({ children }) {
           selectedKey={location.pathname}
           onNavigate={handleNavigate}
         />
-        <FinancePortalButton showFinance={showFinance} />
-        <ShopPortalButton showShop={showShop} />
+        <FinancePortalButton showFinance={showFinancePortal} />
+        <ShopPortalButton showShop={showShopPortal} />
       </Drawer>
 
       <OperationsTutorialWelcome
@@ -348,17 +346,8 @@ function RoleHome() {
 
 export default function App() {
   const { auth } = useAuth()
-  const [showFinance, setShowFinance] = useState(financeModuleEnabled)
-  const [showShop, setShowShop] = useState(shopModuleEnabled)
-
-  useEffect(() => {
-    modulesAPI.getFlags()
-      .then(r => {
-        if (r.data?.finance?.enabled) setShowFinance(true)
-        if (r.data?.shop?.enabled) setShowShop(true)
-      })
-      .catch(() => {})
-  }, [])
+  const { showFinance, showShop } = useModuleFlags()
+  const isManagement = auth?.role ? MANAGEMENT_ROLES.includes(auth.role) : false
 
   return (
     <>
@@ -374,10 +363,8 @@ export default function App() {
       <Route path="/forgot-password" element={auth ? <RoleHome /> : <ForgotPasswordPage />} />
       <Route path="/reset-password" element={auth ? <RoleHome /> : <ResetPasswordPage />} />
 
-      {/* Public storefront — no login required when shop module enabled */}
-      {showShop && (
-        <Route path="/store" element={<ShopStorefrontPage />} />
-      )}
+      {/* Public storefront — always routed; page handles module disabled */}
+      <Route path="/store" element={<ShopStorefrontPage />} />
 
       {/* In-app written tutorials — all authenticated roles */}
       <Route path="/guide" element={
@@ -452,7 +439,7 @@ export default function App() {
         </ProtectedRoute>
       } />
 
-      {showFinance && (
+      {showFinance && isManagement && (
         <Route path="/finance" element={
           <ProtectedRoute roles={MANAGEMENT_ROLES}>
             <FinanceLayout />
@@ -467,7 +454,7 @@ export default function App() {
         </Route>
       )}
 
-      {showShop && (
+      {showShop && isManagement && (
         <Route path="/shop" element={
           <ProtectedRoute roles={MANAGEMENT_ROLES}>
             <ShopLayout />

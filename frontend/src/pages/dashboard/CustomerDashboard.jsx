@@ -1,11 +1,13 @@
 import { useNavigate } from 'react-router-dom'
-import { Row, Col, Card, Statistic, Table, Tag, Alert, Typography } from 'antd'
+import { Row, Col, Card, Statistic, Table, Tag, Alert, Typography, Button } from 'antd'
 import { WalletOutlined, FileTextOutlined, PictureOutlined, ShoppingOutlined } from '@ant-design/icons'
+import { useModuleFlags } from '../../hooks/useModuleFlags'
 
 const { Text } = Typography
 
 export default function CustomerDashboard({ balance, bills, designs, loading }) {
   const navigate = useNavigate()
+  const { showShop } = useModuleFlags()
   const openBills = bills.filter(b => b.status !== 'cancelled' && b.status !== 'paid')
   const paidBills = bills.filter(b => b.status === 'paid')
 
@@ -19,6 +21,21 @@ export default function CustomerDashboard({ balance, bills, designs, loading }) 
 
   return (
     <>
+      {showShop && (
+        <Alert
+          type="info"
+          showIcon
+          style={{ marginBottom: 16 }}
+          message="Shop online"
+          description="Browse our public storefront and view available suits."
+          action={
+            <Button type="primary" icon={<ShoppingOutlined />} onClick={() => navigate('/store')}>
+              Open Online Shop
+            </Button>
+          }
+        />
+      )}
+
       <Alert
         type="info"
         showIcon
@@ -68,6 +85,13 @@ export default function CustomerDashboard({ balance, bills, designs, loading }) 
                   <ShoppingOutlined /> Browse designs
                 </Card>
               </Col>
+              {showShop && (
+                <Col span={12}>
+                  <Card size="small" hoverable onClick={() => navigate('/store')}>
+                    <ShoppingOutlined /> Online shop
+                  </Card>
+                </Col>
+              )}
               <Col span={12}>
                 <Card size="small" hoverable onClick={() => navigate('/my-orders')}>
                   <WalletOutlined /> My balance

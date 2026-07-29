@@ -48,7 +48,11 @@ export default function ShopStorefrontPage() {
     return (
       <div className="shop-storefront" style={{ padding: 48, textAlign: 'center' }}>
         <Title level={3}>Online shop is not available</Title>
-        <Paragraph type="secondary">Enable the shop module to use this page.</Paragraph>
+        <Paragraph type="secondary">
+          Enable <Text code>modules.shop.enabled=true</Text> in backend{' '}
+          <Text code>application.properties</Text>, run{' '}
+          <Text code>add-shop-module.sql</Text>, then restart the backend.
+        </Paragraph>
         <Link to="/login"><Button type="primary">Go to login</Button></Link>
       </div>
     )
