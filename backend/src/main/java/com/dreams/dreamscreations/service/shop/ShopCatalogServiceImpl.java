@@ -14,11 +14,13 @@ import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
 import java.math.BigDecimal;
+import java.nio.charset.StandardCharsets;
 import java.util.ArrayList;
 import java.util.Comparator;
 import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
+import java.util.stream.Collectors;
 
 @Service
 @ConditionalOnProperty(name = "modules.shop.enabled", havingValue = "true")
@@ -43,6 +45,8 @@ public class ShopCatalogServiceImpl implements ShopCatalogService {
     @Transactional(readOnly = true)
     public List<ShopCatalogDesignDTO> getCatalog(Boolean featuredOnly) {
         ensureStorefrontOpen();
+        Map<Long, Design> designsWithImages = designRepo.findAllWithImages().stream()
+                .collect(Collectors.toMap(Design::getDesignId, d -> d, (a, b) -> a));
         Map<Long, ShopCatalogDesignDTO> byDesign = new LinkedHashMap<>();
 
         for (Product product : productRepo.findAllActiveWithSuitDetails()) {
@@ -58,7 +62,9 @@ public class ShopCatalogServiceImpl implements ShopCatalogService {
                 continue;
             }
 
-            ShopCatalogDesignDTO row = byDesign.computeIfAbsent(design.getDesignId(), id -> toDesignSummary(design));
+            Design designForDisplay = designsWithImages.getOrDefault(design.getDesignId(), design);
+            ShopCatalogDesignDTO row = byDesign.computeIfAbsent(
+                    design.getDesignId(), id -> toDesignSummary(designForDisplay));
             ShopCatalogVariantDTO variant = toVariant(product, suit);
             row.getVariants().add(variant);
             row.setTotalStock(row.getTotalStock() + variant.getStockQty());
@@ -154,6 +160,8 @@ public class ShopCatalogServiceImpl implements ShopCatalogService {
         if (primary == null || primary.getImageName() == null) {
             return null;
         }
-        return "/api/design-images/view/" + primary.getImageName();
+        String encoded = java.net.URLEncoder.encode(primary.getImageName(), StandardCharsets.UTF_8)
+                .replace("+", "%20");
+        return "/api/design-images/view/" + encoded;
     }
 }

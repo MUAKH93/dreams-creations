@@ -68,7 +68,7 @@ The Vite dev server proxies `/api` to the backend.
 
 ## Uploads
 
-Design images are stored outside the repo at `%USERPROFILE%\dreams-creations\uploads` (configurable via `app.upload.dir`).
+Design images are stored in `backend/uploads/` (configurable via `app.upload.dir` in `application.properties`).
 
 ## Owner
 

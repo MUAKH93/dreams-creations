@@ -1,7 +1,7 @@
 import { useEffect, useState } from 'react'
 import { Link } from 'react-router-dom'
 import {
-  Typography, Row, Col, Card, Tag, Spin, Empty, Image, Button, Alert,
+  Typography, Row, Col, Card, Tag, Spin, Empty, Button, Alert,
 } from 'antd'
 import { LoginOutlined, ShoppingOutlined } from '@ant-design/icons'
 import { shopAPI } from '../../api/shop'
@@ -112,7 +112,11 @@ export default function ShopStorefrontPage() {
                   hoverable
                   cover={
                     item.primaryImageUrl ? (
-                      <Image src={item.primaryImageUrl} alt={item.name} preview={false} />
+                      <img
+                        src={item.primaryImageUrl}
+                        alt={item.name}
+                        style={{ height: 220, width: '100%', objectFit: 'cover', display: 'block' }}
+                      />
                     ) : (
                       <div className="shop-product-card--placeholder">
                         <ShoppingOutlined />

@@ -1,6 +1,6 @@
 import { useEffect, useState } from 'react'
 import {
-  Typography, Card, Row, Col, Tag, Spin, Empty, Image, Statistic, Table, Button, Space,
+  Typography, Card, Row, Col, Tag, Spin, Empty, Statistic, Table, Button, Space,
 } from 'antd'
 import { GlobalOutlined } from '@ant-design/icons'
 import { shopAPI } from '../../api/shop'
@@ -54,7 +54,11 @@ export default function ShopCatalogPage() {
                 className="shop-product-card"
                 cover={
                   item.primaryImageUrl ? (
-                    <Image src={item.primaryImageUrl} alt={item.name} preview={false} />
+                    <img
+                      src={item.primaryImageUrl}
+                      alt={item.name}
+                      style={{ height: 220, width: '100%', objectFit: 'cover', display: 'block' }}
+                    />
                   ) : (
                     <div className="shop-product-card--placeholder">✦</div>
                   )
