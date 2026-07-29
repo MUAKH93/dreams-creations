@@ -30,8 +30,9 @@ app.production.default-packing-supervisor-name=Asif
 
 # Optional modules — keep false on main/production until UAT merge
 modules.finance.enabled=false
-modules.finance.auto-post-ar=false
-modules.finance.auto-post-inventory=false
+# After UAT: set both to true so bills/payments and COGS/inventory post journals automatically
+modules.finance.auto-post-ar=true
+modules.finance.auto-post-inventory=true
 modules.shop.enabled=false
 
 # Email — set app.mail.enabled=true and configure SMTP to send real emails
