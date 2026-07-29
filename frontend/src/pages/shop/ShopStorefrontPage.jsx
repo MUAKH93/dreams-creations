@@ -4,11 +4,11 @@ import {
   Typography, Row, Col, Card, Tag, Spin, Empty, Image, Button, Alert,
 } from 'antd'
 import { LoginOutlined, ShoppingOutlined } from '@ant-design/icons'
-import { shopAPI } from '../api/shop'
-import { apiErrorMessage } from '../api/client'
-import { shopModuleEnabled } from '../config/modules'
-import { modulesAPI } from '../api/modules'
-import '../styles/shop-portal.css'
+import { shopAPI } from '../../api/shop'
+import { apiErrorMessage } from '../../api/client'
+import { shopModuleEnabled } from '../../config/modules'
+import { modulesAPI } from '../../api/modules'
+import '../../styles/shop-portal.css'
 
 const { Title, Text, Paragraph } = Typography
 
