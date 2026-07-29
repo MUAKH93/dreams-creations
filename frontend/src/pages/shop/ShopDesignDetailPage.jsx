@@ -1,7 +1,7 @@
 import { useEffect, useMemo, useState } from 'react'
-import { useParams, Link } from 'react-router-dom'
+import { useParams, Link, useNavigate } from 'react-router-dom'
 import {
-  Typography, Row, Col, Tag, Spin, Button, Alert, Select, Space, Divider,
+  Typography, Row, Col, Tag, Spin, Button, Alert, Select, Space, Divider, InputNumber, message,
 } from 'antd'
 import { LoginOutlined, ShoppingCartOutlined } from '@ant-design/icons'
 import { shopAPI } from '../../api/shop'
@@ -9,6 +9,7 @@ import { apiErrorMessage } from '../../api/client'
 import { shopModuleEnabled } from '../../config/modules'
 import { modulesAPI } from '../../api/modules'
 import ShopStorefrontHeader from '../../components/shop/ShopStorefrontHeader'
+import { useShopCart } from '../../hooks/useShopCart'
 import '../../styles/shop-portal.css'
 
 const { Title, Text, Paragraph } = Typography
@@ -21,6 +22,8 @@ function variantLabel(v) {
 
 export default function ShopDesignDetailPage() {
   const { designId } = useParams()
+  const navigate = useNavigate()
+  const { addItem } = useShopCart()
   const [settings, setSettings] = useState(null)
   const [design, setDesign] = useState(null)
   const [loading, setLoading] = useState(true)
@@ -28,6 +31,8 @@ export default function ShopDesignDetailPage() {
   const [shopEnabled, setShopEnabled] = useState(shopModuleEnabled)
   const [selectedSize, setSelectedSize] = useState(null)
   const [selectedColor, setSelectedColor] = useState(null)
+  const [quantity, setQuantity] = useState(1)
+  const [adding, setAdding] = useState(false)
 
   useEffect(() => {
     modulesAPI.getFlags()
@@ -120,6 +125,20 @@ export default function ShopDesignDetailPage() {
   }
 
   const price = selectedVariant?.sellingPrice ?? design.basePrice
+  const canAdd = selectedVariant?.inStock && selectedVariant?.productId
+
+  const handleAddToCart = async () => {
+    if (!canAdd) return
+    setAdding(true)
+    try {
+      await addItem(selectedVariant, design, quantity)
+      message.success('Added to cart')
+    } catch (err) {
+      message.error(apiErrorMessage(err))
+    } finally {
+      setAdding(false)
+    }
+  }
 
   return (
     <div className="shop-storefront">
@@ -223,27 +242,38 @@ export default function ShopDesignDetailPage() {
               )}
             </div>
 
-            <Alert
-              type="info"
-              showIcon
-              style={{ marginTop: 24 }}
-              message="Cart & checkout coming in Phase S3"
-              description={
-                settings?.allowGuestBrowse
-                  ? 'You can browse as a guest. Login as a customer to place orders when checkout is ready.'
-                  : 'Login is required to place orders when checkout launches.'
-              }
-            />
+            {canAdd && (
+              <div style={{ marginTop: 16 }}>
+                <Text type="secondary">Quantity</Text>
+                <InputNumber
+                  min={1}
+                  max={selectedVariant.stockQty || undefined}
+                  value={quantity}
+                  onChange={val => setQuantity(Math.max(1, val || 1))}
+                  style={{ width: 120, marginTop: 4, display: 'block' }}
+                />
+              </div>
+            )}
 
-            <Space style={{ marginTop: 24 }}>
+            <Space style={{ marginTop: 24 }} wrap>
+              <Button
+                type="primary"
+                size="large"
+                icon={<ShoppingCartOutlined />}
+                disabled={!canAdd}
+                loading={adding}
+                onClick={handleAddToCart}
+              >
+                Add to cart
+              </Button>
+              <Button size="large" onClick={() => navigate('/store/cart')}>
+                View cart
+              </Button>
               <Link to="/login">
-                <Button type="primary" size="large" icon={<LoginOutlined />}>
-                  Login to order
+                <Button size="large" icon={<LoginOutlined />}>
+                  Login to save cart
                 </Button>
               </Link>
-              <Button size="large" icon={<ShoppingCartOutlined />} disabled>
-                Add to cart (S3)
-              </Button>
             </Space>
           </Col>
         </Row>

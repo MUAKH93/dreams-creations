@@ -1,10 +1,13 @@
 import { Link } from 'react-router-dom'
-import { Typography, Button } from 'antd'
-import { LoginOutlined, ArrowLeftOutlined } from '@ant-design/icons'
+import { Typography, Button, Badge } from 'antd'
+import { LoginOutlined, ArrowLeftOutlined, ShoppingCartOutlined } from '@ant-design/icons'
+import { useShopCart } from '../../hooks/useShopCart'
 
 const { Title } = Typography
 
 export default function ShopStorefrontHeader({ settings, showBack, backTo = '/store' }) {
+  const { itemCount } = useShopCart()
+
   return (
     <header className="shop-storefront-header">
       {showBack && (
@@ -18,7 +21,12 @@ export default function ShopStorefrontHeader({ settings, showBack, backTo = '/st
       )}
       <Title level={2}>{settings?.storeName || 'Dreams Creations Shop'}</Title>
       {settings?.tagline && <p>{settings.tagline}</p>}
-      <div style={{ marginTop: 16 }}>
+      <div style={{ marginTop: 16, display: 'flex', gap: 12, justifyContent: 'center', flexWrap: 'wrap' }}>
+        <Link to="/store/cart">
+          <Badge count={itemCount} size="small">
+            <Button type="default" icon={<ShoppingCartOutlined />}>Cart</Button>
+          </Badge>
+        </Link>
         <Link to="/login">
           <Button type="default" icon={<LoginOutlined />}>Login to order</Button>
         </Link>

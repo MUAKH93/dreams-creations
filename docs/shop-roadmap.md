@@ -1,7 +1,7 @@
 # Shop module — roadmap
 
 **Branch:** `feature/shop-v1` (based on `feature/finance-v2`)  
-**Status:** S2 in progress  
+**Status:** S3 in progress  
 **Go-live:** After operations module is live; finance merge is deferred until then.
 
 The shop module adds a **public online storefront** and a **Shop Portal** for Admin/Manager — separate from the internal operations ERP, following the same pattern as Finance (`modules.shop.enabled`).
@@ -33,7 +33,7 @@ The shop module adds a **public online storefront** and a **Shop Portal** for Ad
 
 ---
 
-### S2 — Product detail & discovery (current)
+### S2 — Product detail & discovery ✅
 
 - [x] Design detail page (`/store/design/:id`) with size/color picker and live stock
 - [x] Category and featured filters on storefront
@@ -44,12 +44,13 @@ The shop module adds a **public online storefront** and a **Shop Portal** for Ad
 
 ---
 
-### S3 — Shopping cart
+### S3 — Shopping cart (current)
 
-- Cart entity (logged-in customer) + session/guest cart strategy
-- Add/update/remove lines with stock validation
-- Cart summary (subtotal, customer discount if applicable)
-- Persist cart across devices for registered customers
+- [x] Cart entity (logged-in customer) + guest cart in localStorage
+- [x] Add/update/remove lines with stock validation
+- [x] Cart summary (subtotal, customer discount if applicable)
+- [x] Merge guest cart on customer login; persist server cart across devices
+- [x] Cart page at `/store/cart` with header badge
 
 **Deliverable:** Customer builds a cart with real-time stock checks.
 
@@ -130,6 +131,7 @@ modules.shop.enabled=true
 VITE_SHOP_MODULE_ENABLED=true
 # MySQL
 SOURCE backend/src/main/resources/db/add-shop-module.sql;
+SOURCE backend/src/main/resources/db/add-shop-cart.sql;
 ```
 
 Shop Portal: http://localhost:3000/shop  

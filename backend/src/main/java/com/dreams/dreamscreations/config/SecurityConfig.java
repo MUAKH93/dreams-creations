@@ -78,6 +78,7 @@ public class SecurityConfig {
                 .requestMatchers(HttpMethod.GET, "/api/shop/status").permitAll()
                 .requestMatchers(HttpMethod.GET, "/api/shop/settings/public").permitAll()
                 .requestMatchers(HttpMethod.GET, "/api/shop/catalog", "/api/shop/catalog/**").permitAll()
+                .requestMatchers("/api/shop/cart", "/api/shop/cart/**").hasRole("CUSTOMER")
                 .requestMatchers("/api/profile/me", "/api/profile/me/**").authenticated()
                 .requestMatchers(HttpMethod.POST, "/api/design-images", "/api/design-images/**").hasAnyRole("ADMIN","MANAGER")
                 .requestMatchers(HttpMethod.PUT, "/api/design-images", "/api/design-images/**").hasAnyRole("ADMIN","MANAGER")

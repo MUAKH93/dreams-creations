@@ -7,4 +7,10 @@ export const shopAPI = {
   getPublicSettings: () => client.get('/shop/settings/public'),
   getCatalog:      (params) => client.get('/shop/catalog', { params }),
   getDesign:       (designId) => client.get(`/shop/catalog/${designId}`),
+  getCart:         () => client.get('/shop/cart'),
+  addCartItem:     (data) => client.post('/shop/cart/items', data),
+  updateCartItem:  (itemId, quantity) => client.put(`/shop/cart/items/${itemId}`, { quantity }),
+  removeCartItem:  (itemId) => client.delete(`/shop/cart/items/${itemId}`),
+  clearCart:       () => client.delete('/shop/cart'),
+  mergeGuestCart:  (items) => client.post('/shop/cart/merge-guest', items),
 }

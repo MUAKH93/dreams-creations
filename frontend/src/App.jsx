@@ -50,6 +50,7 @@ import ShopSettingsPage from './pages/shop/ShopSettingsPage'
 import ShopCatalogPage from './pages/shop/ShopCatalogPage'
 import ShopStorefrontPage from './pages/shop/ShopStorefrontPage'
 import ShopDesignDetailPage from './pages/shop/ShopDesignDetailPage'
+import ShopCartPage from './pages/shop/ShopCartPage'
 import ShopLayout from './layouts/ShopLayout'
 import BackendStatus from './components/BackendStatus'
 import SessionCheck from './components/SessionCheck'
@@ -367,6 +368,7 @@ export default function App() {
       {/* Public storefront — always routed; page handles module disabled */}
       <Route path="/store" element={<ShopStorefrontPage />} />
       <Route path="/store/design/:designId" element={<ShopDesignDetailPage />} />
+      <Route path="/store/cart" element={<ShopCartPage />} />
 
       {/* In-app written tutorials — all authenticated roles */}
       <Route path="/guide" element={
