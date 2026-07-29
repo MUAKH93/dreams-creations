@@ -12,7 +12,7 @@ import {
 import { useAuth } from './context/AuthContext'
 import ProtectedRoute from './routes/ProtectedRoute'
 import { MANAGEMENT_ROLES, ROLES, portalLabel, homeForRole } from './utils/roles'
-import { financeModuleEnabled } from './config/modules'
+import { financeModuleEnabled, shopModuleEnabled } from './config/modules'
 
 // Pages
 import LoginPage          from './pages/auth/LoginPage'
@@ -45,6 +45,11 @@ import JournalEntriesPage from './pages/finance/JournalEntriesPage'
 import FinanceReportsPage from './pages/finance/FinanceReportsPage'
 import FinancePayablesPage from './pages/finance/FinancePayablesPage'
 import FinanceBankPage from './pages/finance/FinanceBankPage'
+import ShopHomePage from './pages/shop/ShopHomePage'
+import ShopSettingsPage from './pages/shop/ShopSettingsPage'
+import ShopCatalogPage from './pages/shop/ShopCatalogPage'
+import ShopStorefrontPage from './pages/shop/ShopStorefrontPage'
+import ShopLayout from './layouts/ShopLayout'
 import BackendStatus from './components/BackendStatus'
 import SessionCheck from './components/SessionCheck'
 import BrandLogo from './components/BrandLogo'
@@ -142,6 +147,28 @@ function getMenu(role) {
   return []
 }
 
+function ShopPortalButton({ showShop }) {
+  const navigate = useNavigate()
+  if (!showShop) return null
+  return (
+    <div className="ops-finance-portal-btn" data-tour="ops-shop-portal">
+      <Button
+        block
+        size="large"
+        icon={<ShoppingOutlined />}
+        className="ops-finance-portal-btn__inner"
+        style={{ background: '#ea580c', borderColor: '#ea580c' }}
+        onClick={() => navigate('/shop')}
+      >
+        Open Shop Portal
+      </Button>
+      <Text style={{ color: 'rgba(255,255,255,0.45)', fontSize: 10, display: 'block', textAlign: 'center', marginTop: 6 }}>
+        Online storefront workspace
+      </Text>
+    </div>
+  )
+}
+
 function FinancePortalButton({ showFinance }) {
   const navigate = useNavigate()
   if (!showFinance) return null
@@ -171,12 +198,14 @@ function AppLayout({ children }) {
   const isMobile          = !screens.lg
   const [drawerOpen, setDrawerOpen] = useState(false)
   const [showFinance, setShowFinance] = useState(financeModuleEnabled)
+  const [showShop, setShowShop] = useState(shopModuleEnabled)
   const opsTutorial = useOperationsTutorial()
 
   useEffect(() => {
     modulesAPI.getFlags()
       .then(r => {
         if (r.data?.finance?.enabled) setShowFinance(true)
+        if (r.data?.shop?.enabled) setShowShop(true)
       })
       .catch(() => {})
   }, [])
@@ -230,6 +259,7 @@ function AppLayout({ children }) {
               />
             </div>
             <FinancePortalButton showFinance={showFinance} />
+            <ShopPortalButton showShop={showShop} />
           </div>
         </Sider>
       )}
@@ -284,6 +314,7 @@ function AppLayout({ children }) {
           onNavigate={handleNavigate}
         />
         <FinancePortalButton showFinance={showFinance} />
+        <ShopPortalButton showShop={showShop} />
       </Drawer>
 
       <OperationsTutorialWelcome
@@ -318,11 +349,13 @@ function RoleHome() {
 export default function App() {
   const { auth } = useAuth()
   const [showFinance, setShowFinance] = useState(financeModuleEnabled)
+  const [showShop, setShowShop] = useState(shopModuleEnabled)
 
   useEffect(() => {
     modulesAPI.getFlags()
       .then(r => {
         if (r.data?.finance?.enabled) setShowFinance(true)
+        if (r.data?.shop?.enabled) setShowShop(true)
       })
       .catch(() => {})
   }, [])
@@ -340,6 +373,11 @@ export default function App() {
       <Route path="/verify-email" element={<VerifyEmailPage />} />
       <Route path="/forgot-password" element={auth ? <RoleHome /> : <ForgotPasswordPage />} />
       <Route path="/reset-password" element={auth ? <RoleHome /> : <ResetPasswordPage />} />
+
+      {/* Public storefront — no login required when shop module enabled */}
+      {showShop && (
+        <Route path="/store" element={<ShopStorefrontPage />} />
+      )}
 
       {/* In-app written tutorials — all authenticated roles */}
       <Route path="/guide" element={
@@ -426,6 +464,18 @@ export default function App() {
           <Route path="payables" element={<FinancePayablesPage />} />
           <Route path="bank" element={<FinanceBankPage />} />
           <Route path="reports" element={<FinanceReportsPage />} />
+        </Route>
+      )}
+
+      {showShop && (
+        <Route path="/shop" element={
+          <ProtectedRoute roles={MANAGEMENT_ROLES}>
+            <ShopLayout />
+          </ProtectedRoute>
+        }>
+          <Route index element={<ShopHomePage />} />
+          <Route path="settings" element={<ShopSettingsPage />} />
+          <Route path="catalog" element={<ShopCatalogPage />} />
         </Route>
       )}
 

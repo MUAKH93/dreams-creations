@@ -1,0 +1,4 @@
+# Enable on feature/shop-v1 — copy relevant lines into application.properties
+# or: spring.config.import=optional:classpath:application-shop.properties
+
+modules.shop.enabled=true

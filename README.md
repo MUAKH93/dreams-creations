@@ -2,7 +2,8 @@
 
 Factory management and business platform — suit design, production, inventory, sales, and finance.
 
-**Repository:** [github.com/MUAKH93/dreams-creations](https://github.com/MUAKH93/dreams-creations) (branch: `feature/finance-v2`)
+**Repository:** [github.com/MUAKH93/dreams-creations](https://github.com/MUAKH93/dreams-creations)  
+**Active branches:** `feature/finance-v2` (finance), `feature/shop-v1` (shop — based on finance-v2)
 
 ## Structure
 

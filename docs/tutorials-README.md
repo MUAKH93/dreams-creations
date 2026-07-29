@@ -18,6 +18,7 @@ In-app help, written guides, and video script for **Operations** and **Finance**
 | [operations-tutorial.md](./operations-tutorial.md) | Full operations manual (Admin, Manager, Supervisor, Customer) |
 | [finance-tutorial.md](./finance-tutorial.md) | Full finance / accounting manual |
 | [finance-uat-checklist.md](./finance-uat-checklist.md) | **UAT sign-off checklist** (use before merge to main) |
+| [shop-roadmap.md](./shop-roadmap.md) | **Shop module roadmap** (S1–S6 phases on `feature/shop-v1`) |
 | [finance-video-script.md](./finance-video-script.md) | Screencast script (~28 min) for recording a finance walkthrough |
 | [tutorial-slides-outline.md](./tutorial-slides-outline.md) | Slide deck outline for classroom / PDF export |
 

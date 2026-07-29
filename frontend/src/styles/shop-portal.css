@@ -1,0 +1,132 @@
+.shop-portal {
+  min-height: 100vh;
+}
+
+.shop-sider-brand {
+  padding: 20px 16px 16px;
+  text-align: center;
+  border-bottom: 1px solid rgba(255, 255, 255, 0.08);
+}
+
+.shop-sider-brand__title {
+  display: block;
+  color: #fff;
+  font-weight: 600;
+  font-size: 14px;
+  margin-top: 10px;
+}
+
+.shop-sider-brand__subtitle {
+  display: block;
+  color: rgba(255, 255, 255, 0.55);
+  font-size: 11px;
+  margin-top: 4px;
+}
+
+.shop-sider {
+  background: #7c2d12 !important;
+}
+
+.shop-sider .ant-menu-dark {
+  background: #7c2d12 !important;
+}
+
+.shop-header {
+  background: #fff !important;
+  padding: 0 24px;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  border-bottom: 1px solid #f0f0f0;
+}
+
+.shop-content {
+  padding: 24px;
+  background: #fff7ed;
+  min-height: calc(100vh - 64px);
+}
+
+.shop-page-title {
+  margin-bottom: 4px !important;
+  color: #9a3412 !important;
+}
+
+.shop-page-subtitle {
+  display: block;
+  color: #78716c;
+  margin-bottom: 24px;
+}
+
+.shop-welcome-card {
+  border-color: #fed7aa !important;
+  background: linear-gradient(135deg, #fff7ed 0%, #ffedd5 100%) !important;
+}
+
+.shop-action-card {
+  height: 100%;
+  cursor: pointer;
+  transition: box-shadow 0.2s, transform 0.2s;
+}
+
+.shop-action-card:hover {
+  box-shadow: 0 4px 12px rgba(124, 45, 18, 0.12);
+  transform: translateY(-2px);
+}
+
+.shop-action-card__icon {
+  font-size: 28px;
+  color: #ea580c;
+  margin-bottom: 8px;
+}
+
+.shop-back-btn {
+  margin-bottom: 16px;
+}
+
+/* Public storefront */
+.shop-storefront {
+  min-height: 100vh;
+  background: #fffbf5;
+}
+
+.shop-storefront-header {
+  background: linear-gradient(135deg, #7c2d12 0%, #c2410c 100%);
+  color: #fff;
+  padding: 32px 24px;
+  text-align: center;
+}
+
+.shop-storefront-header h1 {
+  color: #fff;
+  margin: 0 0 8px;
+}
+
+.shop-storefront-header p {
+  color: rgba(255, 255, 255, 0.85);
+  margin: 0;
+}
+
+.shop-storefront-body {
+  max-width: 1200px;
+  margin: 0 auto;
+  padding: 24px;
+}
+
+.shop-product-card {
+  height: 100%;
+}
+
+.shop-product-card .ant-card-cover img {
+  height: 220px;
+  object-fit: cover;
+}
+
+.shop-product-card--placeholder {
+  height: 220px;
+  background: #fef3c7;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  color: #d97706;
+  font-size: 48px;
+}
