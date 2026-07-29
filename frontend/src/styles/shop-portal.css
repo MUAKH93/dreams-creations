@@ -130,3 +130,31 @@
   color: #d97706;
   font-size: 48px;
 }
+
+.shop-storefront-toolbar {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 12px;
+  align-items: center;
+  margin-bottom: 24px;
+}
+
+.shop-detail-page {
+  max-width: 1100px;
+}
+
+.shop-detail-image {
+  width: 100%;
+  max-height: 480px;
+  object-fit: contain;
+  border-radius: 8px;
+  background: #fff;
+  border: 1px solid #fed7aa;
+}
+
+.shop-detail-price {
+  padding: 16px;
+  background: #fff7ed;
+  border-radius: 8px;
+  border: 1px solid #fed7aa;
+}

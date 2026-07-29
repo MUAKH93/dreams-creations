@@ -6,7 +6,7 @@ import java.util.List;
 
 public interface ShopCatalogService {
 
-    List<ShopCatalogDesignDTO> getCatalog(Boolean featuredOnly);
+    List<ShopCatalogDesignDTO> getCatalog(Boolean featuredOnly, String category, String query);
 
     ShopCatalogDesignDTO getDesign(Long designId);
 }

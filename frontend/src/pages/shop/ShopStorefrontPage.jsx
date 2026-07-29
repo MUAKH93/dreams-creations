@@ -1,29 +1,34 @@
-import { useEffect, useState } from 'react'
-import { Link } from 'react-router-dom'
+import { useEffect, useMemo, useState } from 'react'
+import { useNavigate } from 'react-router-dom'
 import {
-  Typography, Row, Col, Card, Tag, Spin, Empty, Button, Alert,
+  Typography, Row, Col, Card, Tag, Spin, Empty, Alert, Input, Select, Switch, Space,
 } from 'antd'
-import { LoginOutlined, ShoppingOutlined } from '@ant-design/icons'
+import { ShoppingOutlined, SearchOutlined } from '@ant-design/icons'
 import { shopAPI } from '../../api/shop'
 import { apiErrorMessage } from '../../api/client'
 import { shopModuleEnabled } from '../../config/modules'
 import { modulesAPI } from '../../api/modules'
+import ShopStorefrontHeader from '../../components/shop/ShopStorefrontHeader'
 import '../../styles/shop-portal.css'
 
-const { Title, Text, Paragraph } = Typography
+const { Title, Text } = Typography
+const { Search } = Input
 
 export default function ShopStorefrontPage() {
+  const navigate = useNavigate()
   const [settings, setSettings] = useState(null)
   const [catalog, setCatalog] = useState([])
+  const [categories, setCategories] = useState([])
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState(null)
   const [shopEnabled, setShopEnabled] = useState(shopModuleEnabled)
+  const [featuredOnly, setFeaturedOnly] = useState(false)
+  const [category, setCategory] = useState(null)
+  const [search, setSearch] = useState('')
 
   useEffect(() => {
     modulesAPI.getFlags()
-      .then(r => {
-        if (r.data?.shop?.enabled) setShopEnabled(true)
-      })
+      .then(r => { if (r.data?.shop?.enabled) setShopEnabled(true) })
       .catch(() => {})
   }, [])
 
@@ -32,33 +37,48 @@ export default function ShopStorefrontPage() {
       setLoading(false)
       return
     }
-    Promise.all([
-      shopAPI.getPublicSettings(),
-      shopAPI.getCatalog(),
-    ])
-      .then(([settingsRes, catalogRes]) => {
-        setSettings(settingsRes.data)
-        setCatalog(catalogRes.data || [])
+    shopAPI.getPublicSettings()
+      .then(r => setSettings(r.data))
+      .catch(() => {})
+    shopAPI.getCatalog()
+      .then(r => {
+        const items = r.data || []
+        const cats = [...new Set(items.map(i => i.categoryName).filter(Boolean))].sort()
+        setCategories(cats)
       })
+      .catch(() => {})
+  }, [shopEnabled])
+
+  useEffect(() => {
+    if (!shopEnabled) return
+    setLoading(true)
+    shopAPI.getCatalog({
+      featured: featuredOnly ? true : undefined,
+      category: category || undefined,
+      q: search.trim() || undefined,
+    })
+      .then(r => setCatalog(r.data || []))
       .catch(err => setError(apiErrorMessage(err)))
       .finally(() => setLoading(false))
-  }, [shopEnabled])
+  }, [shopEnabled, featuredOnly, category, search])
+
+  const browseMessage = useMemo(() => {
+    if (settings?.allowGuestBrowse) {
+      return 'Browse freely as a guest. Login to order — cart & checkout arrive in Phase S3.'
+    }
+    return 'Login will be required to place orders when checkout launches.'
+  }, [settings])
 
   if (!shopEnabled) {
     return (
       <div className="shop-storefront" style={{ padding: 48, textAlign: 'center' }}>
         <Title level={3}>Online shop is not available</Title>
-        <Paragraph type="secondary">
-          Enable <Text code>modules.shop.enabled=true</Text> in backend{' '}
-          <Text code>application.properties</Text>, run{' '}
-          <Text code>add-shop-module.sql</Text>, then restart the backend.
-        </Paragraph>
-        <Link to="/login"><Button type="primary">Go to login</Button></Link>
+        <Text type="secondary">Enable the shop module and restart the backend.</Text>
       </div>
     )
   }
 
-  if (loading) {
+  if (!settings && loading) {
     return (
       <div className="shop-storefront" style={{ textAlign: 'center', padding: 80 }}>
         <Spin size="large" />
@@ -70,39 +90,49 @@ export default function ShopStorefrontPage() {
     return (
       <div className="shop-storefront" style={{ padding: 48, textAlign: 'center' }}>
         <Title level={3}>{settings.storeName || 'Dreams Creations Shop'}</Title>
-        <Paragraph>Our online storefront is temporarily closed. Please check back soon.</Paragraph>
-        <Link to="/login"><Button>Customer login</Button></Link>
+        <Text>Our online storefront is temporarily closed.</Text>
       </div>
     )
   }
 
   return (
     <div className="shop-storefront">
-      <header className="shop-storefront-header">
-        <Title level={2}>{settings?.storeName || 'Dreams Creations Shop'}</Title>
-        {settings?.tagline && <p>{settings.tagline}</p>}
-        <div style={{ marginTop: 16 }}>
-          <Link to="/login">
-            <Button type="default" icon={<LoginOutlined />}>Login to order</Button>
-          </Link>
-        </div>
-      </header>
+      <ShopStorefrontHeader settings={settings} />
 
       <div className="shop-storefront-body">
         {error && (
           <Alert type="error" message={error} style={{ marginBottom: 24 }} showIcon />
         )}
 
-        <Alert
-          type="info"
-          showIcon
-          style={{ marginBottom: 24 }}
-          message="Browse only — cart & checkout coming in Phase S3–S4"
-          description="Login as a customer to view quotes and bills in the operations portal."
-        />
+        <Alert type="info" showIcon style={{ marginBottom: 24 }} message={browseMessage} />
 
-        {catalog.length === 0 ? (
-          <Empty description="No products listed yet" />
+        <div className="shop-storefront-toolbar">
+          <Search
+            placeholder="Search by name or design code"
+            allowClear
+            enterButton={<SearchOutlined />}
+            onSearch={setSearch}
+            onChange={e => { if (!e.target.value) setSearch('') }}
+            style={{ maxWidth: 360, flex: 1 }}
+          />
+          <Select
+            allowClear
+            placeholder="All categories"
+            style={{ minWidth: 160 }}
+            value={category}
+            onChange={setCategory}
+            options={categories.map(c => ({ value: c, label: c }))}
+          />
+          <Space>
+            <Text>Featured only</Text>
+            <Switch checked={featuredOnly} onChange={setFeaturedOnly} />
+          </Space>
+        </div>
+
+        {loading ? (
+          <div style={{ textAlign: 'center', padding: 48 }}><Spin size="large" /></div>
+        ) : catalog.length === 0 ? (
+          <Empty description="No designs match your filters" />
         ) : (
           <Row gutter={[20, 20]}>
             {catalog.map(item => (
@@ -110,6 +140,7 @@ export default function ShopStorefrontPage() {
                 <Card
                   className="shop-product-card"
                   hoverable
+                  onClick={() => navigate(`/store/design/${item.designId}`)}
                   cover={
                     item.primaryImageUrl ? (
                       <img

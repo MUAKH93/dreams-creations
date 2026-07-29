@@ -43,7 +43,7 @@ public class ShopCatalogServiceImpl implements ShopCatalogService {
 
     @Override
     @Transactional(readOnly = true)
-    public List<ShopCatalogDesignDTO> getCatalog(Boolean featuredOnly) {
+    public List<ShopCatalogDesignDTO> getCatalog(Boolean featuredOnly, String category, String query) {
         ensureStorefrontOpen();
         Map<Long, Design> designsWithImages = designRepo.findAllWithImages().stream()
                 .collect(Collectors.toMap(Design::getDesignId, d -> d, (a, b) -> a));
@@ -70,7 +70,20 @@ public class ShopCatalogServiceImpl implements ShopCatalogService {
             row.setTotalStock(row.getTotalStock() + variant.getStockQty());
         }
 
+        String categoryFilter = category != null ? category.trim() : null;
+        String queryFilter = query != null ? query.trim().toLowerCase() : null;
+
         return byDesign.values().stream()
+                .filter(row -> categoryFilter == null || categoryFilter.isEmpty()
+                        || categoryFilter.equalsIgnoreCase(row.getCategoryName()))
+                .filter(row -> {
+                    if (queryFilter == null || queryFilter.isEmpty()) {
+                        return true;
+                    }
+                    String name = row.getName() != null ? row.getName().toLowerCase() : "";
+                    String code = row.getDesignCode() != null ? row.getDesignCode().toLowerCase() : "";
+                    return name.contains(queryFilter) || code.contains(queryFilter);
+                })
                 .sorted(Comparator
                         .comparing(ShopCatalogDesignDTO::isFeatured).reversed()
                         .thenComparing(ShopCatalogDesignDTO::getDesignCode))

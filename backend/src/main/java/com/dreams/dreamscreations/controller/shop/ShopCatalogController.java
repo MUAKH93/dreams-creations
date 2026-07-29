@@ -33,8 +33,10 @@ public class ShopCatalogController {
     /** Public catalog — active designs with variants and stock. */
     @GetMapping("/catalog")
     public ResponseEntity<List<ShopCatalogDesignDTO>> catalog(
-            @RequestParam(required = false) Boolean featured) {
-        return ResponseEntity.ok(catalogService.getCatalog(featured));
+            @RequestParam(required = false) Boolean featured,
+            @RequestParam(required = false) String category,
+            @RequestParam(required = false) String q) {
+        return ResponseEntity.ok(catalogService.getCatalog(featured, category, q));
     }
 
     @GetMapping("/catalog/{designId}")

@@ -1,7 +1,7 @@
 # Shop module — roadmap
 
 **Branch:** `feature/shop-v1` (based on `feature/finance-v2`)  
-**Status:** S1 in progress  
+**Status:** S2 in progress  
 **Go-live:** After operations module is live; finance merge is deferred until then.
 
 The shop module adds a **public online storefront** and a **Shop Portal** for Admin/Manager — separate from the internal operations ERP, following the same pattern as Finance (`modules.shop.enabled`).
@@ -21,7 +21,7 @@ The shop module adds a **public online storefront** and a **Shop Portal** for Ad
 
 ## Phases
 
-### S1 — Foundation (current)
+### S1 — Foundation ✅
 
 - [x] Branch `feature/shop-v1`, module flag wiring
 - [x] SQL: `shop_settings` (store name, tagline, storefront toggle)
@@ -33,12 +33,12 @@ The shop module adds a **public online storefront** and a **Shop Portal** for Ad
 
 ---
 
-### S2 — Product detail & discovery
+### S2 — Product detail & discovery (current)
 
-- Design detail page with size/color picker and live stock
-- Category and featured filters on storefront
-- Search by design name/code
-- “Login to order” vs guest browse messaging
+- [x] Design detail page (`/store/design/:id`) with size/color picker and live stock
+- [x] Category and featured filters on storefront
+- [x] Search by design name/code (`q` param)
+- [x] Guest browse vs login-to-order messaging
 
 **Deliverable:** Customer can browse and inspect a design before adding to cart.
 
