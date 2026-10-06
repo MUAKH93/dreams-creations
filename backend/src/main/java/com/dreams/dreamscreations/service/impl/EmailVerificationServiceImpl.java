@@ -7,6 +7,7 @@ import com.dreams.dreamscreations.repository.EmailVerificationTokenRepository;
 import com.dreams.dreamscreations.repository.UserRepository;
 import com.dreams.dreamscreations.service.EmailService;
 import com.dreams.dreamscreations.service.EmailVerificationService;
+import com.dreams.dreamscreations.tenant.TenantContext;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Value;
@@ -53,7 +54,7 @@ public class EmailVerificationServiceImpl implements EmailVerificationService {
                 .expiresAt(LocalDateTime.now().plusHours(24))
                 .build());
 
-        String verifyLink = frontendUrl + "/verify-email?token=" + token;
+        String verifyLink = frontendUrl + "/verify-email?token=" + token + tenantQuerySuffix();
         String body = "Welcome to Dreams Creations!\n\n"
                 + "Please verify your email address by opening this link (valid 24 hours):\n"
                 + verifyLink + "\n\n"
@@ -70,6 +71,14 @@ public class EmailVerificationServiceImpl implements EmailVerificationService {
             response.verificationLink(verifyLink);
         }
         return response.build();
+    }
+
+    private String tenantQuerySuffix() {
+        String tenantId = TenantContext.getTenantId();
+        if (tenantId == null || tenantId.isBlank()) {
+            return "";
+        }
+        return "&tenant=" + tenantId;
     }
 
     @Override

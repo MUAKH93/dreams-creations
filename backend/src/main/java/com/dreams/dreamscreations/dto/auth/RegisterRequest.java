@@ -4,6 +4,8 @@ import lombok.Data;
 
 @Data
 public class RegisterRequest {
+    /** Optional if {@code X-Tenant-ID} header is sent. */
+    private String tenantId;
     private String username;
     private String password;
     private String email;

@@ -3,6 +3,7 @@ import { useSearchParams, Link, useNavigate } from 'react-router-dom'
 import { Card, Typography, Alert, Spin, Button } from 'antd'
 import { CheckCircleOutlined, CloseCircleOutlined } from '@ant-design/icons'
 import { authAPI } from '../../api/auth'
+import { setStoredTenantId } from '../../utils/tenant'
 import { apiErrorMessage } from '../../api/client'
 import AuthScreen from '../../components/AuthScreen'
 
@@ -12,6 +13,7 @@ export default function VerifyEmailPage() {
   const navigate = useNavigate()
   const [params] = useSearchParams()
   const token = params.get('token')
+  const tenant = params.get('tenant')
   const [status, setStatus] = useState('loading')
   const [message, setMessage] = useState('')
 
@@ -21,7 +23,8 @@ export default function VerifyEmailPage() {
       setMessage('Verification link is missing or invalid.')
       return
     }
-    authAPI.verifyEmail(token)
+    if (tenant) setStoredTenantId(tenant)
+    authAPI.verifyEmail(token, tenant || undefined)
       .then(res => {
         setStatus('success')
         setMessage(res.data.message)

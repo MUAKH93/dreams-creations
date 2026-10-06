@@ -16,4 +16,6 @@ public class LoginResponse {
     private Long userId;
     private Long customerId;
     private Long supervisorId;
+    /** Active tenant (database) for this session. */
+    private String tenantId;
 }

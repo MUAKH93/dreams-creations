@@ -6,6 +6,7 @@ import com.dreams.dreamscreations.entity.User;
 import com.dreams.dreamscreations.repository.PasswordResetTokenRepository;
 import com.dreams.dreamscreations.repository.UserRepository;
 import com.dreams.dreamscreations.service.PasswordResetService;
+import com.dreams.dreamscreations.tenant.TenantContext;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Value;
@@ -63,7 +64,7 @@ public class PasswordResetServiceImpl implements PasswordResetService {
                 .expiresAt(LocalDateTime.now().plusHours(1))
                 .build());
 
-        String resetLink = frontendUrl + "/reset-password?token=" + token;
+        String resetLink = frontendUrl + "/reset-password?token=" + token + tenantQuerySuffix();
         log.info("Password reset requested for user {} — link: {}", user.getUsername(), resetLink);
 
         ForgotPasswordResponse.ForgotPasswordResponseBuilder response = ForgotPasswordResponse.builder()
@@ -72,6 +73,14 @@ public class PasswordResetServiceImpl implements PasswordResetService {
             response.resetLink(resetLink);
         }
         return response.build();
+    }
+
+    private String tenantQuerySuffix() {
+        String tenantId = TenantContext.getTenantId();
+        if (tenantId == null || tenantId.isBlank()) {
+            return "";
+        }
+        return "&tenant=" + tenantId;
     }
 
     @Override

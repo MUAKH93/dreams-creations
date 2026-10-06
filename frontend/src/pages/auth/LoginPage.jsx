@@ -1,7 +1,8 @@
-import { Form, Input, Button, Card, Typography, Alert, message } from 'antd'
+import { Form, Input, Button, Card, Typography, Alert, message, Select } from 'antd'
 import { UserOutlined, LockOutlined, MailOutlined } from '@ant-design/icons'
 import { useNavigate, Link, Navigate } from 'react-router-dom'
-import { useState } from 'react'
+import { useEffect, useState } from 'react'
+import { getStoredTenantId, setStoredTenantId } from '../../utils/tenant'
 import { useAuth } from '../../context/AuthContext'
 import { authAPI } from '../../api/auth'
 import { apiErrorMessage } from '../../api/client'
@@ -20,6 +21,21 @@ export default function LoginPage() {
   const [resendLoading, setResendLoading] = useState(false)
   const [resendMsg, setResendMsg] = useState(null)
   const [emailNotVerified, setEmailNotVerified] = useState(false)
+  const [tenants, setTenants] = useState([])
+  const [tenantId, setTenantId] = useState(() => getStoredTenantId())
+
+  useEffect(() => {
+    authAPI.listTenants()
+      .then(r => {
+        const list = r.data || []
+        setTenants(list)
+        if (list.length === 1) {
+          setTenantId(list[0].id)
+          setStoredTenantId(list[0].id)
+        }
+      })
+      .catch(() => {})
+  }, [])
 
   if (auth) {
     return <Navigate to={homeForRole(auth.role)} replace />
@@ -31,7 +47,8 @@ export default function LoginPage() {
     setEmailNotVerified(false)
     setLoading(true)
     try {
-      const res = await authAPI.login(values)
+      setStoredTenantId(tenantId)
+      const res = await authAPI.login({ ...values, tenantId })
       login(res.data)
       navigate(homeForRole(res.data.role))
     } catch (err) {
@@ -120,6 +137,16 @@ export default function LoginPage() {
         )}
 
         <Form form={form} onFinish={onFinish} layout="vertical" size="large">
+          {tenants.length > 1 && (
+            <Form.Item label="Organization / factory">
+              <Select
+                value={tenantId}
+                options={tenants.map(t => ({ value: t.id, label: t.displayName || t.id }))}
+                onChange={(v) => { setTenantId(v); setStoredTenantId(v) }}
+              />
+            </Form.Item>
+          )}
+
           <Form.Item
             name="username"
             label="Username or email"

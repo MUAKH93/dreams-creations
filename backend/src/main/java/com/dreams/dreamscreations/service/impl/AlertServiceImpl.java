@@ -9,6 +9,7 @@ import com.dreams.dreamscreations.repository.ModuleAssignmentRepository;
 import com.dreams.dreamscreations.repository.ProductionBatchRepository;
 import com.dreams.dreamscreations.service.AlertService;
 import com.dreams.dreamscreations.service.ProductionFlowService;
+import com.dreams.dreamscreations.tenant.TenantExecutor;
 import org.springframework.context.annotation.Lazy;
 import org.springframework.scheduling.annotation.Scheduled;
 import org.springframework.stereotype.Service;
@@ -27,17 +28,20 @@ public class AlertServiceImpl implements AlertService {
     private final ProductionBatchRepository batchRepo;
     private final BillRepository billRepo;
     private final ProductionFlowService flowService;
+    private final TenantExecutor tenantExecutor;
 
     public AlertServiceImpl(AlertRepository alertRepo,
                             ModuleAssignmentRepository assignmentRepo,
                             ProductionBatchRepository batchRepo,
                             BillRepository billRepo,
-                            @Lazy ProductionFlowService flowService) {
+                            @Lazy ProductionFlowService flowService,
+                            TenantExecutor tenantExecutor) {
         this.alertRepo = alertRepo;
         this.assignmentRepo = assignmentRepo;
         this.batchRepo = batchRepo;
         this.billRepo = billRepo;
         this.flowService = flowService;
+        this.tenantExecutor = tenantExecutor;
     }
 
     @Override
@@ -63,6 +67,10 @@ public class AlertServiceImpl implements AlertService {
     @Override
     @Scheduled(cron = "0 0 8 * * *")
     public void checkAndCreateOverdueAlerts() {
+        tenantExecutor.forEachTenant(this::checkAndCreateOverdueAlertsForCurrentTenant);
+    }
+
+    private void checkAndCreateOverdueAlertsForCurrentTenant() {
 
         // --- Check 1: Overdue dispatches ---
         List<ModuleAssignment> overdueList =

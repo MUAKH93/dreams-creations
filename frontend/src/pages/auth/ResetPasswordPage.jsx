@@ -3,6 +3,7 @@ import { Form, Input, Button, Card, Typography, Alert, Spin, message } from 'ant
 import { LockOutlined, ArrowLeftOutlined } from '@ant-design/icons'
 import { Link, useNavigate, useSearchParams } from 'react-router-dom'
 import { authAPI } from '../../api/auth'
+import { setStoredTenantId } from '../../utils/tenant'
 import AuthScreen from '../../components/AuthScreen'
 
 const { Title, Text } = Typography
@@ -11,6 +12,7 @@ export default function ResetPasswordPage() {
   const [searchParams] = useSearchParams()
   const navigate = useNavigate()
   const token = searchParams.get('token')
+  const tenant = searchParams.get('tenant')
   const [validating, setValidating] = useState(true)
   const [tokenValid, setTokenValid] = useState(false)
   const [loading, setLoading] = useState(false)
@@ -22,7 +24,8 @@ export default function ResetPasswordPage() {
       setTokenValid(false)
       return
     }
-    authAPI.validateResetToken(token)
+    if (tenant) setStoredTenantId(tenant)
+    authAPI.validateResetToken(token, tenant || undefined)
       .then(res => setTokenValid(!!res.data.valid))
       .catch(() => setTokenValid(false))
       .finally(() => setValidating(false))

@@ -7,12 +7,15 @@ import com.dreams.dreamscreations.dto.auth.LoginResponse;
 import com.dreams.dreamscreations.dto.auth.RegisterRequest;
 import com.dreams.dreamscreations.dto.auth.RegisterResponse;
 import com.dreams.dreamscreations.dto.auth.ResetPasswordRequest;
+import com.dreams.dreamscreations.dto.auth.TenantPublicDTO;
+import com.dreams.dreamscreations.tenant.TenantRegistry;
 import com.dreams.dreamscreations.service.EmailVerificationService;
 import com.dreams.dreamscreations.service.PasswordResetService;
 import com.dreams.dreamscreations.service.impl.AuthServiceImpl;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
 
+import java.util.List;
 import java.util.Map;
 
 @RestController
@@ -22,13 +25,24 @@ public class AuthController {
     private final AuthServiceImpl authService;
     private final PasswordResetService passwordResetService;
     private final EmailVerificationService emailVerificationService;
+    private final TenantRegistry tenantRegistry;
 
     public AuthController(AuthServiceImpl authService,
                           PasswordResetService passwordResetService,
-                          EmailVerificationService emailVerificationService) {
+                          EmailVerificationService emailVerificationService,
+                          TenantRegistry tenantRegistry) {
         this.authService = authService;
         this.passwordResetService = passwordResetService;
         this.emailVerificationService = emailVerificationService;
+        this.tenantRegistry = tenantRegistry;
+    }
+
+    @GetMapping("/tenants")
+    public ResponseEntity<List<TenantPublicDTO>> listTenants() {
+        List<TenantPublicDTO> list = tenantRegistry.listPublicTenants().stream()
+                .map(t -> new TenantPublicDTO(t.id(), t.displayName()))
+                .toList();
+        return ResponseEntity.ok(list);
     }
 
     @PostMapping("/login")

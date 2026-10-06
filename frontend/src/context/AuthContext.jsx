@@ -1,4 +1,5 @@
 import { createContext, useContext, useState } from 'react'
+import { setStoredTenantId } from '../utils/tenant'
 
 const AuthContext = createContext(null)
 
@@ -20,7 +21,10 @@ export function AuthProvider({ children }) {
     }
     localStorage.setItem('token', data.token)
     localStorage.setItem('user', JSON.stringify(userPayload))
-    setAuth({ token: data.token, ...userPayload })
+    if (data.tenantId) {
+      setStoredTenantId(data.tenantId)
+    }
+    setAuth({ token: data.token, tenantId: data.tenantId, ...userPayload })
   }
 
   const updateProfilePhoto = (profilePhotoUrl) => {

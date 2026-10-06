@@ -13,6 +13,8 @@ import com.dreams.dreamscreations.repository.UserRepository;
 import com.dreams.dreamscreations.security.CurrentUserService;
 import com.dreams.dreamscreations.security.JwtUtil;
 import com.dreams.dreamscreations.security.UserDetailsServiceImpl;
+import com.dreams.dreamscreations.tenant.TenantContext;
+import com.dreams.dreamscreations.tenant.TenantRegistry;
 import com.dreams.dreamscreations.service.CustomerService;
 import com.dreams.dreamscreations.service.EmailVerificationService;
 import org.springframework.security.authentication.AuthenticationManager;
@@ -33,6 +35,7 @@ public class AuthServiceImpl {
     private final CustomerService customerService;
     private final CurrentUserService currentUserService;
     private final EmailVerificationService emailVerificationService;
+    private final TenantRegistry tenantRegistry;
 
     public AuthServiceImpl(UserRepository userRepo,
                            RoleRepository roleRepo,
@@ -42,7 +45,8 @@ public class AuthServiceImpl {
                            UserDetailsServiceImpl userDetailsService,
                            CustomerService customerService,
                            CurrentUserService currentUserService,
-                           EmailVerificationService emailVerificationService) {
+                           EmailVerificationService emailVerificationService,
+                           TenantRegistry tenantRegistry) {
         this.userRepo = userRepo;
         this.roleRepo = roleRepo;
         this.passwordEncoder = passwordEncoder;
@@ -52,6 +56,7 @@ public class AuthServiceImpl {
         this.customerService = customerService;
         this.currentUserService = currentUserService;
         this.emailVerificationService = emailVerificationService;
+        this.tenantRegistry = tenantRegistry;
     }
 
     public LoginResponse login(LoginRequest request) {
@@ -70,9 +75,10 @@ public class AuthServiceImpl {
         }
 
         UserDetails userDetails = userDetailsService.loadUserByUsername(username);
-        String token = jwtUtil.generateToken(userDetails, role, user.getUserId());
+        String tenantId = resolveActiveTenantId();
+        String token = jwtUtil.generateToken(userDetails, role, user.getUserId(), tenantId);
 
-        return buildLoginResponse(token, user, role);
+        return buildLoginResponse(token, user, role, tenantId);
     }
 
     private String resolveLoginIdentifier(String input) {
@@ -147,7 +153,18 @@ public class AuthServiceImpl {
         }
     }
 
-    private LoginResponse buildLoginResponse(String token, User user, String role) {
+    private String resolveActiveTenantId() {
+        String tenantId = TenantContext.getTenantId();
+        if (tenantId == null || tenantId.isBlank()) {
+            tenantId = tenantRegistry.getDefaultTenantId();
+        }
+        if (!tenantRegistry.isValid(tenantId)) {
+            throw new RuntimeException("Invalid tenant");
+        }
+        return tenantId;
+    }
+
+    private LoginResponse buildLoginResponse(String token, User user, String role, String tenantId) {
         Long customerId = currentUserService.resolveCustomerId(user);
         Long supervisorId = currentUserService.resolveSupervisorId(user);
 
@@ -158,6 +175,7 @@ public class AuthServiceImpl {
                 .userId(user.getUserId())
                 .customerId(customerId)
                 .supervisorId(supervisorId)
+                .tenantId(tenantId)
                 .build();
     }
 }

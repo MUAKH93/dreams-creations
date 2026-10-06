@@ -2,6 +2,7 @@ package com.dreams.dreamscreations.config;
 
 import com.dreams.dreamscreations.security.JwtAuthenticationFilter;
 import com.dreams.dreamscreations.security.ShopIntegrationAuthFilter;
+import com.dreams.dreamscreations.security.TenantContextFilter;
 import com.dreams.dreamscreations.security.UserDetailsServiceImpl;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
@@ -36,16 +37,19 @@ public class SecurityConfig {
     private final UserDetailsServiceImpl userDetailsService;
     private final JwtAuthenticationFilter jwtFilter;
     private final ShopIntegrationAuthFilter shopIntegrationAuthFilter;
+    private final TenantContextFilter tenantContextFilter;
 
     @Value("${app.cors.allowed-origins:http://localhost:3000,http://localhost:5173}")
     private String corsAllowedOrigins;
 
     public SecurityConfig(UserDetailsServiceImpl userDetailsService,
                           JwtAuthenticationFilter jwtFilter,
-                          ShopIntegrationAuthFilter shopIntegrationAuthFilter) {
+                          ShopIntegrationAuthFilter shopIntegrationAuthFilter,
+                          TenantContextFilter tenantContextFilter) {
         this.userDetailsService = userDetailsService;
         this.jwtFilter = jwtFilter;
         this.shopIntegrationAuthFilter = shopIntegrationAuthFilter;
+        this.tenantContextFilter = tenantContextFilter;
     }
 
     @Bean
@@ -173,6 +177,7 @@ public class SecurityConfig {
                 // Everything else needs auth
                 .anyRequest().authenticated()
             )
+            .addFilterBefore(tenantContextFilter, UsernamePasswordAuthenticationFilter.class)
             .addFilterBefore(shopIntegrationAuthFilter, UsernamePasswordAuthenticationFilter.class)
             .addFilterBefore(jwtFilter, UsernamePasswordAuthenticationFilter.class);
 

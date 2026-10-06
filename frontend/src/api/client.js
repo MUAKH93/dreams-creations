@@ -1,4 +1,5 @@
 import axios from 'axios'
+import { getStoredTenantId, TENANT_HEADER } from '../utils/tenant'
 
 /**
  * Central Axios instance.
@@ -35,6 +36,10 @@ function isPublicAuthRequest(url = '') {
 // Request interceptor — attach token before every request
 client.interceptors.request.use(
   (config) => {
+    const tenantId = getStoredTenantId()
+    if (tenantId) {
+      config.headers[TENANT_HEADER] = tenantId
+    }
     const token = localStorage.getItem('token')
     if (token) {
       config.headers.Authorization = `Bearer ${token}`
@@ -57,6 +62,7 @@ client.interceptors.response.use(
     if (status === 401 && hasToken && !publicAuth) {
       localStorage.removeItem('token')
       localStorage.removeItem('user')
+      // keep tenantId for login screen
       window.location.href = '/login'
     }
     return Promise.reject(error)

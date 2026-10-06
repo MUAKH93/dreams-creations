@@ -1,5 +1,6 @@
 package com.dreams.dreamscreations.config;
 
+import com.dreams.dreamscreations.tenant.TenantContext;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.stereotype.Component;
 
@@ -21,11 +22,21 @@ public class UploadStorage {
     }
 
     public Path getRoot() {
-        return root;
+        String tenantId = TenantContext.getTenantId();
+        if (tenantId == null || tenantId.isBlank()) {
+            return root;
+        }
+        Path tenantRoot = root.resolve(tenantId).normalize();
+        try {
+            Files.createDirectories(tenantRoot);
+        } catch (IOException e) {
+            throw new IllegalStateException("Cannot create upload folder for tenant " + tenantId, e);
+        }
+        return tenantRoot;
     }
 
     public Path resolve(String fileName) {
-        return root.resolve(fileName).normalize();
+        return getRoot().resolve(fileName).normalize();
     }
 
     public void save(InputStream inputStream, String fileName) throws IOException {

@@ -42,10 +42,13 @@ public class JwtUtil {
      * We embed the role as an extra claim so controllers can check it
      * without a database lookup on every request.
      */
-    public String generateToken(UserDetails userDetails, String role, Long userId) {
+    public String generateToken(UserDetails userDetails, String role, Long userId, String tenantId) {
         Map<String, Object> claims = new HashMap<>();
         claims.put("role", role);
         claims.put("userId", userId);
+        if (tenantId != null && !tenantId.isBlank()) {
+            claims.put("tenantId", tenantId);
+        }
 
         return Jwts.builder()
                 .claims(claims)
@@ -71,6 +74,10 @@ public class JwtUtil {
         return extractClaim(token, claims -> claims.get("userId", Long.class));
     }
 
+    public String extractTenantId(String token) {
+        return extractClaim(token, claims -> claims.get("tenantId", String.class));
+    }
+
     // Generic claim extractor
     public <T> T extractClaim(String token, Function<Claims, T> claimsResolver) {
         Claims claims = extractAllClaims(token);
@@ -87,8 +94,22 @@ public class JwtUtil {
 
     // Check token is valid: username matches AND token is not expired
     public boolean validateToken(String token, UserDetails userDetails) {
+        return validateToken(token, userDetails, extractTenantId(token));
+    }
+
+    public boolean validateToken(String token, UserDetails userDetails, String expectedTenantId) {
         String username = extractUsername(token);
-        return username.equals(userDetails.getUsername()) && !isTokenExpired(token);
+        if (!username.equals(userDetails.getUsername()) || isTokenExpired(token)) {
+            return false;
+        }
+        String tokenTenant = extractTenantId(token);
+        if (tokenTenant == null || tokenTenant.isBlank()) {
+            tokenTenant = expectedTenantId;
+        }
+        if (expectedTenantId == null || expectedTenantId.isBlank()) {
+            return true;
+        }
+        return expectedTenantId.equals(tokenTenant);
     }
 
     private boolean isTokenExpired(String token) {

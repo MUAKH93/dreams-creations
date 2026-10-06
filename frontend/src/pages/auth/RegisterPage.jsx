@@ -3,6 +3,7 @@ import { UserOutlined, LockOutlined, MailOutlined, PhoneOutlined } from '@ant-de
 import { useNavigate, Link } from 'react-router-dom'
 import { useState } from 'react'
 import { authAPI } from '../../api/auth'
+import { getStoredTenantId } from '../../utils/tenant'
 import AuthScreen from '../../components/AuthScreen'
 
 const { Title, Text } = Typography
@@ -15,7 +16,7 @@ export default function RegisterPage() {
 
   const onFinish = async (values) => {
     try {
-      const res = await authAPI.register(values)
+      const res = await authAPI.register({ ...values, tenantId: getStoredTenantId() })
       setResult(res.data)
       setDone(true)
       message.success('Account created — verify your email to sign in')

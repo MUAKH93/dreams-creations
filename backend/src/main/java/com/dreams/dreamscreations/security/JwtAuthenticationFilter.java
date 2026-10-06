@@ -10,6 +10,8 @@ import org.springframework.security.authentication.UsernamePasswordAuthenticatio
 import org.springframework.security.core.context.SecurityContextHolder;
 import org.springframework.security.core.userdetails.UserDetails;
 import org.springframework.security.web.authentication.WebAuthenticationDetailsSource;
+import com.dreams.dreamscreations.tenant.TenantContext;
+import com.dreams.dreamscreations.tenant.TenantRegistry;
 import org.springframework.stereotype.Component;
 import org.springframework.web.filter.OncePerRequestFilter;
 
@@ -22,11 +24,14 @@ public class JwtAuthenticationFilter extends OncePerRequestFilter {
 
     private final JwtUtil jwtUtil;
     private final UserDetailsServiceImpl userDetailsService;
+    private final TenantRegistry tenantRegistry;
 
     public JwtAuthenticationFilter(JwtUtil jwtUtil,
-                                   UserDetailsServiceImpl userDetailsService) {
+                                   UserDetailsServiceImpl userDetailsService,
+                                   TenantRegistry tenantRegistry) {
         this.jwtUtil = jwtUtil;
         this.userDetailsService = userDetailsService;
+        this.tenantRegistry = tenantRegistry;
     }
 
     @Override
@@ -46,13 +51,31 @@ public class JwtAuthenticationFilter extends OncePerRequestFilter {
         String token = authHeader.substring(7);
 
         try {
+            String tenantFromToken = jwtUtil.extractTenantId(token);
+            if (tenantFromToken == null || tenantFromToken.isBlank()) {
+                tenantFromToken = tenantRegistry.getDefaultTenantId();
+            }
+            if (!tenantRegistry.isValid(tenantFromToken)) {
+                rejectToken(response, "Invalid tenant in token.");
+                return;
+            }
+
+            String headerTenant = request.getHeader(TenantContextFilter.HEADER);
+            if (headerTenant != null && !headerTenant.isBlank()
+                    && !headerTenant.trim().equals(tenantFromToken)) {
+                rejectToken(response, "Tenant header does not match token.");
+                return;
+            }
+
+            TenantContext.setTenantId(tenantFromToken);
+
             String username = jwtUtil.extractUsername(token);
             if (username != null &&
                     SecurityContextHolder.getContext().getAuthentication() == null) {
 
                 UserDetails userDetails = userDetailsService.loadUserByUsername(username);
 
-                if (jwtUtil.validateToken(token, userDetails)) {
+                if (jwtUtil.validateToken(token, userDetails, tenantFromToken)) {
                     UsernamePasswordAuthenticationToken authToken =
                             new UsernamePasswordAuthenticationToken(
                                     userDetails, null, userDetails.getAuthorities());
@@ -67,9 +90,12 @@ public class JwtAuthenticationFilter extends OncePerRequestFilter {
             log.warn("JWT rejected for {}: {}", request.getRequestURI(), e.getMessage());
         }
 
-        // Token was sent but is invalid/expired — return 401 so frontend re-logins
+        rejectToken(response, "Invalid or expired token. Please login again.");
+    }
+
+    private void rejectToken(HttpServletResponse response, String message) throws IOException {
         response.setStatus(HttpServletResponse.SC_UNAUTHORIZED);
         response.setContentType("application/json");
-        response.getWriter().write("{\"message\":\"Invalid or expired token. Please login again.\"}");
+        response.getWriter().write("{\"message\":\"" + message.replace("\"", "\\\"") + "\"}");
     }
 }

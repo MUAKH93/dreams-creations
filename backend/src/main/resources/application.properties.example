@@ -1,9 +1,24 @@
 spring.application.name=dreams-creations
 
+# --- Single-tenant mode (default): use spring.datasource below ---
+# --- Multi-tenant mode: set app.multitenancy.enabled=true and configure tenants.* (each tenant = separate MySQL database) ---
+app.multitenancy.enabled=false
+app.multitenancy.default-tenant-id=default
+
 spring.datasource.url=jdbc:mysql://localhost:3306/dreams_creations_db?useSSL=false&serverTimezone=UTC
 spring.datasource.username=root
 spring.datasource.password=YOUR_DB_PASSWORD
 spring.datasource.driver-class-name=com.mysql.cj.jdbc.Driver
+
+# Example second tenant (only when app.multitenancy.enabled=true):
+# app.multitenancy.tenants.default.display-name=Dreams Creations (Main)
+# app.multitenancy.tenants.default.datasource.url=jdbc:mysql://localhost:3306/dreams_creations_db?useSSL=false&serverTimezone=UTC
+# app.multitenancy.tenants.default.datasource.username=root
+# app.multitenancy.tenants.default.datasource.password=YOUR_DB_PASSWORD
+# app.multitenancy.tenants.acme.display-name=Acme Factory
+# app.multitenancy.tenants.acme.datasource.url=jdbc:mysql://localhost:3306/dreams_acme_db?useSSL=false&serverTimezone=UTC
+# app.multitenancy.tenants.acme.datasource.username=root
+# app.multitenancy.tenants.acme.datasource.password=YOUR_DB_PASSWORD
 
 spring.jpa.hibernate.ddl-auto=validate
 spring.jpa.show-sql=false
