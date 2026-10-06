@@ -10,6 +10,7 @@ import org.springframework.security.authentication.UsernamePasswordAuthenticatio
 import org.springframework.security.core.context.SecurityContextHolder;
 import org.springframework.security.core.userdetails.UserDetails;
 import org.springframework.security.web.authentication.WebAuthenticationDetailsSource;
+import com.dreams.dreamscreations.config.PlatformProperties;
 import com.dreams.dreamscreations.service.PlatformAuthService;
 import com.dreams.dreamscreations.tenant.TenantContext;
 import com.dreams.dreamscreations.tenant.TenantRegistry;
@@ -26,16 +27,16 @@ public class JwtAuthenticationFilter extends OncePerRequestFilter {
     private final JwtUtil jwtUtil;
     private final UserDetailsServiceImpl userDetailsService;
     private final TenantRegistry tenantRegistry;
-    private final PlatformAuthService platformAuthService;
+    private final PlatformProperties platformProperties;
 
     public JwtAuthenticationFilter(JwtUtil jwtUtil,
                                    UserDetailsServiceImpl userDetailsService,
                                    TenantRegistry tenantRegistry,
-                                   PlatformAuthService platformAuthService) {
+                                   PlatformProperties platformProperties) {
         this.jwtUtil = jwtUtil;
         this.userDetailsService = userDetailsService;
         this.tenantRegistry = tenantRegistry;
-        this.platformAuthService = platformAuthService;
+        this.platformProperties = platformProperties;
     }
 
     @Override
@@ -60,7 +61,7 @@ public class JwtAuthenticationFilter extends OncePerRequestFilter {
 
             if (PlatformAuthService.ROLE_SUPER_ADMIN.equals(role)
                     && username != null
-                    && platformAuthService.isPlatformSuperAdmin(username)
+                    && isPlatformSuperAdmin(username)
                     && SecurityContextHolder.getContext().getAuthentication() == null) {
 
                 if (jwtUtil.validateToken(token, buildPlatformUserDetails(username), null)) {
@@ -117,6 +118,10 @@ public class JwtAuthenticationFilter extends OncePerRequestFilter {
         }
 
         rejectToken(response, "Invalid or expired token. Please login again.");
+    }
+
+    private boolean isPlatformSuperAdmin(String username) {
+        return platformProperties.getSuperAdmin().getUsername().equals(username);
     }
 
     private UserDetails buildPlatformUserDetails(String username) {
