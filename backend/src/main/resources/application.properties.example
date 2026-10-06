@@ -65,4 +65,17 @@ app.mail.from=noreply@dreamscreations.local
 # spring.mail.properties.mail.smtp.auth=true
 # spring.mail.properties.mail.smtp.starttls.enable=true
 
+# ── Platform super-admin (creates client factory admin accounts; not stored in tenant DB) ──
+app.platform.super-admin.enabled=true
+app.platform.super-admin.username=RovexaPlatformSuperAdmin
+app.platform.super-admin.password=Rvx#Erp\$Platform2026!Secure
+
+# ── Tenant factory admin seeded on startup (key = tenant id, e.g. default) ──
+app.bootstrap.tenant-admins.default.username=DreamsCreationsAdmin
+app.bootstrap.tenant-admins.default.password=DreamsCreationsAdminPassword!2#
+app.bootstrap.tenant-admins.default.email=admin@dreamscreations.local
+app.bootstrap.tenant-admins.default.first-name=Dreams
+app.bootstrap.tenant-admins.default.last-name=Admin
+app.bootstrap.tenant-admins.default.disable-legacy-admins=true
+
 # Copy this file to application.properties and fill in real values.

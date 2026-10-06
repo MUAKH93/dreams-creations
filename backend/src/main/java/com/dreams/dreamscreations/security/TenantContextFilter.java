@@ -41,7 +41,9 @@ public class TenantContextFilter extends OncePerRequestFilter {
         if (HttpMethod.OPTIONS.matches(request.getMethod())) {
             return true;
         }
-        return "/api/auth/tenants".equals(request.getRequestURI());
+        String path = request.getRequestURI();
+        return "/api/auth/tenants".equals(path)
+                || "/api/auth/platform/login".equals(path);
     }
 
     @Override

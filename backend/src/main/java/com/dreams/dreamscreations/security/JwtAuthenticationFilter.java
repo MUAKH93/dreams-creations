@@ -10,6 +10,7 @@ import org.springframework.security.authentication.UsernamePasswordAuthenticatio
 import org.springframework.security.core.context.SecurityContextHolder;
 import org.springframework.security.core.userdetails.UserDetails;
 import org.springframework.security.web.authentication.WebAuthenticationDetailsSource;
+import com.dreams.dreamscreations.service.PlatformAuthService;
 import com.dreams.dreamscreations.tenant.TenantContext;
 import com.dreams.dreamscreations.tenant.TenantRegistry;
 import org.springframework.stereotype.Component;
@@ -25,13 +26,16 @@ public class JwtAuthenticationFilter extends OncePerRequestFilter {
     private final JwtUtil jwtUtil;
     private final UserDetailsServiceImpl userDetailsService;
     private final TenantRegistry tenantRegistry;
+    private final PlatformAuthService platformAuthService;
 
     public JwtAuthenticationFilter(JwtUtil jwtUtil,
                                    UserDetailsServiceImpl userDetailsService,
-                                   TenantRegistry tenantRegistry) {
+                                   TenantRegistry tenantRegistry,
+                                   PlatformAuthService platformAuthService) {
         this.jwtUtil = jwtUtil;
         this.userDetailsService = userDetailsService;
         this.tenantRegistry = tenantRegistry;
+        this.platformAuthService = platformAuthService;
     }
 
     @Override
@@ -51,6 +55,29 @@ public class JwtAuthenticationFilter extends OncePerRequestFilter {
         String token = authHeader.substring(7);
 
         try {
+            String role = jwtUtil.extractRole(token);
+            String username = jwtUtil.extractUsername(token);
+
+            if (PlatformAuthService.ROLE_SUPER_ADMIN.equals(role)
+                    && username != null
+                    && platformAuthService.isPlatformSuperAdmin(username)
+                    && SecurityContextHolder.getContext().getAuthentication() == null) {
+
+                if (jwtUtil.validateToken(token, buildPlatformUserDetails(username), null)) {
+                    UsernamePasswordAuthenticationToken authToken =
+                            new UsernamePasswordAuthenticationToken(
+                                    buildPlatformUserDetails(username), null,
+                                    buildPlatformUserDetails(username).getAuthorities());
+                    authToken.setDetails(
+                            new WebAuthenticationDetailsSource().buildDetails(request));
+                    SecurityContextHolder.getContext().setAuthentication(authToken);
+                    filterChain.doFilter(request, response);
+                    return;
+                }
+                rejectToken(response, "Invalid or expired platform token.");
+                return;
+            }
+
             String tenantFromToken = jwtUtil.extractTenantId(token);
             if (tenantFromToken == null || tenantFromToken.isBlank()) {
                 tenantFromToken = tenantRegistry.getDefaultTenantId();
@@ -69,7 +96,6 @@ public class JwtAuthenticationFilter extends OncePerRequestFilter {
 
             TenantContext.setTenantId(tenantFromToken);
 
-            String username = jwtUtil.extractUsername(token);
             if (username != null &&
                     SecurityContextHolder.getContext().getAuthentication() == null) {
 
@@ -91,6 +117,14 @@ public class JwtAuthenticationFilter extends OncePerRequestFilter {
         }
 
         rejectToken(response, "Invalid or expired token. Please login again.");
+    }
+
+    private UserDetails buildPlatformUserDetails(String username) {
+        return org.springframework.security.core.userdetails.User.builder()
+                .username(username)
+                .password("")
+                .authorities("ROLE_" + PlatformAuthService.ROLE_SUPER_ADMIN)
+                .build();
     }
 
     private void rejectToken(HttpServletResponse response, String message) throws IOException {

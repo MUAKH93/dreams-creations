@@ -54,6 +54,35 @@ Files are stored under `{app.upload.dir}/{tenantId}/`.
 
 Daily alert checks run **once per configured tenant**.
 
+## Platform super-admin
+
+Configure `app.platform.super-admin.*` in `application.properties` (not stored in tenant databases).
+
+| Endpoint | Purpose |
+|----------|---------|
+| `POST /api/auth/platform/login` | Super-admin JWT (`SUPER_ADMIN` role) |
+| `GET /api/platform/tenants` | List tenants |
+| `POST /api/platform/tenant-admins` | Create an **ADMIN** user in a client tenant database |
+
+Example create client admin:
+
+```http
+POST /api/platform/tenant-admins
+Authorization: Bearer <super-admin-token>
+Content-Type: application/json
+
+{
+  "tenantId": "acme",
+  "username": "AcmeAdmin",
+  "password": "ChangeMe-Strong-Password-1!",
+  "email": "admin@acme.example",
+  "firstName": "Acme",
+  "lastName": "Admin"
+}
+```
+
+On startup, `app.bootstrap.tenant-admins.<tenantId>.*` upserts the factory admin (e.g. Dreams Creations).
+
 ## Single-tenant (default)
 
 `app.multitenancy.enabled=false` — existing `spring.datasource.*` only; tenant id defaults to `default` and no extra header is required.

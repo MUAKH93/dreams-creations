@@ -79,6 +79,7 @@ public class SecurityConfig {
             .authorizeHttpRequests(auth -> auth
                 // Public
                 .requestMatchers("/api/auth/**").permitAll()
+                .requestMatchers("/api/platform/**").hasRole("SUPER_ADMIN")
                 .requestMatchers("/api/health", "/api/health/**").permitAll()
                 .requestMatchers("/api/integration/shop", "/api/integration/shop/**").permitAll()
                 .requestMatchers(HttpMethod.GET, "/api/modules").permitAll()

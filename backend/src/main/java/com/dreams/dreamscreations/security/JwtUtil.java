@@ -45,7 +45,9 @@ public class JwtUtil {
     public String generateToken(UserDetails userDetails, String role, Long userId, String tenantId) {
         Map<String, Object> claims = new HashMap<>();
         claims.put("role", role);
-        claims.put("userId", userId);
+        if (userId != null) {
+            claims.put("userId", userId);
+        }
         if (tenantId != null && !tenantId.isBlank()) {
             claims.put("tenantId", tenantId);
         }
