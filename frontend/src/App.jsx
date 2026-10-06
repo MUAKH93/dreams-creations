@@ -1,4 +1,4 @@
-import { useState, useEffect } from 'react'
+import { useState, useEffect, useMemo } from 'react'
 import { Routes, Route, Navigate, useNavigate, useLocation, Outlet } from 'react-router-dom'
 import { Layout, Menu, Typography, Avatar, Dropdown, Drawer, Button, Grid } from 'antd'
 import {
@@ -6,13 +6,14 @@ import {
   AlertOutlined, UserOutlined, LogoutOutlined, MenuOutlined,
   AppstoreOutlined, SendOutlined, FileTextOutlined,
   PictureOutlined, InboxOutlined, CheckSquareOutlined, SafetyCertificateOutlined,
-  SettingOutlined,   BarChartOutlined, HistoryOutlined, SolutionOutlined, LineChartOutlined,
-  IdcardOutlined, AccountBookOutlined, BookOutlined,
+  SettingOutlined, SolutionOutlined,
+  IdcardOutlined, BookOutlined, AccountBookOutlined,
 } from '@ant-design/icons'
 import { useAuth } from './context/AuthContext'
 import ProtectedRoute from './routes/ProtectedRoute'
 import { MANAGEMENT_ROLES, ROLES, portalLabel, homeForRole } from './utils/roles'
 import { financeModuleEnabled } from './config/modules'
+import BackToModuleHub from './components/BackToModuleHub'
 
 // Pages
 import LoginPage          from './pages/auth/LoginPage'
@@ -33,9 +34,6 @@ import InventoryPage      from './pages/inventory/InventoryPage'
 import AssignmentsPage    from './pages/production/AssignmentsPage'
 import StaffPage          from './pages/admin/StaffPage'
 import SetupPage          from './pages/admin/SetupPage'
-import ActivityLogPage    from './pages/admin/ActivityLogPage'
-import ReportsPage        from './pages/reports/ReportsPage'
-import AnalyticsPage      from './pages/analytics/AnalyticsPage'
 import ProfilePage        from './pages/profile/ProfilePage'
 import VerifyEmailPage    from './pages/auth/VerifyEmailPage'
 import FinanceHomePage    from './pages/finance/FinanceHomePage'
@@ -51,6 +49,7 @@ import BrandLogo from './components/BrandLogo'
 import { profileAPI } from './api/profile'
 import { modulesAPI } from './api/modules'
 import TutorialGuidePage from './pages/TutorialGuidePage'
+import ModuleHubPage from './pages/home/ModuleHubPage'
 import {
   useOperationsTutorial,
   OperationsTutorialWelcome,
@@ -59,6 +58,7 @@ import {
   OperationsNavTour,
   buildOperationsTourSteps,
 } from './components/tutorial/OperationsTutorial'
+import './styles/module-hub.css'
 
 const { Sider, Content, Header } = Layout
 const { Text } = Typography
@@ -99,24 +99,22 @@ const PROFILE_ITEM = { key: '/profile', icon: <IdcardOutlined />, label: 'My Pro
 
 const MANAGER_MENU = [
   { key: '/dashboard',  icon: <DashboardOutlined />, label: 'Dashboard' },
-  { key: '/batches',    icon: <AppstoreOutlined />,  label: 'Production Batches' },
-  { key: '/dispatch',   icon: <SendOutlined />,       label: 'Dispatch Management' },
+  { key: '/batches',    icon: <AppstoreOutlined />,  label: 'Production' },
+  { key: '/dispatch',   icon: <SendOutlined />,       label: 'Dispatch' },
   { key: '/inventory',  icon: <InboxOutlined />,        label: 'Inventory' },
-  { key: '/designs',    icon: <PictureOutlined />,    label: 'Designs Catalog' },
+  { key: '/designs',    icon: <PictureOutlined />,    label: 'Designs' },
   { key: '/customers',  icon: <TeamOutlined />,       label: 'Customers' },
   { key: '/quotations', icon: <SolutionOutlined />,   label: 'Quotations' },
-  { key: '/bills',      icon: <FileTextOutlined />,   label: 'Bills & Payments' },
-  { key: '/reports',    icon: <BarChartOutlined />,   label: 'Reports' },
-  { key: '/analytics',  icon: <LineChartOutlined />,  label: 'Analytics' },
-  { key: '/activity',   icon: <HistoryOutlined />,    label: 'Activity Log' },
+  { key: '/bills',      icon: <FileTextOutlined />,   label: 'Bills' },
   { key: '/alerts',     icon: <AlertOutlined />,      label: 'Alerts' },
   PROFILE_ITEM,
 ]
 
 const ADMIN_MENU = [
-  ...MANAGER_MENU,
-  { key: '/staff', icon: <SafetyCertificateOutlined />, label: 'Staff & Supervisors' },
-  { key: '/setup', icon: <SettingOutlined />, label: 'Factory Setup' },
+  ...MANAGER_MENU.slice(0, -1),
+  { key: '/staff', icon: <SafetyCertificateOutlined />, label: 'Staff' },
+  { key: '/setup', icon: <SettingOutlined />, label: 'Setup' },
+  PROFILE_ITEM,
 ]
 
 const CUSTOMER_MENU = [
@@ -134,33 +132,32 @@ const SUPERVISOR_MENU = [
   PROFILE_ITEM,
 ]
 
-function getMenu(role) {
-  if (role === ROLES.ADMIN) return ADMIN_MENU
-  if (role === ROLES.MANAGER) return MANAGER_MENU
-  if (role === ROLES.CUSTOMER) return CUSTOMER_MENU
-  if (role === ROLES.SUPERVISOR) return SUPERVISOR_MENU
-  return []
+const FINANCE_MENU_ITEM = {
+  key: '/finance',
+  icon: <AccountBookOutlined />,
+  label: 'Finance Portal',
 }
 
-function FinancePortalButton({ showFinance }) {
-  const navigate = useNavigate()
-  if (!showFinance) return null
-  return (
-    <div className="ops-finance-portal-btn" data-tour="ops-finance-portal">
-      <Button
-        block
-        size="large"
-        icon={<AccountBookOutlined />}
-        className="ops-finance-portal-btn__inner"
-        onClick={() => navigate('/finance')}
-      >
-        Open Finance Portal
-      </Button>
-      <Text style={{ color: 'rgba(255,255,255,0.45)', fontSize: 10, display: 'block', textAlign: 'center', marginTop: 6 }}>
-        Separate accounting workspace
-      </Text>
-    </div>
-  )
+function getMenu(role, { showFinance = false } = {}) {
+  let items
+  if (role === ROLES.ADMIN) items = [...ADMIN_MENU]
+  else if (role === ROLES.MANAGER) items = [...MANAGER_MENU]
+  else if (role === ROLES.CUSTOMER) items = [...CUSTOMER_MENU]
+  else if (role === ROLES.SUPERVISOR) items = [...SUPERVISOR_MENU]
+  else items = []
+
+  if (showFinance && MANAGEMENT_ROLES.includes(role)) {
+    const profileIdx = items.findIndex(i => i.key === '/profile')
+    const insertAt = profileIdx >= 0 ? profileIdx : items.length
+    items = [...items.slice(0, insertAt), FINANCE_MENU_ITEM, ...items.slice(insertAt)]
+  }
+  return items
+}
+
+function menuSelectedKey(pathname, items) {
+  if (items.some(i => i.key === pathname)) return pathname
+  if (pathname.startsWith('/finance')) return '/finance'
+  return pathname
 }
 
 function AppLayout({ children }) {
@@ -175,9 +172,7 @@ function AppLayout({ children }) {
 
   useEffect(() => {
     modulesAPI.getFlags()
-      .then(r => {
-        if (r.data?.finance?.enabled) setShowFinance(true)
-      })
+      .then(r => { if (r.data?.finance?.enabled) setShowFinance(true) })
       .catch(() => {})
   }, [])
 
@@ -190,7 +185,12 @@ function AppLayout({ children }) {
       .catch(() => {})
   }, [auth?.token])
 
-  const menuItems = getMenu(auth?.role)
+  const menuItems = useMemo(
+    () => getMenu(auth?.role, { showFinance }),
+    [auth?.role, showFinance],
+  )
+  const selectedMenuKey = menuSelectedKey(location.pathname, menuItems)
+  const isManagement = MANAGEMENT_ROLES.includes(auth?.role)
 
   const userMenu = {
     items: [
@@ -214,7 +214,7 @@ function AppLayout({ children }) {
     setDrawerOpen(false)
   }
 
-  const opsTourSteps = buildOperationsTourSteps(opsTutorial.config, showFinance)
+  const opsTourSteps = buildOperationsTourSteps(opsTutorial.config)
 
   return (
     <Layout className="app-layout">
@@ -222,14 +222,14 @@ function AppLayout({ children }) {
         <Sider theme="dark" width={220} className="app-sider">
           <div className="app-sider-inner">
             <SidebarBrand role={auth?.role} />
+            {isManagement && <BackToModuleHub />}
             <div className="app-sider-menu">
               <NavMenu
                 items={menuItems}
-                selectedKey={location.pathname}
+                selectedKey={selectedMenuKey}
                 onNavigate={handleNavigate}
               />
             </div>
-            <FinancePortalButton showFinance={showFinance} />
           </div>
         </Sider>
       )}
@@ -278,12 +278,12 @@ function AppLayout({ children }) {
         styles={{ body: { padding: 0, background: '#1a237e' }, header: { background: '#1a237e', borderBottom: '1px solid rgba(255,255,255,0.1)' } }}
         className="app-drawer"
       >
+        {isManagement && <BackToModuleHub className="app-module-hub-back--drawer" />}
         <NavMenu
           items={menuItems}
-          selectedKey={location.pathname}
+          selectedKey={selectedMenuKey}
           onNavigate={handleNavigate}
         />
-        <FinancePortalButton showFinance={showFinance} />
       </Drawer>
 
       <OperationsTutorialWelcome
@@ -355,6 +355,13 @@ export default function App() {
         </ProtectedRoute>
       } />
 
+      {/* Module hub — Admin & Manager choose Production vs Finance */}
+      <Route path="/modules" element={
+        <ProtectedRoute roles={MANAGEMENT_ROLES}>
+          <AppLayout><ModuleHubPage /></AppLayout>
+        </ProtectedRoute>
+      } />
+
       {/* Dashboard — all roles, role-specific content inside */}
       <Route path="/dashboard" element={
         <ProtectedRoute roles={[ROLES.ADMIN, ROLES.MANAGER, ROLES.SUPERVISOR, ROLES.CUSTOMER]}>
@@ -393,21 +400,9 @@ export default function App() {
           <AppLayout><QuotationsPage /></AppLayout>
         </ProtectedRoute>
       } />
-      <Route path="/reports" element={
-        <ProtectedRoute roles={MANAGEMENT_ROLES}>
-          <AppLayout><ReportsPage /></AppLayout>
-        </ProtectedRoute>
-      } />
-      <Route path="/analytics" element={
-        <ProtectedRoute roles={MANAGEMENT_ROLES}>
-          <AppLayout><AnalyticsPage /></AppLayout>
-        </ProtectedRoute>
-      } />
-      <Route path="/activity" element={
-        <ProtectedRoute roles={MANAGEMENT_ROLES}>
-          <AppLayout><ActivityLogPage /></AppLayout>
-        </ProtectedRoute>
-      } />
+      <Route path="/reports" element={<Navigate to={showFinance ? '/finance/reports' : '/dashboard'} replace />} />
+      <Route path="/analytics" element={<Navigate to="/dashboard" replace />} />
+      <Route path="/activity" element={<Navigate to="/dashboard" replace />} />
       <Route path="/alerts" element={
         <ProtectedRoute roles={MANAGEMENT_ROLES}>
           <AppLayout><AlertsPage /></AppLayout>

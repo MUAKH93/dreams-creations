@@ -44,7 +44,7 @@ export default function DashboardCharts() {
   }))
 
   return (
-    <Row gutter={[16, 16]} style={{ marginBottom: 24 }}>
+    <Row gutter={[16, 16]} style={{ marginTop: 24 }}>
       <Col xs={24} lg={14}>
         <Card title="Sales Trend (last 6 months)">
           <ResponsiveContainer width="100%" height={260}>

@@ -1,19 +1,30 @@
 import { useEffect, useMemo, useState } from 'react'
 import {
   Table, Tag, Typography, message, Alert, InputNumber, Button, Space,
-  Input, Select, Checkbox, Modal, Form, Collapse, Image
+  Input, Select, Checkbox, Modal, Form, Collapse, Image, Card, Row, Col, Statistic, Tabs
 } from 'antd'
-import { EditOutlined, SaveOutlined, WarningOutlined, ToolOutlined, PrinterOutlined, BarcodeOutlined } from '@ant-design/icons'
+import {
+  EditOutlined, SaveOutlined, WarningOutlined, ToolOutlined,
+  PrinterOutlined, BarcodeOutlined, InboxOutlined, AppstoreOutlined,
+} from '@ant-design/icons'
 import InventoryLabelPrint, { printLabelDocument } from '../../components/InventoryLabelPrint'
 import { inventoryAPI } from '../../api/inventory'
 import { salesAPI } from '../../api/sales'
 import { productionAPI } from '../../api/production'
 import { apiErrorMessage } from '../../api/client'
 import { designImageUrl } from '../../utils/designImage'
+import '../../styles/inventory-page.css'
 
 const { Title, Text } = Typography
 
 const LOW_STOCK_THRESHOLD = 5
+
+function qtyTagColor(record) {
+  if (record.designStatus === 'inactive') return 'default'
+  if (record.quantity === 0) return 'red'
+  if (record.quantity <= LOW_STOCK_THRESHOLD) return 'orange'
+  return 'green'
+}
 
 export default function InventoryPage() {
   const [stock, setStock] = useState([])
@@ -26,8 +37,11 @@ export default function InventoryPage() {
   const [editPrice, setEditPrice] = useState(0)
   const [search, setSearch] = useState('')
   const [categoryFilter, setCategoryFilter] = useState(null)
-  const [sizeFilter, setSizeFilter] = useState(null)
   const [lowStockOnly, setLowStockOnly] = useState(false)
+  const [viewMode, setViewMode] = useState('by-design')
+  const [selectedDesignCode, setSelectedDesignCode] = useState(null)
+  const [sizeFilter, setSizeFilter] = useState(null)
+  const [colorFilter, setColorFilter] = useState(null)
   const [adjustOpen, setAdjustOpen] = useState(false)
   const [adjustTarget, setAdjustTarget] = useState(null)
   const [adjustForm] = Form.useForm()
@@ -47,48 +61,135 @@ export default function InventoryPage() {
       if (prod.status === 'fulfilled') setProducts(prod.value.data)
       if (adj.status === 'fulfilled') setAdjustments(adj.value.data)
       if (des.status === 'fulfilled') setDesigns(des.value.data)
-      if (inv.status === 'rejected') {
-        setLoadError(apiErrorMessage(inv.reason))
-      }
+      if (inv.status === 'rejected') setLoadError(apiErrorMessage(inv.reason))
     }).finally(() => setLoading(false))
   }
 
   useEffect(() => { load() }, [])
+
+  const designByCode = (code) => designs.find(d => d.designCode === code)
 
   const categories = useMemo(() =>
     [...new Set(stock.map(s => s.categoryName).filter(Boolean))].sort(),
     [stock]
   )
 
-  const sizes = useMemo(() =>
-    [...new Set(stock.map(s => s.sizeValue).filter(Boolean))].sort(),
-    [stock]
+  const designsInStock = useMemo(() => {
+    const map = new Map()
+    stock.forEach(item => {
+      if (categoryFilter && item.categoryName !== categoryFilter) return
+      const q = search.trim().toLowerCase()
+      if (q && !(
+        (item.designCode || '').toLowerCase().includes(q) ||
+        (item.designName || '').toLowerCase().includes(q)
+      )) return
+
+      if (!map.has(item.designCode)) {
+        map.set(item.designCode, {
+          designCode: item.designCode,
+          designName: item.designName,
+          categoryName: item.categoryName,
+          designStatus: item.designStatus,
+          totalQty: 0,
+          variantCount: 0,
+          lowCount: 0,
+        })
+      }
+      const row = map.get(item.designCode)
+      row.totalQty += item.quantity || 0
+      row.variantCount += 1
+      if (item.designStatus !== 'inactive' && item.quantity <= LOW_STOCK_THRESHOLD) {
+        row.lowCount += 1
+      }
+    })
+    return [...map.values()].sort((a, b) => a.designCode.localeCompare(b.designCode))
+  }, [stock, search, categoryFilter])
+
+  useEffect(() => {
+    if (!designsInStock.length) {
+      setSelectedDesignCode(null)
+      return
+    }
+    if (!selectedDesignCode || !designsInStock.some(d => d.designCode === selectedDesignCode)) {
+      setSelectedDesignCode(designsInStock[0].designCode)
+    }
+  }, [designsInStock, selectedDesignCode])
+
+  const selectedDesignMeta = designsInStock.find(d => d.designCode === selectedDesignCode)
+
+  const designVariants = useMemo(() =>
+    stock.filter(item => item.designCode === selectedDesignCode),
+    [stock, selectedDesignCode]
   )
 
-  const filteredStock = useMemo(() => {
+  const sizesForDesign = useMemo(() =>
+    [...new Set(designVariants.map(v => v.sizeValue).filter(Boolean))].sort(),
+    [designVariants]
+  )
+
+  const colorsForDesign = useMemo(() => {
+    const pool = sizeFilter
+      ? designVariants.filter(v => v.sizeValue === sizeFilter)
+      : designVariants
+    return [...new Set(pool.map(v => v.color).filter(Boolean))].sort()
+  }, [designVariants, sizeFilter])
+
+  useEffect(() => {
+    if (sizeFilter && !sizesForDesign.includes(sizeFilter)) setSizeFilter(null)
+  }, [sizeFilter, sizesForDesign])
+
+  useEffect(() => {
+    if (colorFilter && !colorsForDesign.includes(colorFilter)) setColorFilter(null)
+  }, [colorFilter, colorsForDesign])
+
+  const filteredByDesign = useMemo(() => {
+    return designVariants.filter(item => {
+      if (lowStockOnly && (item.quantity > LOW_STOCK_THRESHOLD || item.designStatus === 'inactive')) {
+        return false
+      }
+      if (sizeFilter && item.sizeValue !== sizeFilter) return false
+      if (colorFilter && item.color !== colorFilter) return false
+      return true
+    }).sort((a, b) => {
+      const sizeCmp = (a.sizeValue || '').localeCompare(b.sizeValue || '')
+      if (sizeCmp !== 0) return sizeCmp
+      return (a.color || '').localeCompare(b.color || '')
+    })
+  }, [designVariants, sizeFilter, colorFilter, lowStockOnly])
+
+  const filteredAllStock = useMemo(() => {
     const q = search.trim().toLowerCase()
     return stock.filter(item => {
       if (lowStockOnly && (item.quantity > LOW_STOCK_THRESHOLD || item.designStatus === 'inactive')) return false
       if (categoryFilter && item.categoryName !== categoryFilter) return false
-      if (sizeFilter && item.sizeValue !== sizeFilter) return false
       if (!q) return true
       return (
         (item.designCode || '').toLowerCase().includes(q) ||
         (item.designName || '').toLowerCase().includes(q) ||
-        (item.color || '').toLowerCase().includes(q)
+        (item.color || '').toLowerCase().includes(q) ||
+        (item.sizeValue || '').toLowerCase().includes(q)
       )
     })
-  }, [stock, search, categoryFilter, sizeFilter, lowStockOnly])
+  }, [stock, search, categoryFilter, lowStockOnly])
+
+  const tableRows = viewMode === 'by-design' ? filteredByDesign : filteredAllStock
 
   const lowStockItems = stock.filter(s =>
     s.quantity <= LOW_STOCK_THRESHOLD && s.designStatus !== 'inactive')
 
-  const designByCode = (code) => designs.find(d => d.designCode === code)
+  const totalUnits = stock.reduce((sum, s) => sum + (s.quantity || 0), 0)
+  const skuCount = stock.length
 
   const priceForSuit = (suitId) => {
     const p = products.find(x => x.suitId === suitId)
     return p ? { productId: p.productId, price: Number(p.sellingPrice) } : null
   }
+
+  const priceMap = useMemo(() => {
+    const m = {}
+    products.forEach(p => { m[p.suitId] = Number(p.sellingPrice) || 0 })
+    return m
+  }, [products])
 
   const startEdit = (suitId) => {
     const p = priceForSuit(suitId)
@@ -118,12 +219,6 @@ export default function InventoryPage() {
     adjustForm.setFieldsValue({ newQuantity: record.quantity, reason: '' })
     setAdjustOpen(true)
   }
-
-  const priceMap = useMemo(() => {
-    const m = {}
-    products.forEach(p => { m[p.suitId] = Number(p.sellingPrice) || 0 })
-    return m
-  }, [products])
 
   const printLabels = (items) => {
     if (!items.length) {
@@ -156,31 +251,42 @@ export default function InventoryPage() {
     }
   }
 
-  const columns = [
-    { title: 'Image', key: 'image', width: 72,
-      render: (_, r) => {
-        const url = designImageUrl(designByCode(r.designCode))
-        return url ? (
-          <Image src={url} width={48} height={48}
-            style={{ objectFit: 'cover', borderRadius: 4 }} alt={r.designName} />
-        ) : <Tag>No image</Tag>
-      } },
-    { title: 'Design Code', dataIndex: 'designCode', key: 'code' },
-    { title: 'Design Name', dataIndex: 'designName', key: 'name' },
-    { title: 'Category', dataIndex: 'categoryName', key: 'category',
-      render: c => <Tag color={c === 'Kids' ? 'purple' : 'magenta'}>{c}</Tag> },
-    { title: 'Size', dataIndex: 'sizeValue', key: 'size' },
-    { title: 'Color', dataIndex: 'color', key: 'color' },
-    { title: 'Quantity', dataIndex: 'quantity', key: 'qty',
+  const onDesignChange = (code) => {
+    setSelectedDesignCode(code)
+    setSizeFilter(null)
+    setColorFilter(null)
+    setSelectedRowKeys([])
+  }
+
+  const clearVariantFilters = () => {
+    setSizeFilter(null)
+    setColorFilter(null)
+  }
+
+  const variantColumns = [
+    ...(viewMode === 'all' ? [
+      { title: 'Design', key: 'design', width: 160, ellipsis: true,
+        render: (_, r) => (
+          <div>
+            <Text strong>{r.designCode}</Text>
+            <div><Text type="secondary" style={{ fontSize: 12 }}>{r.designName}</Text></div>
+          </div>
+        ) },
+      { title: 'Category', dataIndex: 'categoryName', key: 'category', width: 100,
+        render: c => <Tag color={c === 'Kids' ? 'purple' : 'magenta'}>{c}</Tag> },
+    ] : []),
+    { title: 'Size', dataIndex: 'sizeValue', key: 'size', width: 100,
+      render: v => <Text strong>{v || '—'}</Text> },
+    { title: 'Color', dataIndex: 'color', key: 'color', width: 120,
+      render: v => <Tag>{v || '—'}</Tag> },
+    { title: 'Quantity', dataIndex: 'quantity', key: 'qty', width: 110, align: 'center',
       render: (q, r) => (
-        <Tag color={
-          r.designStatus === 'inactive' ? 'default'
-            : q <= LOW_STOCK_THRESHOLD ? (q === 0 ? 'red' : 'orange') : 'green'
-        }>
-          {q}{r.designStatus !== 'inactive' && q <= LOW_STOCK_THRESHOLD && q > 0 ? ' ⚠' : ''}
+        <Tag className="inventory-qty-tag" color={qtyTagColor(r)}>
+          {q}
+          {r.designStatus !== 'inactive' && q <= LOW_STOCK_THRESHOLD && q > 0 ? ' ⚠' : ''}
         </Tag>
       ) },
-    { title: 'Selling Price (Rs.)', key: 'price',
+    { title: 'Price (Rs.)', key: 'price', width: 180,
       render: (_, r) => {
         const p = priceForSuit(r.suitId)
         if (!p) return <Tag>Not set</Tag>
@@ -188,7 +294,7 @@ export default function InventoryPage() {
           return (
             <Space>
               <InputNumber min={0} value={editPrice}
-                onChange={v => setEditPrice(v || 0)} style={{ width: 120 }} />
+                onChange={v => setEditPrice(v || 0)} style={{ width: 110 }} />
               <Button type="primary" size="small" icon={<SaveOutlined />}
                 onClick={() => savePrice(r.suitId)} />
               <Button size="small" onClick={() => setEditingId(null)}>Cancel</Button>
@@ -203,15 +309,15 @@ export default function InventoryPage() {
           </Space>
         )
       }},
-    { title: 'Actions', key: 'actions', width: 140,
+    { title: 'Actions', key: 'actions', width: 150, fixed: 'right',
       render: (_, r) => (
-        <Space>
+        <Space size="small">
           <Button size="small" icon={<ToolOutlined />} onClick={() => openAdjust(r)}>Adjust</Button>
           <Button size="small" icon={<BarcodeOutlined />} onClick={() => printOneLabel(r)} title="Print label" />
         </Space>
       ) },
-    { title: 'Last Updated', dataIndex: 'lastUpdated', key: 'updated',
-      render: d => d ? new Date(d).toLocaleString() : '-' },
+    { title: 'Updated', dataIndex: 'lastUpdated', key: 'updated', width: 150,
+      render: d => d ? new Date(d).toLocaleDateString() : '—' },
   ]
 
   const adjustmentColumns = [
@@ -225,9 +331,110 @@ export default function InventoryPage() {
     { title: 'By', dataIndex: 'adjustedByUsername', key: 'by', render: u => u || '—' },
   ]
 
+  const selectedDesign = designByCode(selectedDesignCode)
+  const previewUrl = selectedDesign ? designImageUrl(selectedDesign) : null
+
+  const designPanel = viewMode === 'by-design' && (
+    <div className="inventory-design-panel">
+      <div className="inventory-design-panel__header">
+        <div className="inventory-design-panel__preview">
+          {previewUrl ? (
+            <Image src={previewUrl} alt={selectedDesignMeta?.designName} preview={false} />
+          ) : (
+            <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', height: '100%', color: '#94a3b8', fontSize: 12 }}>
+              No image
+            </div>
+          )}
+        </div>
+        <div className="inventory-design-panel__meta">
+          <p className="inventory-design-panel__title">{selectedDesignMeta?.designName || 'Select a design'}</p>
+          <p className="inventory-design-panel__code">{selectedDesignCode || '—'}</p>
+          <div className="inventory-design-panel__stats">
+            {selectedDesignMeta?.categoryName && (
+              <Tag color={selectedDesignMeta.categoryName === 'Kids' ? 'purple' : 'magenta'}>
+                {selectedDesignMeta.categoryName}
+              </Tag>
+            )}
+            {selectedDesignMeta && (
+              <>
+                <Tag icon={<InboxOutlined />}>{selectedDesignMeta.totalQty} units</Tag>
+                <Tag>{selectedDesignMeta.variantCount} variants</Tag>
+                {selectedDesignMeta.lowCount > 0 && (
+                  <Tag color="orange">{selectedDesignMeta.lowCount} low stock</Tag>
+                )}
+              </>
+            )}
+          </div>
+        </div>
+        <Select
+          showSearch
+          placeholder="Choose design"
+          optionFilterProp="label"
+          value={selectedDesignCode}
+          onChange={onDesignChange}
+          style={{ minWidth: 280, maxWidth: 360 }}
+          options={designsInStock.map(d => ({
+            value: d.designCode,
+            label: `${d.designCode} — ${d.designName}`,
+          }))}
+        />
+      </div>
+
+      <div className="inventory-variant-filters">
+        <span className="inventory-variant-filters__label">Size</span>
+        <Select
+          allowClear
+          placeholder="All sizes"
+          style={{ width: 130 }}
+          value={sizeFilter}
+          onChange={setSizeFilter}
+          options={sizesForDesign.map(s => ({ value: s, label: s }))}
+        />
+        <span className="inventory-variant-filters__label">Color</span>
+        <Select
+          allowClear
+          placeholder="All colors"
+          style={{ width: 150 }}
+          value={colorFilter}
+          onChange={setColorFilter}
+          options={colorsForDesign.map(c => ({ value: c, label: c }))}
+        />
+        <Button type="link" onClick={clearVariantFilters} disabled={!sizeFilter && !colorFilter}>
+          Clear filters
+        </Button>
+        <Checkbox checked={lowStockOnly} onChange={e => setLowStockOnly(e.target.checked)}>
+          Low stock only (≤ {LOW_STOCK_THRESHOLD})
+        </Checkbox>
+      </div>
+    </div>
+  )
+
   return (
     <div>
       <Title level={4} className="page-title">Inventory Stock</Title>
+
+      <Row gutter={[16, 16]} className="inventory-page__summary">
+        <Col xs={24} sm={8}>
+          <Card size="small">
+            <Statistic title="Total SKUs" value={skuCount} prefix={<AppstoreOutlined />} />
+          </Card>
+        </Col>
+        <Col xs={24} sm={8}>
+          <Card size="small">
+            <Statistic title="Total units in stock" value={totalUnits} prefix={<InboxOutlined />} />
+          </Card>
+        </Col>
+        <Col xs={24} sm={8}>
+          <Card size="small">
+            <Statistic
+              title="Low stock items"
+              value={lowStockItems.length}
+              prefix={<WarningOutlined />}
+              valueStyle={{ color: lowStockItems.length > 0 ? '#fa8c16' : '#3f8600' }}
+            />
+          </Card>
+        </Col>
+      </Row>
 
       {lowStockItems.length > 0 && (
         <Alert
@@ -235,26 +442,18 @@ export default function InventoryPage() {
           showIcon
           icon={<WarningOutlined />}
           style={{ marginBottom: 16 }}
-          message={`Low stock alert — ${lowStockItems.length} item(s) at or below ${LOW_STOCK_THRESHOLD} units`}
+          message={`${lowStockItems.length} item(s) at or below ${LOW_STOCK_THRESHOLD} units`}
           description={
-            <ul style={{ margin: '8px 0 0', paddingLeft: 20 }}>
-              {lowStockItems.map(item => (
-                <li key={item.inventoryId}>
-                  <Text strong>{item.designName}</Text> ({item.designCode}) —{' '}
-                  {item.sizeValue} / {item.color}:{' '}
-                  <Text type={item.quantity === 0 ? 'danger' : 'warning'}>
-                    {item.quantity} in stock
-                  </Text>
-                </li>
-              ))}
-            </ul>
+            <Text type="secondary">
+              Use <strong>By design</strong> view, pick the design, then filter by size and color to adjust stock quickly.
+            </Text>
           }
         />
       )}
 
-      <Space wrap style={{ marginBottom: 16 }} size="middle">
+      <div className="inventory-toolbar">
         <Input
-          placeholder="Search design code, name, or color"
+          placeholder="Search design code or name"
           value={search}
           onChange={e => setSearch(e.target.value)}
           allowClear
@@ -268,44 +467,66 @@ export default function InventoryPage() {
           onChange={setCategoryFilter}
           options={categories.map(c => ({ value: c, label: c }))}
         />
-        <Select
-          placeholder="Size"
-          allowClear
-          style={{ width: 120 }}
-          value={sizeFilter}
-          onChange={setSizeFilter}
-          options={sizes.map(s => ({ value: s, label: s }))}
-        />
-        <Checkbox checked={lowStockOnly} onChange={e => setLowStockOnly(e.target.checked)}>
-          Low stock only (≤ {LOW_STOCK_THRESHOLD})
-        </Checkbox>
+        {viewMode === 'all' && (
+          <Checkbox checked={lowStockOnly} onChange={e => setLowStockOnly(e.target.checked)}>
+            Low stock only
+          </Checkbox>
+        )}
         <Button
           icon={<PrinterOutlined />}
           disabled={selectedRowKeys.length === 0}
-          onClick={() => printLabels(filteredStock.filter(r => selectedRowKeys.includes(r.inventoryId)))}
+          onClick={() => printLabels(tableRows.filter(r => selectedRowKeys.includes(r.inventoryId)))}
         >
           Print labels ({selectedRowKeys.length})
         </Button>
-      </Space>
+      </div>
+
+      <Tabs
+        className="inventory-view-tabs"
+        activeKey={viewMode}
+        onChange={setViewMode}
+        items={[
+          { key: 'by-design', label: 'By design' },
+          { key: 'all', label: 'All items' },
+        ]}
+      />
+
+      {designPanel}
 
       {loadError && (
         <Alert type="error" message={loadError} style={{ marginBottom: 16 }} showIcon />
       )}
 
-      <Table
-        dataSource={filteredStock}
-        columns={columns}
-        rowKey="inventoryId"
-        loading={loading}
-        rowSelection={{
-          selectedRowKeys,
-          onChange: setSelectedRowKeys,
-        }}
-        rowClassName={(r) =>
-          r.designStatus !== 'inactive' && r.quantity <= LOW_STOCK_THRESHOLD
-            ? 'inventory-low-stock-row' : ''}
-        locale={{ emptyText: 'No stock yet — record a return at Press and Packing (final stage) with OK pieces' }}
-      />
+      <div className="inventory-table-wrap">
+        <Table
+          className="inventory-table"
+          dataSource={tableRows}
+          columns={variantColumns}
+          rowKey="inventoryId"
+          loading={loading}
+          bordered
+          size="middle"
+          scroll={{ x: viewMode === 'all' ? 1100 : 900 }}
+          rowSelection={{
+            selectedRowKeys,
+            onChange: setSelectedRowKeys,
+          }}
+          rowClassName={(r) =>
+            r.designStatus !== 'inactive' && r.quantity <= LOW_STOCK_THRESHOLD
+              ? 'inventory-low-stock-row' : ''}
+          pagination={{
+            pageSize: 12,
+            showSizeChanger: true,
+            pageSizeOptions: ['12', '24', '48'],
+            showTotal: (t) => `${t} variant${t === 1 ? '' : 's'}`,
+          }}
+          locale={{
+            emptyText: viewMode === 'by-design'
+              ? 'No variants for this design — try another size/color or design'
+              : 'No stock yet — record a return at Press and Packing',
+          }}
+        />
+      </div>
 
       <InventoryLabelPrint items={labelItems} prices={priceMap} />
 
@@ -328,7 +549,9 @@ export default function InventoryPage() {
       />
 
       <Modal
-        title={adjustTarget ? `Adjust stock — ${adjustTarget.designCode} / ${adjustTarget.sizeValue} / ${adjustTarget.color}` : 'Adjust stock'}
+        title={adjustTarget
+          ? `Adjust — ${adjustTarget.designCode} / ${adjustTarget.sizeValue} / ${adjustTarget.color}`
+          : 'Adjust stock'}
         open={adjustOpen}
         onCancel={() => { setAdjustOpen(false); setAdjustTarget(null) }}
         footer={null}

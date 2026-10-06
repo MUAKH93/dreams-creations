@@ -14,7 +14,7 @@ export const PORTALS = {
     title: 'Management Login',
     subtitle: 'Admin & Manager — factory operations',
     roles: MANAGEMENT_ROLES,
-    home: '/dashboard',
+    home: '/modules',
     loginPath: '/login',
   },
   supervisor: {

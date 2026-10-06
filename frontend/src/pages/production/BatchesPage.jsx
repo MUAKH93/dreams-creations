@@ -1,11 +1,12 @@
-import { useEffect, useState } from 'react'
+import { useCallback, useEffect, useState } from 'react'
 import {
-  Table, Button, Modal, Form, Select, InputNumber, Input,
-  Tag, Typography, Space, DatePicker, message, Drawer, Descriptions, Progress, Card, Alert, Popconfirm, Row, Col
+  Button, Modal, Form, Select, InputNumber, Input, Tag,
+  Typography, Space, DatePicker, message, Drawer, Descriptions, Card, Alert, Popconfirm, Row, Col
 } from 'antd'
 import { PlusOutlined, EyeOutlined, EditOutlined, StopOutlined } from '@ant-design/icons'
 import { productionAPI } from '../../api/production'
 import { apiErrorMessage } from '../../api/client'
+import ProductionBatchesTable from '../../components/production/ProductionBatchesTable'
 import dayjs from 'dayjs'
 
 const { Title } = Typography
@@ -129,64 +130,29 @@ export default function BatchesPage() {
   const canModifyBatch = (batch) =>
     batch.status !== 'completed' && batch.status !== 'cancelled'
 
-  const columns = [
-    { title: 'Batch #', key: 'batch',
-      render: (_, r) => {
-        const batchNo = r.batchNumber || '—'
-        return r.articleName
-          ? `${batchNo} — ${r.articleName}`
-          : batchNo
-      } },
-    { title: 'Design', key: 'design',
-      render: (_, r) => r.designLabel || r.suit?.design?.name || 'Design' },
-    { title: 'Suit',      key: 'suit',
-      render: (_, r) => r.suit
-        ? `${r.suit.design?.designCode || ''} — ${r.suit.size?.sizeValue || 'Size TBD'} — ${r.suit.color || ''}`
-        : '-' },
-    { title: 'Planned',   dataIndex: 'totalSuitPlanned',  key: 'planned' },
-    { title: 'Produced',  dataIndex: 'totalSuitProduced', key: 'produced',
-      render: (v, r) => (
-        <Progress
-          percent={r.totalSuitPlanned ? Math.round((v / r.totalSuitPlanned) * 100) : 0}
-          size="small"
-          status={r.status === 'completed' ? 'success' : 'active'}
-        />
-      )
-    },
-    { title: 'Due',       dataIndex: 'expectedCompletionDate', key: 'due',
-      render: (d) => d ? dayjs(d).format('DD MMM YYYY') : '-' },
-    { title: 'Status',    dataIndex: 'status', key: 'status',
-      render: (s) => (
-        <Tag color={s === 'completed' ? 'green' : s === 'in_progress' ? 'blue' : s === 'cancelled' ? 'red' : 'default'}>
-          {s?.replace('_', ' ').toUpperCase()}
-        </Tag>
-      )
-    },
-    {
-      title: 'Actions', key: 'actions',
-      render: (_, r) => (
-        <Space>
-          <Button icon={<EyeOutlined />} size="small"
-            onClick={() => viewFlow(r.batchId)}>Flow</Button>
-          {canModifyBatch(r) && (
-            <>
-              <Button icon={<EditOutlined />} size="small"
-                onClick={() => openEditBatch(r)}>Edit</Button>
-              <Popconfirm
-                title="Cancel this batch?"
-                description="Only batches without active dispatches can be cancelled."
-                onConfirm={() => cancelBatch(r.batchId)}
-                okText="Cancel batch"
-                okButtonProps={{ danger: true }}
-              >
-                <Button danger icon={<StopOutlined />} size="small">Cancel</Button>
-              </Popconfirm>
-            </>
-          )}
-        </Space>
-      )
-    },
-  ]
+  const renderActions = useCallback((_, r) => (
+    <Space size="small" onClick={(e) => e.stopPropagation()}>
+      <Button icon={<EyeOutlined />} size="small" onClick={() => viewFlow(r.batchId)}>
+        Flow
+      </Button>
+      {canModifyBatch(r) && (
+        <>
+          <Button icon={<EditOutlined />} size="small" onClick={() => openEditBatch(r)}>
+            Edit
+          </Button>
+          <Popconfirm
+            title="Cancel this batch?"
+            description="Only batches without active dispatches can be cancelled."
+            onConfirm={() => cancelBatch(r.batchId)}
+            okText="Cancel batch"
+            okButtonProps={{ danger: true }}
+          >
+            <Button danger icon={<StopOutlined />} size="small">Cancel</Button>
+          </Popconfirm>
+        </>
+      )}
+    </Space>
+  ), [])
 
   return (
     <div>
@@ -205,7 +171,16 @@ export default function BatchesPage() {
         description="Add one or more designs per order. Batch numbers are auto-generated; enter an article name to identify each line. Size/color assigned at Cutting & Stitching."
       />
 
-      <Table dataSource={batches} columns={columns} rowKey="batchId" loading={loading} />
+      <Card className="dashboard-batches-card" styles={{ body: { paddingTop: 12 } }}>
+        <ProductionBatchesTable
+          batches={batches}
+          loading={loading}
+          includeSuit
+          pageSize={10}
+          showSizeChanger
+          renderActions={renderActions}
+        />
+      </Card>
 
       <Modal title="New Production Order (Design Phase)" open={modalOpen}
         onCancel={() => setModalOpen(false)} footer={null} width={720}>

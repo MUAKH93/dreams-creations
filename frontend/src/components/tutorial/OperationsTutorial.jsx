@@ -45,7 +45,7 @@ export function OperationsTutorialHelp({
 
 export { PortalHelpButton as OperationsHelpButton, PortalNavTour as OperationsNavTour }
 
-export function buildOperationsTourSteps(config, showFinance) {
+export function buildOperationsTourSteps(config) {
   const steps = config.sections
     .filter(s => s.path && s.path !== '/finance')
     .map(section => ({
@@ -53,14 +53,6 @@ export function buildOperationsTourSteps(config, showFinance) {
       description: section.summary,
       target: () => document.querySelector(`[data-tour="ops-${section.path.replace(/^\//, '').replace(/\//g, '-')}"]`),
     }))
-
-  if (showFinance) {
-    steps.push({
-      title: 'Finance Portal',
-      description: 'Open the separate accounting workspace from this button.',
-      target: () => document.querySelector('[data-tour="ops-finance-portal"]'),
-    })
-  }
 
   steps.push({
     title: 'Help anytime',

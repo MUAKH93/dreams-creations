@@ -6,6 +6,3 @@
 
 export const financeModuleEnabled =
   import.meta.env.VITE_FINANCE_MODULE_ENABLED === 'true'
-
-export const shopModuleEnabled =
-  import.meta.env.VITE_SHOP_MODULE_ENABLED === 'true'

@@ -96,19 +96,82 @@ body {
 
 .app-sider {
   background: #1a237e !important;
+  position: sticky;
+  top: 0;
+  height: 100vh;
+  overflow: hidden;
+}
+
+.app-sider > .ant-layout-sider-children {
+  height: 100%;
 }
 
 .app-sider-inner {
   display: flex;
   flex-direction: column;
-  height: 100vh;
+  height: 100%;
+  min-height: 0;
   overflow: hidden;
 }
 
 .app-sider-menu {
   flex: 1;
-  overflow-y: auto;
   min-height: 0;
+  overflow: hidden;
+  position: relative;
+}
+
+/* Fade hint when more menu items are below the fold */
+.app-sider-menu::after {
+  content: '';
+  pointer-events: none;
+  position: absolute;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  height: 28px;
+  background: linear-gradient(to bottom, transparent, rgba(26, 35, 126, 0.92));
+}
+
+.app-sider-menu .ant-menu {
+  height: 100%;
+  max-height: 100%;
+  overflow-x: hidden;
+  overflow-y: auto;
+  padding-bottom: 8px;
+  scrollbar-width: thin;
+  scrollbar-color: rgba(255, 255, 255, 0.45) transparent;
+}
+
+.app-sider-menu .ant-menu::-webkit-scrollbar {
+  width: 6px;
+}
+
+.app-sider-menu .ant-menu::-webkit-scrollbar-thumb {
+  background: rgba(255, 255, 255, 0.35);
+  border-radius: 4px;
+}
+
+.app-sider-menu .ant-menu::-webkit-scrollbar-thumb:hover {
+  background: rgba(255, 255, 255, 0.55);
+}
+
+.app-drawer .ant-drawer-body {
+  overflow-x: hidden;
+  overflow-y: auto;
+  max-height: calc(100vh - 56px);
+  padding-bottom: 16px;
+  scrollbar-width: thin;
+  scrollbar-color: rgba(255, 255, 255, 0.45) transparent;
+}
+
+.app-drawer .ant-drawer-body::-webkit-scrollbar {
+  width: 6px;
+}
+
+.app-drawer .ant-drawer-body::-webkit-scrollbar-thumb {
+  background: rgba(255, 255, 255, 0.35);
+  border-radius: 4px;
 }
 
 .app-sider-brand {
@@ -238,30 +301,94 @@ body {
   color: rgba(255, 255, 255, 0.85);
 }
 
-/* Operations sidebar — finance portal entry (separate workspace) */
-.ops-finance-portal-btn {
-  flex-shrink: 0;
-  margin: 12px 12px 16px;
-  padding-top: 12px;
-  border-top: 1px solid rgba(255, 255, 255, 0.12);
-}
-
-.ops-finance-portal-btn__inner {
-  background: #0d9488 !important;
-  border-color: #0d9488 !important;
-  color: #fff !important;
-  font-weight: 600;
-  height: 44px;
-}
-
-.ops-finance-portal-btn__inner:hover {
-  background: #0f766e !important;
-  border-color: #0f766e !important;
-  color: #fff !important;
-}
-
 .app-header-help .ant-btn {
   color: #1a237e;
+}
+
+/* Dashboard — production batches table */
+.dashboard-batches-card .ant-card-body {
+  padding-top: 12px;
+}
+
+.dashboard-batches-table-wrap {
+  overflow-x: auto;
+}
+
+.dashboard-batches-table.ant-table-wrapper .ant-table {
+  border-radius: 10px;
+  overflow: hidden;
+}
+
+.dashboard-batches-table .ant-table-container {
+  border-inline-start: 1px solid #dbe2ea !important;
+  border-top: 1px solid #dbe2ea !important;
+}
+
+.dashboard-batches-table .ant-table-thead > tr > th {
+  background: #f1f5f9 !important;
+  color: #334155;
+  font-weight: 600;
+  font-size: 13px;
+  padding: 13px 16px !important;
+  border-bottom: 1px solid #cbd5e1 !important;
+  border-inline-end: 1px solid #dbe2ea !important;
+}
+
+.dashboard-batches-table .ant-table-tbody > tr > td {
+  padding: 14px 16px !important;
+  border-bottom: 1px solid #e2e8f0 !important;
+  border-inline-end: 1px solid #e8edf3 !important;
+  vertical-align: middle;
+  background: #fff;
+}
+
+.dashboard-batches-table .ant-table-tbody > tr:nth-child(even) > td {
+  background: #fafbfc;
+}
+
+.dashboard-batches-table .ant-table-tbody > tr:hover > td {
+  background: #eef4ff !important;
+}
+
+.dashboard-batches-table .ant-table-tbody > tr:last-child > td {
+  border-bottom: 1px solid #e2e8f0 !important;
+}
+
+.dashboard-batches-table .ant-pagination {
+  margin: 16px 0 4px !important;
+}
+
+.dashboard-batch-cell {
+  display: block;
+  line-height: 1.45;
+  color: #1e293b;
+}
+
+.dashboard-batch-cell--primary {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+}
+
+.dashboard-batch-cell__sub {
+  font-size: 12px;
+  line-height: 1.3;
+}
+
+.dashboard-batch-cell--num {
+  font-variant-numeric: tabular-nums;
+  font-weight: 500;
+}
+
+.dashboard-batch-cell--progress {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  min-width: 0;
+}
+
+.dashboard-batch-cell--progress .ant-progress-line {
+  margin-bottom: 0;
 }
 
 .portal-tutorial-step-num {

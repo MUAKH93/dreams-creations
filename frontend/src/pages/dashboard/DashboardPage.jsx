@@ -83,15 +83,15 @@ export default function DashboardPage() {
 
       {(role === 'ADMIN' || role === 'MANAGER') && (
         <>
-          <DashboardCharts />
           <AdminManagerDashboard
-          role={role}
-          summary={summary}
-          alerts={alerts}
-          batches={batches}
-          loading={loading}
-          fmtMoney={fmtMoney}
-        />
+            role={role}
+            summary={summary}
+            alerts={alerts}
+            batches={batches}
+            loading={loading}
+            fmtMoney={fmtMoney}
+          />
+          <DashboardCharts />
         </>
       )}
 

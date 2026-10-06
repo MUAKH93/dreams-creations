@@ -20,8 +20,7 @@ public class ModulesController {
     @GetMapping
     public ResponseEntity<ModuleFlagsDTO> getModuleFlags() {
         ModuleFlagsDTO flags = new ModuleFlagsDTO(
-                new ModuleFlagsDTO.ModuleInfo(moduleProperties.getFinance().isEnabled()),
-                new ModuleFlagsDTO.ModuleInfo(moduleProperties.getShop().isEnabled())
+                new ModuleFlagsDTO.ModuleInfo(moduleProperties.getFinance().isEnabled())
         );
         return ResponseEntity.ok(flags);
     }

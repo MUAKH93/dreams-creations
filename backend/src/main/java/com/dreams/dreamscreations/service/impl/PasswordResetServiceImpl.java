@@ -30,7 +30,7 @@ public class PasswordResetServiceImpl implements PasswordResetService {
     @Value("${app.frontend.url:http://localhost:3000}")
     private String frontendUrl;
 
-    @Value("${app.password-reset.expose-link:true}")
+    @Value("${app.password-reset.expose-link:false}")
     private boolean exposeLink;
 
     public PasswordResetServiceImpl(UserRepository userRepo,

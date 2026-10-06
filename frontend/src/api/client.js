@@ -5,8 +5,10 @@ import axios from 'axios'
  * All API calls go through this — the interceptor automatically
  * attaches the JWT token from localStorage to every request.
  */
+const apiBase = (import.meta.env.VITE_API_BASE_URL || '/api').replace(/\/$/, '')
+
 const client = axios.create({
-  baseURL: '/api',
+  baseURL: apiBase,
   headers: {
     'Content-Type': 'application/json',
   },
@@ -16,7 +18,7 @@ const client = axios.create({
 /** Human-readable message for API failures */
 export function apiErrorMessage(error) {
   if (!error.response) {
-    return 'Cannot reach backend. Make sure Spring Boot is running on port 8080.'
+    return 'Cannot reach backend. Check that the API is running and reachable from this site.'
   }
   const msg = error.response?.data?.message
   if (msg) return msg

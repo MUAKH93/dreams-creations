@@ -1,6 +1,7 @@
 package com.dreams.dreamscreations.config;
 
 import com.dreams.dreamscreations.security.JwtAuthenticationFilter;
+import com.dreams.dreamscreations.security.ShopIntegrationAuthFilter;
 import com.dreams.dreamscreations.security.UserDetailsServiceImpl;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
@@ -21,7 +22,11 @@ import org.springframework.web.cors.CorsConfiguration;
 import org.springframework.web.cors.CorsConfigurationSource;
 import org.springframework.web.cors.UrlBasedCorsConfigurationSource;
 
+import org.springframework.beans.factory.annotation.Value;
+
+import java.util.Arrays;
 import java.util.List;
+import java.util.stream.Collectors;
 
 @Configuration
 @EnableWebSecurity
@@ -30,11 +35,17 @@ public class SecurityConfig {
 
     private final UserDetailsServiceImpl userDetailsService;
     private final JwtAuthenticationFilter jwtFilter;
+    private final ShopIntegrationAuthFilter shopIntegrationAuthFilter;
+
+    @Value("${app.cors.allowed-origins:http://localhost:3000,http://localhost:5173}")
+    private String corsAllowedOrigins;
 
     public SecurityConfig(UserDetailsServiceImpl userDetailsService,
-                          JwtAuthenticationFilter jwtFilter) {
+                          JwtAuthenticationFilter jwtFilter,
+                          ShopIntegrationAuthFilter shopIntegrationAuthFilter) {
         this.userDetailsService = userDetailsService;
         this.jwtFilter = jwtFilter;
+        this.shopIntegrationAuthFilter = shopIntegrationAuthFilter;
     }
 
     @Bean
@@ -65,6 +76,7 @@ public class SecurityConfig {
                 // Public
                 .requestMatchers("/api/auth/**").permitAll()
                 .requestMatchers("/api/health", "/api/health/**").permitAll()
+                .requestMatchers("/api/integration/shop", "/api/integration/shop/**").permitAll()
                 .requestMatchers(HttpMethod.GET, "/api/modules").permitAll()
                 .requestMatchers(HttpMethod.GET, "/api/designs", "/api/designs/**").permitAll()
                 .requestMatchers(HttpMethod.GET, "/api/categories", "/api/categories/**").permitAll()
@@ -161,6 +173,7 @@ public class SecurityConfig {
                 // Everything else needs auth
                 .anyRequest().authenticated()
             )
+            .addFilterBefore(shopIntegrationAuthFilter, UsernamePasswordAuthenticationFilter.class)
             .addFilterBefore(jwtFilter, UsernamePasswordAuthenticationFilter.class);
 
         return http.build();
@@ -169,10 +182,11 @@ public class SecurityConfig {
     @Bean
     public CorsConfigurationSource corsConfigurationSource() {
         CorsConfiguration config = new CorsConfiguration();
-        config.setAllowedOrigins(List.of(
-                "http://localhost:3000",
-                "http://localhost:5173"
-        ));
+        List<String> origins = Arrays.stream(corsAllowedOrigins.split(","))
+                .map(String::trim)
+                .filter(s -> !s.isEmpty())
+                .collect(Collectors.toList());
+        config.setAllowedOrigins(origins);
         config.setAllowedMethods(List.of("GET","POST","PUT","PATCH","DELETE","OPTIONS"));
         config.setAllowedHeaders(List.of("*"));
         config.setAllowCredentials(true);

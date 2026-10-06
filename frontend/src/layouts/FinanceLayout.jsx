@@ -2,7 +2,7 @@ import { useState } from 'react'
 import { Layout, Menu, Typography, Avatar, Dropdown, Drawer, Button, Grid, ConfigProvider } from 'antd'
 import {
   HomeOutlined, UnorderedListOutlined, FileTextOutlined, BarChartOutlined,
-  ArrowLeftOutlined, UserOutlined, LogoutOutlined, MenuOutlined, IdcardOutlined,
+  ArrowLeftOutlined, AppstoreOutlined, UserOutlined, LogoutOutlined, MenuOutlined, IdcardOutlined,
   ShopOutlined, BankOutlined, BookOutlined,
 } from '@ant-design/icons'
 import { useNavigate, useLocation, Outlet } from 'react-router-dom'
@@ -129,12 +129,20 @@ export default function FinanceLayout() {
       <div className="finance-back-link">
         <Button
           type="link"
+          icon={<AppstoreOutlined />}
+          onClick={() => navigate('/modules')}
+          style={{ color: '#64748b', padding: '4px 0' }}
+        >
+          All systems
+        </Button>
+        <Button
+          type="link"
           icon={<ArrowLeftOutlined />}
           data-tour="finance-back-ops"
           onClick={() => navigate('/dashboard')}
           style={{ color: '#64748b', padding: '4px 0' }}
         >
-          Back to Operations
+          Back to Production
         </Button>
       </div>
     </>
@@ -146,7 +154,7 @@ export default function FinanceLayout() {
         {!isMobile && (
           <Sider width={240} className="finance-sider">
             <FinanceSidebarBrand />
-            {renderMenu()}
+            <div className="finance-sider-scroll">{renderMenu()}</div>
           </Sider>
         )}
 

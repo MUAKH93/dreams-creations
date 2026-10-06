@@ -22,6 +22,9 @@ jwt.secret=CHANGE_ME_TO_A_LONG_RANDOM_SECRET_KEY
 jwt.expiration=86400000
 
 app.frontend.url=http://localhost:3000
+# Comma-separated browser origins allowed to call the API (include production URL)
+app.cors.allowed-origins=http://localhost:3000,http://localhost:5173
+# Dev only: return reset/verify links in API responses when mail is off
 app.password-reset.expose-link=true
 app.email-verification.expose-link=true
 
@@ -33,7 +36,9 @@ modules.finance.enabled=false
 # After UAT: set both to true so bills/payments and COGS/inventory post journals automatically
 modules.finance.auto-post-ar=true
 modules.finance.auto-post-inventory=true
-modules.shop.enabled=false
+
+# API key for external shop app → finance integration (separate dreams-creations-shop project)
+app.shop.integration.api-key=change-me-shop-integration-key
 
 # Email — set app.mail.enabled=true and configure SMTP to send real emails
 app.mail.enabled=false

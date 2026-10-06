@@ -3,14 +3,12 @@ package com.dreams.dreamscreations.dto;
 public class ModuleFlagsDTO {
 
     private ModuleInfo finance;
-    private ModuleInfo shop;
 
     public ModuleFlagsDTO() {
     }
 
-    public ModuleFlagsDTO(ModuleInfo finance, ModuleInfo shop) {
+    public ModuleFlagsDTO(ModuleInfo finance) {
         this.finance = finance;
-        this.shop = shop;
     }
 
     public ModuleInfo getFinance() {
@@ -19,14 +17,6 @@ public class ModuleFlagsDTO {
 
     public void setFinance(ModuleInfo finance) {
         this.finance = finance;
-    }
-
-    public ModuleInfo getShop() {
-        return shop;
-    }
-
-    public void setShop(ModuleInfo shop) {
-        this.shop = shop;
     }
 
     public static class ModuleInfo {

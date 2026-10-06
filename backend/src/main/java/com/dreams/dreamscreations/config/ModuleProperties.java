@@ -6,7 +6,6 @@ import org.springframework.boot.context.properties.ConfigurationProperties;
 public class ModuleProperties {
 
     private Finance finance = new Finance();
-    private Shop shop = new Shop();
 
     public Finance getFinance() {
         return finance;
@@ -14,14 +13,6 @@ public class ModuleProperties {
 
     public void setFinance(Finance finance) {
         this.finance = finance;
-    }
-
-    public Shop getShop() {
-        return shop;
-    }
-
-    public void setShop(Shop shop) {
-        this.shop = shop;
     }
 
     public static class Finance {
@@ -60,18 +51,6 @@ public class ModuleProperties {
 
         public void setAutoPostAp(boolean autoPostAp) {
             this.autoPostAp = autoPostAp;
-        }
-    }
-
-    public static class Shop {
-        private boolean enabled = false;
-
-        public boolean isEnabled() {
-            return enabled;
-        }
-
-        public void setEnabled(boolean enabled) {
-            this.enabled = enabled;
         }
     }
 }

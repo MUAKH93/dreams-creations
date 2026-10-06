@@ -30,7 +30,7 @@ public class EmailVerificationServiceImpl implements EmailVerificationService {
     @Value("${app.frontend.url:http://localhost:3000}")
     private String frontendUrl;
 
-    @Value("${app.email-verification.expose-link:true}")
+    @Value("${app.email-verification.expose-link:false}")
     private boolean exposeLink;
 
     public EmailVerificationServiceImpl(UserRepository userRepo,

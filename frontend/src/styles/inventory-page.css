@@ -1,0 +1,139 @@
+.inventory-page__summary {
+  margin-bottom: 20px;
+}
+
+.inventory-design-panel {
+  border: 1px solid #e2e8f0;
+  border-radius: 12px;
+  background: #fff;
+  padding: 20px;
+  margin-bottom: 20px;
+}
+
+.inventory-design-panel__header {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 16px;
+  align-items: flex-start;
+  margin-bottom: 20px;
+}
+
+.inventory-design-panel__preview {
+  width: 88px;
+  height: 88px;
+  border-radius: 10px;
+  overflow: hidden;
+  border: 1px solid #e2e8f0;
+  background: #f8fafc;
+  flex-shrink: 0;
+}
+
+.inventory-design-panel__preview img {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+}
+
+.inventory-design-panel__meta {
+  flex: 1;
+  min-width: 220px;
+}
+
+.inventory-design-panel__title {
+  margin: 0 0 4px;
+  font-size: 18px;
+  font-weight: 600;
+  color: #0f172a;
+}
+
+.inventory-design-panel__code {
+  color: #64748b;
+  font-size: 13px;
+  margin-bottom: 8px;
+}
+
+.inventory-design-panel__stats {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+}
+
+.inventory-variant-filters {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 12px;
+  align-items: center;
+  padding: 14px 16px;
+  background: #f8fafc;
+  border: 1px solid #e2e8f0;
+  border-radius: 10px;
+  margin-bottom: 16px;
+}
+
+.inventory-variant-filters__label {
+  font-size: 13px;
+  font-weight: 600;
+  color: #475569;
+  margin-right: 4px;
+}
+
+.inventory-table-wrap {
+  overflow-x: auto;
+}
+
+.inventory-table.ant-table-wrapper .ant-table {
+  border-radius: 10px;
+  overflow: hidden;
+}
+
+.inventory-table .ant-table-container {
+  border-inline-start: 1px solid #dbe2ea !important;
+  border-top: 1px solid #dbe2ea !important;
+}
+
+.inventory-table .ant-table-thead > tr > th {
+  background: #f1f5f9 !important;
+  color: #334155;
+  font-weight: 600;
+  font-size: 13px;
+  padding: 13px 16px !important;
+  border-bottom: 1px solid #cbd5e1 !important;
+  border-inline-end: 1px solid #dbe2ea !important;
+}
+
+.inventory-table .ant-table-tbody > tr > td {
+  padding: 14px 16px !important;
+  border-bottom: 1px solid #e2e8f0 !important;
+  border-inline-end: 1px solid #e8edf3 !important;
+  vertical-align: middle;
+}
+
+.inventory-table .ant-table-tbody > tr:nth-child(even) > td {
+  background: #fafbfc;
+}
+
+.inventory-table .ant-table-tbody > tr:hover > td {
+  background: #eef4ff !important;
+}
+
+.inventory-table .inventory-low-stock-row > td {
+  background: #fff7ed !important;
+}
+
+.inventory-qty-tag {
+  min-width: 52px;
+  text-align: center;
+  font-variant-numeric: tabular-nums;
+}
+
+.inventory-toolbar {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 12px;
+  align-items: center;
+  margin-bottom: 16px;
+}
+
+.inventory-view-tabs {
+  margin-bottom: 16px;
+}

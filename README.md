@@ -69,6 +69,14 @@ The Vite dev server proxies `/api` to the backend.
 
 Design images are stored outside the repo at `%USERPROFILE%\dreams-creations\uploads` (configurable via `app.upload.dir`).
 
+## Deployment
+
+Before go-live, see:
+
+- [docs/DEPLOYMENT.md](docs/DEPLOYMENT.md) — build, config, hosting
+- [docs/PRE-DEPLOYMENT-REVIEW.md](docs/PRE-DEPLOYMENT-REVIEW.md) — sign-off checklist
+- [docs/finance-uat-checklist.md](docs/finance-uat-checklist.md) — when finance module is enabled
+
 ## Owner
 
 **Rovexa Technologies** — internal product under active development
