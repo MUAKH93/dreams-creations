@@ -4,7 +4,7 @@ import react from '@vitejs/plugin-react'
 export default defineConfig({
   plugins: [react()],
   server: {
-    port: 3000,
+    port: 3002,
     proxy: {
       // Proxy all /api calls to Spring Boot so we don't hit CORS in dev
       '/api': {
@@ -14,3 +14,4 @@ export default defineConfig({
     }
   }
 })
+
